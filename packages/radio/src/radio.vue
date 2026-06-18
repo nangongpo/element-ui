@@ -28,7 +28,7 @@
         type="radio"
         aria-hidden="true"
         v-model="model"
-        @focus="focus = true"
+        @focus="handleInputFocus"
         @blur="focus = false"
         @change="handleChange"
         :name="name"
@@ -123,6 +123,13 @@
     },
 
     methods: {
+      handleInputFocus(e) {
+        // 关键：当内部 input 误触 focus 时，强行把焦点转移给外层的 label
+        if (this.$el && typeof this.$el.focus === 'function') {
+          this.$el.focus();
+        }
+        this.focus = true;
+      },
       handleChange() {
         this.$nextTick(() => {
           this.$emit('change', this.model);
