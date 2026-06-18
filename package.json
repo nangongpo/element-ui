@@ -1,5 +1,5 @@
 {
-  "name": "element-ui-esm",
+  "name": "element-ui",
   "version": "2.15.14",
   "description": "基于element-ui@2.15.14构建esm",
   "main": "lib/index.js",

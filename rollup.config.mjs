@@ -56,7 +56,7 @@ const config = components.map(name => ({
     paths: aliasPaths
   },
   plugins: [
-    resolve({ extensions: ['.js', '.vue'] }),
+    resolve({ extensions: ['.js', '.jsx', '.vue'] }),
     vue({ css: false, compileTemplate: true }),
     babelConfig,
     commonjs()
