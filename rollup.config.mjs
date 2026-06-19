@@ -59,7 +59,8 @@ const externalDeps = [
   new RegExp(`^${OLD_NAME}/lib/`), 
   new RegExp(`^${PKG_NAME}/lib/`), 
   /^vue-runtime-helpers\//, 
-  /^lodash-es/
+  /^lodash-es/,
+  /^dayjs/
 ];
 
 const aliasPaths = (id) => {
@@ -81,7 +82,6 @@ const createConfig = (input, outputFile, options = {}) => ({
   },
   external: (id) => {
     if (id === input || path.resolve(__dirname, id) === path.resolve(__dirname, input)) return false;
-    if (id.includes('popper')) return true;
     if (id.startsWith(`${PKG_NAME}/lib/`)) return true;
     if (typeof options.external === 'function') return options.external(id);
     return externalDeps.some(dep => dep instanceof RegExp ? dep.test(id) : dep === id);
@@ -139,14 +139,13 @@ const getAllJsFiles = (dirPath, fileList = []) => {
     const fullPath = path.join(dirPath, file);
     if (fs.statSync(fullPath).isDirectory()) {
       getAllJsFiles(fullPath, fileList);
-    } else if (file.endsWith('.js') && file !== 'popper.js') {
+    } else if (file.endsWith('.js')) {
       fileList.push(fullPath);
     }
   });
   return fileList;
 };
 
-// 编译工具方法
 TARGET_DIRS.forEach(dirName => {
   const targetDir = path.resolve(__dirname, `src/${dirName}`);
   if (fs.existsSync(targetDir)) {
@@ -161,16 +160,7 @@ TARGET_DIRS.forEach(dirName => {
 config.push(createConfig('src/index.js', 'lib/index.js', {
   useVue: true,
   useAlias: true,
-  external: (id) => id === 'vue' || /^vue-runtime-helpers\//.test(id) || id.includes('popper') || new RegExp(`^${PKG_NAME}(/|$)`).test(id)
+  external: (id) => id === 'vue' || /^vue-runtime-helpers\//.test(id) || new RegExp(`^${PKG_NAME}(/|$)`).test(id)
 }));
-
-// D. 物理复制 popper.js
-const sourcePopper = path.resolve(__dirname, 'src/utils/popper.js');
-const targetPopper = path.resolve(__dirname, 'lib/utils/popper.js');
-if (fs.existsSync(sourcePopper)) {
-  fs.mkdirSync(path.dirname(targetPopper), { recursive: true });
-  fs.copyFileSync(sourcePopper, targetPopper);
-  console.log(`⚡ [Success] 打包配置完毕: ${PKG_NAME}`);
-}
 
 export default config;
