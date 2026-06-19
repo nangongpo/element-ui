@@ -12,28 +12,65 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// ==================== 1. 动态读取新包名，锁定源码旧包名 ====================
+// ==================== 1. 基础配置与常量 ====================
 const pkg = JSON.parse(fs.readFileSync(path.resolve(__dirname, 'package.json'), 'utf-8'));
-const PKG_NAME = pkg.name;       // 🌟 动态获取的新包名 (如 "my-ui")
-const OLD_NAME = 'element-ui';   // 🔒 源码中写死的旧包名
+const PKG_NAME = pkg.name;       
+const OLD_NAME = 'element-ui';   
+const TARGET_DIRS = ['directives', 'locale', 'mixins', 'transitions', 'utils'];
 
-// ==================== 2. 基础配置与排除名单 ====================
-// 动态构建外部依赖拦截规则
+// ==================== 2. 自定义核心插件：处理路径与 require ====================
+const elementUiEsmHelper = () => {
+  const srcDir = path.resolve(__dirname, 'src');
+
+  return {
+    name: 'element-ui-esm-helper',
+    // 拦截路径解析，强制将 src 下的工具类指向 lib 并设为外部依赖
+    resolveId(source, importer) {
+      if (!importer) return null;
+      if (source.startsWith('.')) {
+        const absoluteTarget = path.resolve(path.dirname(importer), source);
+        if (absoluteTarget.startsWith(srcDir)) {
+          const relativeToSrc = path.relative(srcDir, absoluteTarget).replace(/\\/g, '/');
+          const parts = relativeToSrc.split('/');
+          
+          if (TARGET_DIRS.includes(parts[0])) {
+            const cleanPath = relativeToSrc.replace(/\.(js|vue)$/, '');
+            return { id: `${PKG_NAME}/lib/${cleanPath}`, external: true };
+          }
+        }
+      }
+      return null;
+    },
+    // 将 vue-popper.js 中的 require 转为 import
+    transform(code, id) {
+      if (code.includes("require('./popper") || code.includes('require("./popper')) {
+        const popperImportPath = `${PKG_NAME}/lib/utils/popper`;
+        let transformedCode = `import _PopperLib from '${popperImportPath}';\n` + code;
+        transformedCode = transformedCode.replace(/require\(['"]\.\/popper(\.js)?['"]\)/g, '_PopperLib');
+        return { code: transformedCode, map: null };
+      }
+      return null;
+    }
+  };
+};
+
 const externalDeps = [
   'vue', 
   new RegExp(`^${OLD_NAME}/lib/`), 
+  new RegExp(`^${PKG_NAME}/lib/`), 
   /^vue-runtime-helpers\//, 
   /^lodash-es/
 ];
 
-// 路径重定向：针对 Rollup 产物阶段可能残留的各种别名进行最终纠偏
 const aliasPaths = (id) => {
   if (id.startsWith(`${OLD_NAME}/src/`)) return id.replace(`${OLD_NAME}/src/`, `${PKG_NAME}/lib/`);
   if (id.startsWith(`${OLD_NAME}/packages/`)) return id.replace(`${OLD_NAME}/packages/`, `${PKG_NAME}/lib/`);
+  if (id.startsWith(`${PKG_NAME}/src/`)) return id.replace(`${PKG_NAME}/src/`, `${PKG_NAME}/lib/`);
+  if (id.startsWith(`${PKG_NAME}/packages/`)) return id.replace(`${PKG_NAME}/packages/`, `${PKG_NAME}/lib/`);
   return id;
 };
 
-// 工厂方法：抽离公共插件组合
+// ==================== 3. 基础配置工厂 ====================
 const createConfig = (input, outputFile, options = {}) => ({
   input,
   output: {
@@ -42,21 +79,27 @@ const createConfig = (input, outputFile, options = {}) => ({
     exports: 'named',
     paths: options.paths || aliasPaths
   },
-  external: options.external || externalDeps,
+  external: (id) => {
+    if (id === input || path.resolve(__dirname, id) === path.resolve(__dirname, input)) return false;
+    if (id.includes('popper')) return true;
+    if (id.startsWith(`${PKG_NAME}/lib/`)) return true;
+    if (typeof options.external === 'function') return options.external(id);
+    return externalDeps.some(dep => dep instanceof RegExp ? dep.test(id) : dep === id);
+  },
   plugins: [
-    // 🌟 动态别名替换：防止 Rollup 2 顺着入口解析相对路径时自作聪明加 ./
-    options.useAlias && alias({
-      entries: [{ find: /^\.\.\/packages\/([^/]+)\/index\.js$/, replacement: `${PKG_NAME}/lib/$1` }]
+    elementUiEsmHelper(),
+    alias({
+      entries: [
+        { find: /^\.?\.\.?\/packages\/([^/]+)\/index\.js$/, replacement: `${PKG_NAME}/lib/$1` },
+        { find: new RegExp(`^\\.?\\.\\.?\\/(.*)?${OLD_NAME}/src/`), replacement: `${PKG_NAME}/lib/` }
+      ]
     }),
-    // 🌟 核心绝杀：多维度文本清洗，把源码里的 element-ui 降维打击成新包名
     replace({
       preventAssignment: true,
       values: {
-        // 先精确清洗：把 element-ui/packages/xxx 和 element-ui/src/xxx 统一洗成 my-ui/lib/xxx
         [`${OLD_NAME}/packages/`]: `${PKG_NAME}/lib/`,
         [`${OLD_NAME}/src/`]: `${PKG_NAME}/lib/`,
         [`${OLD_NAME}/lib/`]: `${PKG_NAME}/lib/`,
-        // 再宽泛清洗：把源码里其他单独出现的 'element-ui' 字符串（如全局名称、挂载原型等）洗成新包名
         [`${OLD_NAME}`]: PKG_NAME
       }
     }),
@@ -77,10 +120,10 @@ const createConfig = (input, outputFile, options = {}) => ({
   ].filter(Boolean)
 });
 
-// ==================== 3. 核心打包流水线驱动 ====================
+// ==================== 4. 打包流水线 ====================
 const config = [];
 
-// A. 编译 packages/* 组件文件
+// A. 编译 packages 组件
 const componentsDir = path.resolve(__dirname, 'packages');
 if (fs.existsSync(componentsDir)) {
   fs.readdirSync(componentsDir).forEach(dir => {
@@ -90,7 +133,7 @@ if (fs.existsSync(componentsDir)) {
   });
 }
 
-// B. 批量递归编译 src/ 下的五大工具目录 (跳过 popper.js)
+// B. 批量编译工具目录
 const getAllJsFiles = (dirPath, fileList = []) => {
   fs.readdirSync(dirPath).forEach(file => {
     const fullPath = path.join(dirPath, file);
@@ -103,7 +146,8 @@ const getAllJsFiles = (dirPath, fileList = []) => {
   return fileList;
 };
 
-['directives', 'locale', 'mixins', 'transitions', 'utils'].forEach(dirName => {
+// 编译工具方法
+TARGET_DIRS.forEach(dirName => {
   const targetDir = path.resolve(__dirname, `src/${dirName}`);
   if (fs.existsSync(targetDir)) {
     getAllJsFiles(targetDir).forEach(absolutePath => {
@@ -113,26 +157,20 @@ const getAllJsFiles = (dirPath, fileList = []) => {
   }
 });
 
-// C. 编译并格式化全量入口 (src/index.js)
+// C. 编译入口
 config.push(createConfig('src/index.js', 'lib/index.js', {
   useVue: true,
   useAlias: true,
-  paths: (id) => {
-    if (id.startsWith(`${OLD_NAME}/src/`)) return id.replace(`${OLD_NAME}/src/`, `${PKG_NAME}/lib/`);
-    return id;
-  },
-  // 外部依赖拦截：只要是以新包名开头的，或者是 vue、vue-runtime-helpers，都作为外部依赖隔离
-  external: (id) => id === 'vue' || /^vue-runtime-helpers\//.test(id) || new RegExp(`^${PKG_NAME}(/|$)`).test(id)
+  external: (id) => id === 'vue' || /^vue-runtime-helpers\//.test(id) || id.includes('popper') || new RegExp(`^${PKG_NAME}(/|$)`).test(id)
 }));
 
-// ==================== 4. 物理流后置逻辑（免编译直接复制） ====================
+// D. 物理复制 popper.js
 const sourcePopper = path.resolve(__dirname, 'src/utils/popper.js');
 const targetPopper = path.resolve(__dirname, 'lib/utils/popper.js');
-
 if (fs.existsSync(sourcePopper)) {
   fs.mkdirSync(path.dirname(targetPopper), { recursive: true });
   fs.copyFileSync(sourcePopper, targetPopper);
-  console.log(`⚡ [Success] 物理流转换闭环大功告成！当前包名: ${PKG_NAME}`);
+  console.log(`⚡ [Success] 打包配置完毕: ${PKG_NAME}`);
 }
 
 export default config;
