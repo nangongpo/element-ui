@@ -1,4 +1,5 @@
 import Vue from 'vue';
+import { safeDocument } from './safe-dom';
 
 export function isString(obj) {
   return Object.prototype.toString.call(obj) === '[object String]';
@@ -21,7 +22,7 @@ let isFunction = (functionToCheck) => {
   return functionToCheck && getType.toString.call(functionToCheck) === '[object Function]';
 };
 
-if (typeof /./ !== 'function' && typeof Int8Array !== 'object' && (Vue.prototype.$isServer || typeof document.childNodes !== 'function')) {
+if (typeof /./ !== 'function' && typeof Int8Array !== 'object' && (Vue.prototype.$isServer || typeof safeDocument.childNodes !== 'function')) {
   isFunction = function(obj) {
     return typeof obj === 'function' || false;
   };

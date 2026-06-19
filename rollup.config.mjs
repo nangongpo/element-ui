@@ -29,27 +29,43 @@ const elementUiEsmHelper = () => {
       if (!importer) return null;
       if (source.startsWith('.')) {
         const absoluteTarget = path.resolve(path.dirname(importer), source);
+        
+        let isDir = false;
+        try {
+          if (fs.existsSync(absoluteTarget) && fs.statSync(absoluteTarget).isDirectory()) {
+            isDir = true;
+          }
+        } catch (e) {}
+
         if (absoluteTarget.startsWith(srcDir)) {
           const relativeToSrc = path.relative(srcDir, absoluteTarget).replace(/\\/g, '/');
           const parts = relativeToSrc.split('/');
           
           if (TARGET_DIRS.includes(parts[0])) {
-            const cleanPath = relativeToSrc.replace(/\.(js|vue)$/, '');
-            return { id: `${PKG_NAME}/lib/${cleanPath}`, external: true };
+            if (isDir) {
+              return { id: `${PKG_NAME}/lib/${relativeToSrc}/index.js`, external: true };
+            } else {
+              const cleanPath = relativeToSrc.replace(/\.(js|vue)$/, '');
+              return { id: `${PKG_NAME}/lib/${cleanPath}.js`, external: true };
+            }
           }
         }
       }
       return null;
     },
-    // 将 vue-popper.js 中的 require 转为 import
+    // 自动修复 require 和 针对 Vite8 的 Node/SSR 全局 document 报错
     transform(code, id) {
-      if (code.includes("require('./popper") || code.includes('require("./popper')) {
-        const popperImportPath = `${PKG_NAME}/lib/utils/popper`;
-        let transformedCode = `import _PopperLib from '${popperImportPath}';\n` + code;
+      let transformedCode = code;
+      let isChanged = false;
+
+      if (transformedCode.includes("require('./popper") || transformedCode.includes('require("./popper')) {
+        const popperImportPath = `${PKG_NAME}/lib/utils/popper.js`;
+        transformedCode = `import _PopperLib from '${popperImportPath}';\n` + transformedCode;
         transformedCode = transformedCode.replace(/require\(['"]\.\/popper(\.js)?['"]\)/g, '_PopperLib');
-        return { code: transformedCode, map: null };
+        isChanged = true;
       }
-      return null;
+
+      return isChanged ? { code: transformedCode, map: null } : null;
     }
   };
 };
@@ -64,11 +80,38 @@ const externalDeps = [
 ];
 
 const aliasPaths = (id) => {
-  if (id.startsWith(`${OLD_NAME}/src/`)) return id.replace(`${OLD_NAME}/src/`, `${PKG_NAME}/lib/`);
-  if (id.startsWith(`${OLD_NAME}/packages/`)) return id.replace(`${OLD_NAME}/packages/`, `${PKG_NAME}/lib/`);
-  if (id.startsWith(`${PKG_NAME}/src/`)) return id.replace(`${PKG_NAME}/src/`, `${PKG_NAME}/lib/`);
-  if (id.startsWith(`${PKG_NAME}/packages/`)) return id.replace(`${PKG_NAME}/packages/`, `${PKG_NAME}/lib/`);
-  return id;
+  let mappedId = id;
+
+  // 【修正点 1】: 如果拦截到的是对 packages (组件) 的引用，无论原本后缀是什么，一律指向扁平化的 lib/组件名.js
+  if (id.startsWith(`${OLD_NAME}/packages/`) || id.startsWith(`${PKG_NAME}/packages/`)) {
+    const subPath = id.replace(`${OLD_NAME}/packages/`, '').replace(`${PKG_NAME}/packages/`, '');
+    const componentName = subPath.split('/')[0].replace(/\.(js|vue)$/, '');
+    return `${PKG_NAME}/lib/${componentName}.js`;
+  }
+  
+  if (id.startsWith(`${OLD_NAME}/src/`)) mappedId = id.replace(`${OLD_NAME}/src/`, `${PKG_NAME}/lib/`);
+  else if (id.startsWith(`${PKG_NAME}/src/`)) mappedId = id.replace(`${PKG_NAME}/src/`, `${PKG_NAME}/lib/`);
+  
+  // 【修正点 2】: 全局路径映射后缀兜底分流
+  if (mappedId.startsWith(`${PKG_NAME}/lib/`) && !/\.(js|mjs|cjs|vue)$/.test(mappedId)) {
+    const subPath = mappedId.substring(`${PKG_NAME}/lib/`.length);
+    
+    // 如果该子路径在本地 packages 目录中是一个文件夹（说明它是组件），产物是扁平的 .js 文件
+    const possiblePkgPath = path.resolve(__dirname, 'packages', subPath);
+    if (fs.existsSync(possiblePkgPath) && fs.statSync(possiblePkgPath).isDirectory()) {
+      return `${mappedId}.js`; 
+    }
+    
+    // 如果在本地 src 中是个文件夹（说明是工具类目录，如 locale），产物保留目录结构，追加 /index.js
+    const possibleSrcPath = path.resolve(__dirname, 'src', subPath);
+    if (fs.existsSync(possibleSrcPath) && fs.statSync(possibleSrcPath).isDirectory()) {
+      return `${mappedId}/index.js`;
+    }
+    
+    return `${mappedId}.js`;
+  }
+  
+  return mappedId;
 };
 
 // ==================== 3. 基础配置工厂 ====================
@@ -90,7 +133,9 @@ const createConfig = (input, outputFile, options = {}) => ({
     elementUiEsmHelper(),
     alias({
       entries: [
-        { find: /^\.?\.\.?\/packages\/([^/]+)\/index\.js$/, replacement: `${PKG_NAME}/lib/$1` },
+        // 【修正点 3】: 修正本地 packages 相互引用时的别名拦截，直接指向扁平的 .js 文件
+        { find: /^\.?\.\.?\/packages\/([^/]+)\/index\.js$/, replacement: `${PKG_NAME}/lib/$1.js` },
+        { find: /^\.?\.\.?\/packages\/([^/]+)$/, replacement: `${PKG_NAME}/lib/$1.js` },
         { find: new RegExp(`^\\.?\\.\\.?\\/(.*)?${OLD_NAME}/src/`), replacement: `${PKG_NAME}/lib/` }
       ]
     }),
