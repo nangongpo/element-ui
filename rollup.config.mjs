@@ -1,5 +1,6 @@
 // @ts-nocheck
 import vue from 'rollup-plugin-vue';
+import { terser } from 'rollup-plugin-terser';
 import babel from '@rollup/plugin-babel';
 import resolve from '@rollup/plugin-node-resolve';
 import commonjs from '@rollup/plugin-commonjs';
@@ -71,10 +72,20 @@ export default {
   // 🎯 真正的外部依赖只有第三方库，源码内部的相互引用绝不 external！
   external: [
     'vue',
-    /^lodash-es/,
-    /^dayjs/,
     /^@babel\/runtime/
   ],
+
+  // treeshake: {
+  //   moduleSideEffects: (id) => {
+  //     if (id.includes('lodash-es')) {
+  //       // 看看吐出来的路径到底是什么，以及是不是引入了没必要的 lodash 内部文件
+  //       // console.log('👉 Rollup 正在处理的 lodash 内部文件:', id);
+  //       return false;
+  //     }
+      
+  //     return true; 
+  //   }
+  // },
   
   plugins: [
     // 🎯 核心破局点：源码里经常有 import 'element-ui/src/xxx'
@@ -109,8 +120,17 @@ export default {
       ]
     }),
     
-    commonjs({
-      transformMixedEsModules: true // 顺手无损解决 vue-popper.js 里的 require('./popper') 历史遗留问题
+    commonjs(),
+
+    terser({
+      compress: {
+        drop_console: true,   // 生产环境移除 console.log
+        drop_debugger: true,  // 生产环境移除 debugger
+        pure_funcs: ['console.log'] 
+      },
+      output: {
+        comments: false       // 纯净产物：移除所有注释
+      }
     })
   ]
 };

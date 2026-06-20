@@ -1172,5 +1172,4 @@ if (!Object.assign) {
     });
 }
 
-// ESM 导出写法
 export default Popper;
