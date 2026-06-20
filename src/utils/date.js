@@ -22,10 +22,10 @@ const tokenMap = {
   yy: 'YY',
   dddd: 'dddd',
   ddd: 'ddd',
-  dd: 'DD',   // fecha 的 dd 是每月几号(01-31) -> Day.js 的 DD
-  d: 'D',     // fecha 的 d 是每月几号(1-31) -> Day.js 的 D
+  dd: 'DD', // fecha 的 dd 是每月几号(01-31) -> Day.js 的 DD
+  d: 'D', // fecha 的 d 是每月几号(1-31) -> Day.js 的 D
   DD: '[0]d', // fecha 的 DD 是星期几(00-06) -> Day.js 本身不支持，用 [0]d 骚操作等价平替
-  D: 'd'      // fecha 的 D 是星期几(0-6) -> Day.js 的 d
+  D: 'd' // fecha 的 D 是星期几(0-6) -> Day.js 的 d
 };
 
 /**
@@ -34,11 +34,11 @@ const tokenMap = {
 function convertMask(mask) {
   if (!mask) return masks.default;
   const targetMask = masks[mask] || mask;
-  
+
   // 匹配中括号包裹的字面量，或者需要转换的旧 Token
   // 注意这里的顺序：长 Token（yyyy）必须排在短 Token（yy）前面，避免被截断
   return targetMask.replace(/\[([^\]]+)\]|(yyyy|yy|dddd|ddd|dd|d|DD|D)/g, (match, literal, token) => {
-    if (literal) return `[${literal}]`; 
+    if (literal) return `[${literal}]`;
     return tokenMap[token] || token;
   });
 }
@@ -46,7 +46,7 @@ function convertMask(mask) {
 function getLocale(i18nSettings) {
   if (!i18nSettings) return undefined;
   if (typeof i18nSettings === 'string') return i18nSettings;
-  
+
   const localeId = `custom-${Math.random().toString(36).slice(2, 11)}`;
   dayjs.locale({
     name: localeId,
@@ -61,32 +61,37 @@ function getLocale(i18nSettings) {
       return isLower ? ampm.toLowerCase() : ampm.toUpperCase();
     }
   }, null, true);
-  
+
   return localeId;
 }
 
 export function format(dateObj, mask, i18nSettings) {
   let d = dayjs(dateObj);
   if (!d.isValid()) throw new Error('Invalid Date in format');
-  
+
   const locale = getLocale(i18nSettings);
   if (locale) d = d.locale(locale);
-  
+
   return d.format(convertMask(mask));
 }
 
 export function parse(dateStr, mask, i18nSettings) {
   if (typeof mask !== 'string') throw new Error('Invalid format in parse');
   if (!dateStr || dateStr.length > 1000) return null;
-  
+
   const convertedMask = convertMask(mask);
   const locale = getLocale(i18nSettings);
-  
+
   // 针对含有 [0]d 的特殊 format 字符串，在 parse 时调整为可识别的 d
   const parseMask = convertedMask.replace(/\[0\]d/g, 'd');
-  
+
   const d = dayjs(dateStr, parseMask, locale, true);
   return d.isValid() ? d.toDate() : null;
 }
 
-export default { masks, format, parse };
+export const fecha = {
+  format,
+  parse,
+}
+
+export default fecha
