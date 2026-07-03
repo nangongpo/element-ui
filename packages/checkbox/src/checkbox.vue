@@ -25,7 +25,6 @@
         v-if="trueLabel || falseLabel"
         class="el-checkbox__original"
         type="checkbox"
-        :aria-hidden="indeterminate ? 'true' : 'false'"
         :name="name"
         :disabled="isDisabled"
         :true-value="trueLabel"
@@ -38,7 +37,6 @@
         v-else
         class="el-checkbox__original"
         type="checkbox"
-        :aria-hidden="indeterminate ? 'true' : 'false'"
         :disabled="isDisabled"
         :value="label"
         :name="name"

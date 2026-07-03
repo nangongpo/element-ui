@@ -231,6 +231,18 @@ describe('Checkbox', () => {
     expect(vm.checklist.indexOf('a') !== -1).to.be.true;
   });
 
+  it('indeterminate input is not aria-hidden', () => {
+    vm = createVue({
+      template: '<el-checkbox v-model="checked" indeterminate></el-checkbox>',
+      data() {
+        return {
+          checked: false
+        };
+      }
+    }, true);
+    expect(vm.$el.querySelector('.el-checkbox__original').hasAttribute('aria-hidden')).to.be.false;
+  });
+
   describe('checkbox-button', () => {
     let vm;
     afterEach(() => {

@@ -386,6 +386,13 @@
       },
 
       updateScrollY() {
+        if (!this.$ready) return;
+        this.requestLayout({
+          updateScrollY: true
+        });
+      },
+
+      doUpdateScrollY() {
         const changed = this.layout.updateScrollY();
         if (changed) {
           this.layout.notifyObservers('scrollable');
@@ -416,12 +423,21 @@
         }
       },
 
-      // TODO 使用 CSS transform
+      setScrollXTransform(wrapper, scrollLeft) {
+        if (!wrapper) return;
+        const table = wrapper.querySelector('table');
+        if (!table) return;
+        const transform = scrollLeft ? `translateX(${-scrollLeft}px)` : '';
+        table.style.transform = transform;
+        table.style.webkitTransform = transform;
+        table.style.willChange = scrollLeft ? 'transform' : '';
+      },
+
       syncPostion() {
         const { scrollLeft, scrollTop, offsetWidth, scrollWidth } = this.bodyWrapper;
         const { headerWrapper, footerWrapper, fixedBodyWrapper, rightFixedBodyWrapper } = this.$refs;
-        if (headerWrapper) headerWrapper.scrollLeft = scrollLeft;
-        if (footerWrapper) footerWrapper.scrollLeft = scrollLeft;
+        this.setScrollXTransform(headerWrapper, scrollLeft);
+        this.setScrollXTransform(footerWrapper, scrollLeft);
         if (fixedBodyWrapper) fixedBodyWrapper.scrollTop = scrollTop;
         if (rightFixedBodyWrapper) rightFixedBodyWrapper.scrollTop = scrollTop;
         const maxScrollLeftPosition = scrollWidth - offsetWidth - 1;
@@ -443,7 +459,11 @@
         if (!raf) {
           this.throttleSyncPostion();
         } else {
-          raf(this.syncPostion);
+          if (this._scrollRaf) return;
+          this._scrollRaf = raf(() => {
+            this._scrollRaf = null;
+            this.syncPostion();
+          });
         }
       },
 
@@ -480,8 +500,38 @@
         if (shouldUpdateLayout) {
           this.resizeState.width = width;
           this.resizeState.height = height;
-          this.doLayout();
+          this.requestLayout({
+            updateHeight: true,
+            updateColumns: true
+          });
         }
+      },
+
+      requestLayout(options = {}) {
+        const req = this._layoutRequest || (this._layoutRequest = {
+          updateHeight: false,
+          updateColumns: false,
+          updateScrollY: false
+        });
+        req.updateHeight = req.updateHeight || options.updateHeight;
+        req.updateColumns = req.updateColumns || options.updateColumns;
+        req.updateScrollY = req.updateScrollY || options.updateScrollY;
+
+        if (this._layoutRaf) return;
+        const raf = window.requestAnimationFrame || (fn => setTimeout(fn, 16));
+        this._layoutRaf = raf(() => {
+          const request = this._layoutRequest;
+          this._layoutRaf = null;
+          this._layoutRequest = null;
+
+          if (!this.$ready) return;
+          if (request.updateHeight || request.updateColumns) {
+            this.doLayout();
+          } else if (request.updateScrollY) {
+            this.doUpdateScrollY();
+          }
+          this.syncPostion();
+        });
       },
 
       doLayout() {
@@ -645,7 +695,10 @@
 
     created() {
       this.tableId = 'el-table_' + tableIdSeed++;
-      this.debouncedUpdateLayout = debounce(50, () => this.doLayout());
+      this.debouncedUpdateLayout = debounce(50, () => this.requestLayout({
+        updateHeight: true,
+        updateColumns: true
+      }));
     },
 
     mounted() {
@@ -674,6 +727,15 @@
 
     destroyed() {
       this.unbindEvents();
+      const cancel = window.cancelAnimationFrame || clearTimeout;
+      if (this._layoutRaf) {
+        cancel(this._layoutRaf);
+      }
+      if (this._scrollRaf) {
+        cancel(this._scrollRaf);
+      }
+      this._layoutRaf = null;
+      this._scrollRaf = null;
     },
 
     data() {

@@ -117,9 +117,31 @@ export default Vue.extend({
     },
 
     // 选择
+    updateSelectionCache() {
+      const { selection = [], rowKey } = this.states;
+      const NativeSet = typeof window !== 'undefined' && window.Set;
+      this._selectionCache = {
+        selection,
+        length: selection.length,
+        rowKey,
+        set: NativeSet ? new NativeSet(selection) : null,
+        map: rowKey ? getKeysMap(selection, rowKey) : null
+      };
+    },
+
+    getSelectionCache() {
+      const { selection = [], rowKey } = this.states;
+      const cache = this._selectionCache;
+      if (!cache || cache.selection !== selection || cache.length !== selection.length || cache.rowKey !== rowKey) {
+        this.updateSelectionCache();
+      }
+      return this._selectionCache;
+    },
+
     isSelected(row) {
       const { selection = [] } = this.states;
-      return selection.indexOf(row) > -1;
+      const selectionSet = this.getSelectionCache().set;
+      return selectionSet ? selectionSet.has(row) : selection.indexOf(row) > -1;
     },
 
     clearSelection() {
@@ -128,6 +150,7 @@ export default Vue.extend({
       const oldSelection = states.selection;
       if (oldSelection.length) {
         states.selection = [];
+        this.updateSelectionCache();
         this.table.$emit('selection-change', []);
       }
     },
@@ -138,7 +161,7 @@ export default Vue.extend({
       let deleted;
       if (rowKey) {
         deleted = [];
-        const selectedMap = getKeysMap(selection, rowKey);
+        const selectedMap = this.getSelectionCache().map;
         const dataMap = getKeysMap(data, rowKey);
         for (let key in selectedMap) {
           if (selectedMap.hasOwnProperty(key) && !dataMap[key]) {
@@ -151,6 +174,7 @@ export default Vue.extend({
       if (deleted.length) {
         const newSelection = selection.filter(item => deleted.indexOf(item) === -1);
         states.selection = newSelection;
+        this.updateSelectionCache();
         this.table.$emit('selection-change', newSelection.slice());
       }
     },
@@ -158,6 +182,7 @@ export default Vue.extend({
     toggleRowSelection(row, selected, emitChange = true) {
       const changed = toggleRowStatus(this.states.selection, row, selected);
       if (changed) {
+        this.updateSelectionCache();
         const newSelection = (this.states.selection || []).slice();
         // 调用 API 修改选中值，不触发 select 事件
         if (emitChange) {
@@ -191,6 +216,7 @@ export default Vue.extend({
       });
 
       if (selectionChanged) {
+        this.updateSelectionCache();
         this.table.$emit('selection-change', selection ? selection.slice() : []);
       }
       this.table.$emit('select-all', selection);
@@ -199,7 +225,7 @@ export default Vue.extend({
     updateSelectionByRowKey() {
       const states = this.states;
       const { selection, rowKey, data } = states;
-      const selectedMap = getKeysMap(selection, rowKey);
+      const selectedMap = this.getSelectionCache().map;
       data.forEach(row => {
         const rowId = getRowIdentity(row, rowKey);
         const rowInfo = selectedMap[rowId];
@@ -207,6 +233,7 @@ export default Vue.extend({
           selection[rowInfo.index] = row;
         }
       });
+      this.updateSelectionCache();
     },
 
     updateAllSelected() {
@@ -221,7 +248,7 @@ export default Vue.extend({
 
       let selectedMap;
       if (rowKey) {
-        selectedMap = getKeysMap(selection, rowKey);
+        selectedMap = this.getSelectionCache().map;
       }
       const isSelected = function(row) {
         if (selectedMap) {

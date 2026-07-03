@@ -50,7 +50,7 @@ export default {
               return acc.concat(this.wrappedRowRender(row, acc.length));
             }, [])
           }
-          <el-tooltip effect={this.table.tooltipEffect} placement="top" ref="tooltip" content={this.tooltipContent}></el-tooltip>
+          <el-tooltip effect={this.table.tooltipEffect} placement="top" ref="tooltip"></el-tooltip>
         </tbody>
       </table>
     );
@@ -103,12 +103,6 @@ export default {
         }
       });
     }
-  },
-
-  data() {
-    return {
-      tooltipContent: ''
-    };
   },
 
   created() {
@@ -243,8 +237,11 @@ export default {
       if (colspan < 1) {
         return columns[index].realWidth;
       }
-      const widthArr = columns.map(({ realWidth }) => realWidth).slice(index, index + colspan);
-      return widthArr.reduce((acc, width) => acc + width, -1);
+      let width = -1;
+      for (let i = index, len = index + colspan; i < len; i++) {
+        width += columns[i].realWidth;
+      }
+      return width;
     },
 
     handleCellMouseEnter(event, row) {
@@ -272,8 +269,7 @@ export default {
         (parseInt(getStyle(cellChild, 'paddingRight'), 10) || 0);
       if ((rangeWidth + padding > cellChild.offsetWidth || cellChild.scrollWidth > cellChild.offsetWidth) && this.$refs.tooltip) {
         const tooltip = this.$refs.tooltip;
-        // TODO 会引起整个 Table 的重新渲染，需要优化
-        this.tooltipContent = cell.innerText || cell.textContent;
+        tooltip.content = cell.innerText || cell.textContent;
         tooltip.referenceElm = cell;
         tooltip.$refs.popper && (tooltip.$refs.popper.style.display = 'none');
         tooltip.doDestroy();

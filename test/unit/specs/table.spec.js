@@ -1,4 +1,5 @@
 import { createVue, triggerEvent, destroyVM, waitImmediate, wait } from '../util';
+import TableBody from 'packages/table/src/table-body';
 
 const DELAY = 10;
 const testDataArr = [];
@@ -693,6 +694,35 @@ describe('Table', () => {
         destroyVM(vm);
         done();
       }, DELAY);
+    });
+
+    it('show-overflow-tooltip does not rerender table body on hover', async() => {
+      const renderSpy = sinon.spy(TableBody, 'render');
+      const originalCreateRange = document.createRange;
+      document.createRange = function() {
+        return {
+          setStart() {},
+          setEnd() {},
+          getBoundingClientRect() {
+            return { width: 100 };
+          }
+        };
+      };
+
+      const vm = createTable('show-overflow-tooltip');
+
+      try {
+        await wait(DELAY);
+        renderSpy.resetHistory();
+        const cell = vm.$el.querySelector('.el-table__body-wrapper tbody tr td');
+        triggerEvent(cell, 'mouseenter', true, false);
+        await waitImmediate();
+        expect(renderSpy.callCount).to.equal(0);
+      } finally {
+        document.createRange = originalCreateRange;
+        renderSpy.restore();
+        destroyVM(vm);
+      }
     });
 
     it('show-tooltip-when-overflow', done => { // old version prop name
