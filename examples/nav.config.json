@@ -154,6 +154,10 @@
               "title": "Table 表格"
             },
             {
+              "path": "/table-virtual",
+              "title": "TableVirtual 虚拟表格"
+            },
+            {
               "path": "/tag",
               "title": "Tag 标签"
             },
@@ -470,6 +474,10 @@
             {
               "path": "/table",
               "title": "Table"
+            },
+            {
+              "path": "/table-virtual",
+              "title": "TableVirtual"
             },
             {
               "path": "/tag",
@@ -790,6 +798,10 @@
               "title": "Table"
             },
             {
+              "path": "/table-virtual",
+              "title": "TableVirtual"
+            },
+            {
               "path": "/tag",
               "title": "Tag"
             },
@@ -1106,6 +1118,10 @@
             {
               "path": "/table",
               "title": "Table"
+            },
+            {
+              "path": "/table-virtual",
+              "title": "TableVirtual"
             },
             {
               "path": "/tag",

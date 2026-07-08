@@ -1,0 +1,261 @@
+@import "mixins/mixins";
+@import "common/var";
+
+@include b(table-virtual) {
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 120px;
+  background-color: $--color-white;
+  color: $--table-font-color;
+  font-size: 14px;
+
+  .hidden-columns {
+    position: absolute;
+    z-index: -1;
+    visibility: hidden;
+  }
+
+  @include e(header-wrapper) {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    overflow: hidden;
+    background-color: $--table-header-background-color;
+    color: $--table-header-font-color;
+    font-weight: 500;
+    z-index: 2;
+  }
+
+  @include e(header-main) {
+    overflow: hidden;
+    height: 100%;
+  }
+
+  @include e(header-layer) {
+    height: 100%;
+    will-change: transform;
+  }
+
+  @include e(header-row) {
+    white-space: nowrap;
+  }
+
+  @include e(body-wrapper) {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow: auto;
+    background-color: $--color-white;
+  }
+
+  @include e(phantom) {
+    position: absolute;
+    left: 0;
+    top: 0;
+    min-width: 100%;
+  }
+
+  @include e(rows) {
+    position: absolute;
+    left: 0;
+    top: 0;
+    min-width: 100%;
+    will-change: transform;
+  }
+
+  @include e(row) {
+    display: block;
+    white-space: nowrap;
+    background-color: $--color-white;
+
+    &.hover-row,
+    &:hover {
+      background-color: $--table-row-hover-background-color;
+    }
+
+    &.current-row {
+      background-color: $--table-current-row-background-color;
+    }
+  }
+
+  @include e(cell) {
+    display: inline-block;
+    vertical-align: top;
+    box-sizing: border-box;
+    height: 100%;
+    padding: 12px 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: left;
+    border-bottom: $--table-border;
+
+    @include when(center) {
+      text-align: center;
+    }
+
+    @include when(right) {
+      text-align: right;
+    }
+
+    > .cell {
+      box-sizing: border-box;
+      padding-left: 10px;
+      padding-right: 10px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    &.is-sortable {
+      cursor: pointer;
+    }
+  }
+
+  @include e(fixed-left) {
+    position: absolute;
+    left: 0;
+    overflow: hidden;
+    background-color: $--color-white;
+    box-shadow: 2px 0 6px rgba(0, 0, 0, 0.12);
+  }
+
+  @include e(fixed-right) {
+    position: absolute;
+    right: 0;
+    overflow: hidden;
+    background-color: $--color-white;
+    box-shadow: -2px 0 6px rgba(0, 0, 0, 0.12);
+  }
+
+  @include e(fixed-header) {
+    top: 0;
+    height: 100%;
+    z-index: 3;
+  }
+
+  @include e(fixed-right-gutter) {
+    position: absolute;
+    top: 0;
+    right: 0;
+    height: 100%;
+    background-color: $--table-header-background-color;
+    border-bottom: $--table-border;
+    z-index: 4;
+  }
+
+  @include e(fixed-body) {
+    z-index: 1;
+    pointer-events: none;
+
+    .el-table-virtual__cell {
+      pointer-events: auto;
+    }
+  }
+
+  @include e(empty) {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+  }
+
+  @include e(append) {
+    position: relative;
+    top: 0;
+  }
+
+  @include m(striped) {
+    .el-table-virtual__row.el-table__row--striped {
+      background: #FAFAFA;
+
+      .el-table-virtual__cell {
+        background: #FAFAFA;
+      }
+    }
+
+    .el-table-virtual__row.current-row,
+    .el-table-virtual__row.current-row .el-table-virtual__cell {
+      background-color: $--table-current-row-background-color;
+    }
+
+    .el-table-virtual__row.hover-row,
+    .el-table-virtual__row.hover-row .el-table-virtual__cell,
+    .el-table-virtual__row:hover,
+    .el-table-virtual__row:hover .el-table-virtual__cell {
+      background-color: $--table-row-hover-background-color;
+    }
+  }
+
+  @include m(border) {
+    border: none;
+
+    .el-table-virtual__cell {
+      border-right: $--table-border;
+    }
+
+    &::before,
+    &::after,
+    .el-table-virtual__header-wrapper::before {
+      content: '';
+      position: absolute;
+      background-color: $--table-border-color;
+      pointer-events: none;
+      z-index: 5;
+    }
+
+    &::before {
+      left: 0;
+      bottom: 0;
+      width: 100%;
+      height: 1px;
+    }
+
+    &::after {
+      top: 0;
+      right: 0;
+      width: 1px;
+      height: 100%;
+    }
+
+    .el-table-virtual__header-wrapper::before {
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 1px;
+    }
+
+    .el-table-virtual__header-wrapper,
+    .el-table-virtual__body-wrapper,
+    .el-table-virtual__fixed-body.el-table-virtual__fixed-left {
+      box-sizing: border-box;
+      border-left: $--table-border;
+    }
+  }
+
+  @include m(medium) {
+    .el-table-virtual__cell {
+      padding: 10px 0;
+    }
+  }
+
+  @include m(small) {
+    font-size: 12px;
+
+    .el-table-virtual__cell {
+      padding: 8px 0;
+    }
+  }
+
+  @include m(mini) {
+    font-size: 12px;
+
+    .el-table-virtual__cell {
+      padding: 6px 0;
+    }
+  }
+}

@@ -150,7 +150,7 @@ export default {
       } else if (column.type !== 'selection') {
         column.renderHeader = (h, scope) => {
           const renderHeader = this.$scopedSlots.header;
-          return renderHeader ? renderHeader(scope) : column.label;
+          return renderHeader ? renderHeader(scope) : (this.$slots.header || column.label);
         };
       }
 

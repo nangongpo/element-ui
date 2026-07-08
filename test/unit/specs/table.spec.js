@@ -1,5 +1,6 @@
 import { createVue, triggerEvent, destroyVM, waitImmediate, wait } from '../util';
 import TableBody from 'packages/table/src/table-body';
+import { createStore } from 'packages/table/src/store/helper';
 
 const DELAY = 10;
 const testDataArr = [];
@@ -15,6 +16,21 @@ const getTestData = function() {
     { id: 4, name: 'Monsters, Inc.', release: '2001-11-2', director: 'Peter Docter', runtime: 92 },
     { id: 5, name: 'Finding Nemo', release: '2003-5-30', director: 'Andrew Stanton', runtime: 100 }
   ];
+};
+
+const getBenchmarkData = function(count) {
+  const data = [];
+  for (let i = 0; i < count; i++) {
+    data.push({
+      id: i,
+      name: `Benchmark row ${i}`,
+      category: i % 2 === 0 ? 'even' : 'odd',
+      score: count - i,
+      status: i % 3 === 0 ? 'active' : 'paused',
+      address: `Long benchmark address ${i} for overflow tooltip hover checks`
+    });
+  }
+  return data;
 };
 
 getTestData().forEach(cur => {
@@ -2082,6 +2098,117 @@ describe('Table', () => {
     const emptyBlockEl = vm.$el.querySelector('.el-table__empty-block');
     expect(emptyBlockEl.style.height).to.be.equal('calc(100% - 48px)');
     destroyVM(vm);
+  });
+
+  describe('performance constraints', () => {
+    let vm;
+
+    afterEach(() => {
+      if (vm) {
+        destroyVM(vm);
+        vm = null;
+      }
+    });
+
+    it('keeps fixed columns stable and tooltip hover from rerendering body with 1000 rows', async() => {
+      const renderSpy = sinon.spy(TableBody, 'render');
+      const originalCreateRange = document.createRange;
+      document.createRange = function() {
+        return {
+          setStart() {},
+          setEnd() {},
+          getBoundingClientRect() {
+            return { width: 100 };
+          }
+        };
+      };
+
+      vm = createVue({
+        template: `
+          <el-table :data="tableData" height="240" row-key="id" border>
+            <el-table-column fixed prop="id" label="ID" width="80" />
+            <el-table-column prop="name" label="Name" width="180" show-overflow-tooltip />
+            <el-table-column prop="category" label="Category" width="120" />
+            <el-table-column prop="score" label="Score" width="120" sortable />
+            <el-table-column fixed="right" prop="status" label="Status" width="120" />
+          </el-table>
+        `,
+        data() {
+          return {
+            tableData: getBenchmarkData(1000)
+          };
+        }
+      }, true);
+
+      try {
+        await wait(50);
+        expect(vm.$el.querySelectorAll('.el-table__body-wrapper tbody tr').length).to.equal(1000);
+        expect(vm.$el.querySelectorAll('.el-table__fixed .el-table__fixed-body-wrapper tbody tr').length).to.equal(1000);
+        expect(vm.$el.querySelectorAll('.el-table__fixed-right .el-table__fixed-body-wrapper tbody tr').length).to.equal(1000);
+
+        renderSpy.resetHistory();
+        const tooltipCell = vm.$el.querySelector('.el-table__body-wrapper tbody tr td:nth-child(2)');
+        triggerEvent(tooltipCell, 'mouseenter', true, false);
+        await waitImmediate();
+        expect(renderSpy.callCount).to.equal(0);
+      } finally {
+        document.createRange = originalCreateRange;
+        renderSpy.restore();
+      }
+    });
+
+    it('filters and sorts 5000 rows with bounded query passes', () => {
+      const table = {
+        $ready: false,
+        $refs: {},
+        $emit() {},
+        updateScrollY() {},
+        debouncedUpdateLayout() {}
+      };
+      const store = createStore(table, { rowKey: 'id' });
+      const data = getBenchmarkData(5000);
+      let filterCalls = 0;
+      let sortCalls = 0;
+      const categoryColumn = {
+        id: 'category_column',
+        columnKey: 'category',
+        property: 'category',
+        filterMethod(value, row) {
+          filterCalls++;
+          return row.category === value;
+        }
+      };
+      const scoreColumn = {
+        id: 'score_column',
+        property: 'score',
+        sortable: true,
+        sortMethod(a, b) {
+          sortCalls++;
+          return a.score - b.score;
+        }
+      };
+
+      store.states.columns = [categoryColumn, scoreColumn];
+      store.commit('setData', data);
+      store.commit('filterChange', {
+        column: categoryColumn,
+        values: ['even'],
+        silent: true
+      });
+
+      expect(filterCalls).to.equal(5000);
+      expect(store.states.data.length).to.equal(2500);
+
+      store.commit('sort', {
+        prop: 'score',
+        order: 'descending'
+      });
+
+      expect(store.states.data.length).to.equal(2500);
+      expect(store.states.data[0].score).to.equal(5000);
+      expect(sortCalls).to.be.above(0);
+      expect(sortCalls).to.be.below(70000);
+    });
   });
 
   describe('tree', () => {

@@ -269,7 +269,9 @@ export default {
         (parseInt(getStyle(cellChild, 'paddingRight'), 10) || 0);
       if ((rangeWidth + padding > cellChild.offsetWidth || cellChild.scrollWidth > cellChild.offsetWidth) && this.$refs.tooltip) {
         const tooltip = this.$refs.tooltip;
-        tooltip.content = cell.innerText || cell.textContent;
+        const content = cell.innerText || cell.textContent;
+        tooltip.$slots.content = [tooltip.$createElement('span', content)];
+        tooltip.$forceUpdate();
         tooltip.referenceElm = cell;
         tooltip.$refs.popper && (tooltip.$refs.popper.style.display = 'none');
         tooltip.doDestroy();
