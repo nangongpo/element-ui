@@ -2090,7 +2090,7 @@ describe('Table', () => {
     it('render tree structual data', async() => {
       vm = createVue({
         template: `
-          <el-table :data="testData" row-key="release">
+          <el-table ref="table" :data="testData" row-key="release">
             <el-table-column prop="name" label="片名" />
             <el-table-column prop="release" label="发行日期" />
             <el-table-column prop="director" label="导演" />
@@ -2121,18 +2121,21 @@ describe('Table', () => {
       childRows.forEach(item => {
         expect(item.style.display).to.equal('none');
       });
+      const updateTreeDataSpy = sinon.spy(vm.$refs.table.store, 'updateTreeData');
       vm.$el.querySelector('.el-table__expand-icon').click();
 
       await waitImmediate();
       childRows.forEach(item => {
         expect(item.style.display).to.equal('');
       });
+      expect(updateTreeDataSpy.callCount).to.equal(0);
+      updateTreeDataSpy.restore();
     });
 
     it('load substree row data', async() => {
       vm = createVue({
         template: `
-          <el-table :data="testData" row-key="release" lazy :load="load">
+          <el-table ref="table" :data="testData" row-key="release" lazy :load="load">
             <el-table-column prop="name" label="片名" />
             <el-table-column prop="release" label="发行日期" />
             <el-table-column prop="director" label="导演" />
@@ -2167,12 +2170,15 @@ describe('Table', () => {
       await waitImmediate();
 
       const expandIcon = vm.$el.querySelector('.el-table__expand-icon');
+      const updateTreeDataSpy = sinon.spy(vm.$refs.table.store, 'updateTreeData');
       expandIcon.click();
 
       await waitImmediate();
 
       expect(expandIcon.classList.contains('el-table__expand-icon--expanded')).to.be.true;
       expect(vm.$el.querySelectorAll('.el-table__row').length).to.equal(8);
+      expect(updateTreeDataSpy.callCount).to.equal(0);
+      updateTreeDataSpy.restore();
     });
 
     it('tree-props & default-expand-all & expand-change', async() => {

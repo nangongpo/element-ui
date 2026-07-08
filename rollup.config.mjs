@@ -74,18 +74,6 @@ export default {
     'vue',
     /^@babel\/runtime/
   ],
-
-  // treeshake: {
-  //   moduleSideEffects: (id) => {
-  //     if (id.includes('lodash-es')) {
-  //       // 看看吐出来的路径到底是什么，以及是不是引入了没必要的 lodash 内部文件
-  //       // console.log('👉 Rollup 正在处理的 lodash 内部文件:', id);
-  //       return false;
-  //     }
-      
-  //     return true; 
-  //   }
-  // },
   
   plugins: [
     // 🎯 核心破局点：源码里经常有 import 'element-ui/src/xxx'

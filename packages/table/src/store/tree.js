@@ -53,7 +53,10 @@ export default {
 
   watch: {
     normalizedData: 'updateTreeData',
-    normalizedLazyNode: 'updateTreeData'
+    normalizedLazyNode() {
+      if (this._skipLazyTreeNodeNormalize) return;
+      this.updateTreeData();
+    }
   },
 
   methods: {
@@ -151,9 +154,20 @@ export default {
       this.updateTableScrollY();
     },
 
-    updateTreeExpandKeys(value) {
+    updateTreeExpandKeys(value = []) {
       this.states.expandRowKeys = value;
-      this.updateTreeData();
+      const treeData = this.states.treeData || {};
+      const keys = Object.keys(treeData);
+      if (!keys.length) {
+        this.updateTreeData();
+        return;
+      }
+      keys.forEach(key => {
+        if (value.indexOf(key) !== -1) {
+          treeData[key].expanded = true;
+        }
+      });
+      this.updateTableScrollY();
     },
 
     toggleTreeExpansion(row, expanded) {
@@ -185,6 +199,48 @@ export default {
       }
     },
 
+    getTreeNodeLevel(key) {
+      const treeData = this.states.treeData;
+      const current = treeData[key];
+      if (current && typeof current.level === 'number') return current.level;
+      const keys = Object.keys(treeData);
+      for (let i = 0; i < keys.length; i++) {
+        const parentKey = keys[i];
+        const parent = treeData[parentKey];
+        const children = parent.children || [];
+        if (children.indexOf(key) !== -1) {
+          return this.getTreeNodeLevel(parentKey) + 1;
+        }
+      }
+      return 0;
+    },
+
+    normalizeLazyNode(parentKey, data, parentTreeNode) {
+      const {
+        rowKey,
+        lazyColumnIdentifier
+      } = this.states;
+      const treeData = this.states.treeData;
+      const parent = treeData[parentKey];
+      const level = typeof parentTreeNode.level === 'number'
+        ? parentTreeNode.level
+        : this.getTreeNodeLevel(parentKey);
+      parent.children = data.map(row => {
+        const currentRowKey = getRowIdentity(row, rowKey);
+        if (row[lazyColumnIdentifier] && !treeData[currentRowKey]) {
+          this.$set(treeData, currentRowKey, {
+            children: [],
+            lazy: true,
+            loaded: false,
+            loading: false,
+            expanded: false,
+            level: level + 1
+          });
+        }
+        return currentRowKey;
+      });
+    },
+
     loadData(row, key, treeNode) {
       const { load } = this.table;
       const { treeData: rawTreeData } = this.states;
@@ -199,9 +255,15 @@ export default {
           treeData[key].loaded = true;
           treeData[key].expanded = true;
           if (data.length) {
+            this.normalizeLazyNode(key, data, treeNode);
+            this._skipLazyTreeNodeNormalize = true;
             this.$set(lazyTreeNodeMap, key, data);
+            this.$nextTick(() => {
+              this._skipLazyTreeNodeNormalize = false;
+            });
           }
           this.table.$emit('expand-change', row, true);
+          this.updateTableScrollY();
         });
       }
     }
