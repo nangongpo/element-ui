@@ -38,7 +38,7 @@ jobs:
         run: npm run dist
 
       - name: Build docs
-        run: ./node_modules/.bin/cross-env NODE_ENV=production DOCS_USE_LIB=false ./node_modules/.bin/webpack --config build/webpack.demo.js
+        run: ./node_modules/.bin/cross-env NODE_ENV=production ./node_modules/.bin/webpack --config build/webpack.demo.js
 
       - name: Configure Pages
         uses: actions/configure-pages@v5

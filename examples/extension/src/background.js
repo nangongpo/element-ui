@@ -1,6 +1,16 @@
-chrome.browserAction.onClicked.addListener(tab => {
-  chrome.tabs.executeScript(tab.id, {
-    file: 'entry.js'
+chrome.action.onClicked.addListener(tab => {
+  if (!tab.id) return;
+
+  const result = chrome.scripting.executeScript({
+    target: {
+      tabId: tab.id
+    },
+    files: ['entry.js']
   });
-})
-;
+
+  if (result && result.catch) {
+    result.catch(error => {
+      console.warn('Element Theme Roller injection failed:', error);
+    });
+  }
+});

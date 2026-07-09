@@ -164,6 +164,12 @@ export default {
         this.isFixed = false;
         this.editorTop = 0;
       }
+    },
+    isValidPreviewConfig(config) {
+      return config &&
+        config.type &&
+        config.name &&
+        typeof config.theme === 'string';
     }
   },
   beforeDestroy() {
@@ -174,8 +180,7 @@ export default {
     window.addEventListener('scroll', this.throttledHandleScroll);
     this.userTheme = loadUserThemeFromLocal();
     const previewConfig = loadPreviewFromLocal();
-    const pageRefer = this.$route.params.refer;
-    if (!previewConfig || !pageRefer) {
+    if (!this.isValidPreviewConfig(previewConfig)) {
       this.$alert(getActionDisplayName('no-preview-config'), getActionDisplayName('notice'), {
         confirmButtonText: getActionDisplayName('confirm'),
         callback: action => {
