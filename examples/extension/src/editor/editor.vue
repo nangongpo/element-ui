@@ -209,4 +209,7 @@ export default {
 .ext-panel .editor-main {
   padding: 0 18px 70px;
 }
+.ext-panel .el-select-dropdown {
+  z-index: 100002;
+}
 </style>

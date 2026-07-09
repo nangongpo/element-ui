@@ -16,6 +16,7 @@
         v-if="!isGlobal"
         v-model="value" 
         class="select"
+        :popper-append-to-body="false"
         @change="onSelectChange"
       >
         <el-option

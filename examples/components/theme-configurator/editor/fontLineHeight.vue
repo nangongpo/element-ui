@@ -10,6 +10,7 @@
         v-model="value" 
         class="select"
         size="medium"
+        :popper-append-to-body="false"
         @change="onSelectChange"
       >
         <el-option

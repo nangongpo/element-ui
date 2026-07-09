@@ -21,6 +21,8 @@ themeConfig.forEach(group => {
   });
 });
 
+const variableRegexp = /\$--[A-Za-z0-9-]+/g;
+
 const normalizeColor = color => {
   if (!color || color.charAt(0) !== '#') return color;
   if (color.length === 4) {
@@ -60,16 +62,28 @@ const replaceAll = (source, oldValue, newValue) => {
     .split(oldValue.toUpperCase()).join(newValue);
 };
 
+const resolveValue = (value, values, stack) => {
+  stack = stack || [];
+  if (typeof value !== 'string') return value;
+  return value.replace(variableRegexp, variable => {
+    if (stack.indexOf(variable) > -1) return variable;
+    const nextValue = values[variable] || defaults[variable];
+    if (!nextValue) return variable;
+    return resolveValue(nextValue, values, stack.concat(variable));
+  });
+};
+
 const buildCss = data => {
   const global = data && data.global || {};
   const local = data && data.local || {};
   const config = Object.assign({}, global, local);
+  const values = Object.assign({}, defaults, config);
   let css = themeCss;
 
   Object.keys(config).forEach(key => {
-    const oldValue = defaults[key];
-    const newValue = config[key];
-    if (!oldValue || oldValue.charAt(0) === '$' || newValue.charAt(0) === '$') return;
+    const oldValue = resolveValue(defaults[key], defaults);
+    const newValue = resolveValue(config[key], values);
+    if (!oldValue || !newValue || oldValue.indexOf('$--') > -1 || newValue.indexOf('$--') > -1) return;
     css = replaceAll(css, oldValue, newValue);
   });
 

@@ -38,7 +38,10 @@
           </el-button>
         </div>
       </div>
-      <el-select v-model="selectedComponent" class="selector">
+      <el-select
+        v-model="selectedComponent"
+        class="selector"
+        :popper-append-to-body="false">
         <el-option
           v-for="item in selectOptions"
           :key="item.value"
