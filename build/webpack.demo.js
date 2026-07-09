@@ -13,12 +13,20 @@ const config = require('./config');
 
 const isProd = process.env.NODE_ENV === 'production';
 const isPlay = !!process.env.PLAY_ENV;
+const useLib = process.env.DOCS_USE_LIB === 'true';
+const docsEntry = useLib ? './examples/entry-lib.js' : './examples/entry.js';
+const alias = Object.assign({}, config.alias);
+const eslintExclude = useLib ? [/node_modules/, path.resolve(process.cwd(), './lib')] : /node_modules/;
+
+if (useLib) {
+  alias.main = path.resolve(process.cwd(), './lib');
+}
 
 const webpackConfig = {
   mode: process.env.NODE_ENV,
   entry: isProd ? {
-    docs: './examples/entry.js'
-  } : (isPlay ? './examples/play.js' : './examples/entry.js'),
+    docs: docsEntry
+  } : (isPlay ? './examples/play.js' : docsEntry),
   output: {
     path: path.resolve(process.cwd(), './examples/element-ui/'),
     publicPath: process.env.CI_ENV || '',
@@ -27,7 +35,7 @@ const webpackConfig = {
   },
   resolve: {
     extensions: ['.js', '.vue', '.json'],
-    alias: config.alias,
+    alias,
     modules: ['node_modules']
   },
   devServer: {
@@ -56,7 +64,7 @@ const webpackConfig = {
       {
         enforce: 'pre',
         test: /\.(vue|jsx?)$/,
-        exclude: /node_modules/,
+        exclude: eslintExclude,
         loader: 'eslint-loader'
       },
       {
