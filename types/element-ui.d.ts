@@ -57,6 +57,7 @@ import { ElSteps } from './steps'
 import { ElSubmenu } from './submenu'
 import { ElSwitch } from './switch'
 import { ElTable } from './table'
+import { ElTableVirtual } from './table-virtual'
 import { ElTableColumn } from './table-column'
 import { ElTag } from './tag'
 import { ElTabs } from './tabs'
@@ -284,6 +285,9 @@ export class Switch extends ElSwitch {}
 
 /** Table Component */
 export class Table extends ElTable {}
+
+/** Virtual Table Component */
+export class TableVirtual extends ElTableVirtual {}
 
 /** Table Column Component */
 export class TableColumn extends ElTableColumn {}

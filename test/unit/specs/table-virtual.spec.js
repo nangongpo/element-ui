@@ -37,7 +37,7 @@ describe('TableVirtual', () => {
     }
   });
 
-  describe('rendering and layout', () => {
+  describe('Milestone 1: table props and virtual layout', () => {
     it('renders only visible rows', async() => {
       vm = createVue({
         template: `
@@ -59,6 +59,42 @@ describe('TableVirtual', () => {
       expect(rows.length).to.be.above(0);
       expect(rows.length).to.be.below(40);
       expect(vm.$el.textContent).to.contain('Name 0');
+    });
+
+    it('reloads data through a non-reactive internal data source', async() => {
+      const tableData = getData(1000);
+      vm = createVue({
+        template: `
+        <el-table-virtual ref="table" height="240" row-key="id" :row-height="40">
+          <el-table-column prop="id" label="ID" width="80" />
+          <el-table-column prop="name" label="Name" width="160" />
+        </el-table-virtual>
+      `
+      }, true);
+
+      await wait(50);
+      vm.$refs.table.reloadData(tableData);
+      await wait(50);
+
+      const table = vm.$refs.table;
+      const rows = vm.$el.querySelectorAll('.el-table-virtual__body-wrapper .el-table-virtual__row');
+      expect(table.useInternalData).to.true;
+      expect(table.tableData).to.equal(tableData);
+      expect(table.totalHeight).to.equal(40000);
+      expect(rows.length).to.be.above(0);
+      expect(rows.length).to.be.below(40);
+      expect(vm.$el.textContent).to.contain('Name 0');
+      expect(tableData.__ob__).to.equal(undefined);
+      expect(tableData[0].__ob__).to.equal(undefined);
+
+      table.scrollTo(400);
+      await wait(50);
+      expect(table.start).to.be.above(0);
+      table.reloadData(getData(10));
+      await wait(50);
+      expect(table.scrollTop).to.equal(0);
+      expect(table.start).to.equal(0);
+      expect(table.totalHeight).to.equal(400);
     });
 
     it('uses height prop or row height natural size', async() => {
@@ -273,9 +309,36 @@ describe('TableVirtual', () => {
       expect(vm.$el.textContent).to.contain('Name 4');
     });
 
+    it('updates layout when doLayout is called', async() => {
+      vm = createVue({
+        template: `
+        <el-table-virtual ref="table" :data="tableData" height="240" row-key="id" :row-height="40">
+          <el-table-column prop="id" label="ID" width="100" />
+          <el-table-column prop="name" label="Name" width="100" />
+          <el-table-column prop="address" label="Address" />
+        </el-table-virtual>
+      `,
+        data() {
+          return {
+            tableData: getData(20)
+          };
+        }
+      }, true);
+
+      await wait(50);
+      const table = vm.$refs.table;
+      const body = table.$refs.body;
+      Object.defineProperty(body, 'clientWidth', { configurable: true, value: 640 });
+      Object.defineProperty(body, 'clientHeight', { configurable: true, value: 160 });
+      table.doLayout();
+      expect(table.bodyWidth).to.equal(640);
+      expect(table.bodyHeight).to.equal(160);
+      expect(table.end).to.be.above(table.start);
+    });
+
   });
 
-  describe('state methods', () => {
+  describe('Milestone 1: current row methods and events', () => {
     it('supports current row key and setCurrentRow method', async() => {
       const currentChange = sinon.spy();
       vm = createVue({
@@ -316,7 +379,7 @@ describe('TableVirtual', () => {
 
   });
 
-  describe('fixed columns and sizing', () => {
+  describe('Milestone 1: fixed columns and sizing', () => {
     it('renders fixed columns in separated layers', async() => {
       vm = createVue({
         template: `
@@ -478,7 +541,7 @@ describe('TableVirtual', () => {
 
   });
 
-  describe('columns, slots and events', () => {
+  describe('Milestone 1: column props and scoped slots', () => {
     it('supports column scoped slot and row events', async() => {
       const rowClick = sinon.spy();
       vm = createVue({
@@ -504,6 +567,33 @@ describe('TableVirtual', () => {
       triggerEvent(vm.$el.querySelector('.el-table-virtual__body-wrapper .el-table-virtual__cell'), 'click', true, false);
       expect(rowClick.calledOnce).to.true;
       expect(rowClick.args[0][0].name).to.equal('Name 0');
+    });
+
+    it('passes visible zero-based $index to column scoped slot', async() => {
+      vm = createVue({
+        template: `
+        <el-table-virtual ref="table" :data="tableData" height="120" row-key="id" :row-height="40" :overscan="0">
+          <el-table-column prop="name" label="Name" width="160">
+            <template slot-scope="scope">{{ scope.$index }}:{{ scope.row.name }}</template>
+          </el-table-column>
+          <el-table-column type="index" label="#" width="80" />
+        </el-table-virtual>
+      `,
+        data() {
+          return {
+            tableData: getData(20)
+          };
+        }
+      }, true);
+
+      await wait(50);
+      expect(vm.$el.querySelector('.el-table-virtual__body-wrapper .el-table-virtual__cell').textContent).to.contain('0:Name 0');
+
+      vm.$refs.table.scrollTo(120);
+      await waitImmediate();
+      const cells = vm.$el.querySelectorAll('.el-table-virtual__body-wrapper .el-table-virtual__cell');
+      expect(cells[0].textContent).to.contain('0:Name 3');
+      expect(cells[1].textContent).to.contain('4');
     });
 
     it('supports column attributes', async() => {
@@ -551,6 +641,9 @@ describe('TableVirtual', () => {
       expect(bodyCell.hasAttribute('attrs')).to.false;
     });
 
+  });
+
+  describe('Milestone 2: index column', () => {
     it('renders index column with index prop', async() => {
       vm = createVue({
         template: `
@@ -578,6 +671,9 @@ describe('TableVirtual', () => {
       expect(firstBodyCell.textContent).to.contain('10');
     });
 
+  });
+
+  describe('Milestone 1: row, cell and header events', () => {
     it('supports table events', async() => {
       const spies = {
         cellClick: sinon.spy(),
@@ -587,6 +683,7 @@ describe('TableVirtual', () => {
         rowContextmenu: sinon.spy(),
         cellMouseEnter: sinon.spy(),
         cellMouseLeave: sinon.spy(),
+        cellContextmenu: sinon.spy(),
         headerClick: sinon.spy(),
         headerContextmenu: sinon.spy(),
         scroll: sinon.spy()
@@ -606,6 +703,7 @@ describe('TableVirtual', () => {
           @row-contextmenu="rowContextmenu"
           @cell-mouse-enter="cellMouseEnter"
           @cell-mouse-leave="cellMouseLeave"
+          @cell-contextmenu="cellContextmenu"
           @header-click="headerClick"
           @header-contextmenu="headerContextmenu"
           @scroll="scroll">
@@ -622,7 +720,6 @@ describe('TableVirtual', () => {
 
       await wait(50);
       const cell = vm.$el.querySelector('.el-table-virtual__body-wrapper .el-table-virtual__cell');
-      const row = vm.$el.querySelector('.el-table-virtual__body-wrapper .el-table-virtual__row');
       const headerCell = vm.$el.querySelector('.el-table-virtual__header-wrapper .el-table-virtual__cell');
       const body = vm.$refs.table.$refs.body;
 
@@ -630,7 +727,7 @@ describe('TableVirtual', () => {
       triggerEvent(cell, 'mouseleave', true, false);
       triggerEvent(cell, 'click', true, false);
       triggerEvent(cell, 'dblclick', true, false);
-      triggerEvent(row, 'contextmenu', true, false);
+      triggerEvent(cell, 'contextmenu', true, false);
       triggerEvent(headerCell, 'click', true, false);
       triggerEvent(headerCell, 'contextmenu', true, false);
       body.scrollTop = 80;
@@ -643,13 +740,126 @@ describe('TableVirtual', () => {
       expect(spies.rowClick.calledOnce).to.true;
       expect(spies.cellDblclick.calledOnce).to.true;
       expect(spies.rowDblclick.calledOnce).to.true;
+      expect(spies.cellContextmenu.calledOnce).to.true;
       expect(spies.rowContextmenu.calledOnce).to.true;
+      expect(spies.cellContextmenu.args[0][1].property).to.equal('name');
+      expect(spies.rowContextmenu.args[0][1].property).to.equal('name');
       expect(spies.headerClick.calledOnce).to.true;
       expect(spies.headerContextmenu.calledOnce).to.true;
       expect(spies.scroll.calledOnce).to.true;
       expect(spies.scroll.args[0][0].scrollTop).to.equal(80);
     });
 
+    it('clears hover row classes when body scrolls', async() => {
+      vm = createVue({
+        template: `
+        <el-table-virtual ref="table" :data="tableData" height="240" row-key="id" :row-height="40">
+          <el-table-column fixed prop="id" label="ID" width="80" />
+          <el-table-column prop="name" label="Name" width="160" />
+          <el-table-column fixed="right" prop="score" label="Score" width="100" />
+        </el-table-virtual>
+      `,
+        data() {
+          return {
+            tableData: getData(100)
+          };
+        }
+      }, true);
+
+      await wait(50);
+      const table = vm.$refs.table;
+      const body = table.$refs.body;
+      const cell = vm.$el.querySelector('.el-table-virtual__body-wrapper .el-table-virtual__cell');
+
+      triggerEvent(cell, 'mouseenter', true, false);
+      await waitImmediate();
+      expect(vm.$el.querySelectorAll('.el-table-virtual__row.hover-row').length).to.equal(3);
+
+      body.scrollTop = 160;
+      triggerEvent(body, 'scroll', true, false);
+      await wait(50);
+
+      expect(table.hoverRow).to.equal(null);
+      expect(table.hoverRowVisibleIndex).to.equal(null);
+      expect(vm.$el.querySelectorAll('.el-table-virtual__row.hover-row').length).to.equal(0);
+    });
+
+    it('clears hover row classes immediately when scroll frame is pending', async() => {
+      oldRequestAnimationFrame = window.requestAnimationFrame;
+      window.requestAnimationFrame = function() {
+        return 23456;
+      };
+
+      vm = createVue({
+        template: `
+        <el-table-virtual ref="table" :data="tableData" height="240" row-key="id" :row-height="40">
+          <el-table-column fixed prop="id" label="ID" width="80" />
+          <el-table-column prop="name" label="Name" width="160" />
+          <el-table-column fixed="right" prop="score" label="Score" width="100" />
+        </el-table-virtual>
+      `,
+        data() {
+          return {
+            tableData: getData(100)
+          };
+        }
+      }, true);
+
+      await wait(50);
+      const table = vm.$refs.table;
+      const body = table.$refs.body;
+      const cell = vm.$el.querySelector('.el-table-virtual__body-wrapper .el-table-virtual__cell');
+
+      triggerEvent(cell, 'mouseenter', true, false);
+      await waitImmediate();
+      expect(vm.$el.querySelectorAll('.el-table-virtual__row.hover-row').length).to.equal(3);
+
+      body.scrollTop = 160;
+      triggerEvent(body, 'scroll', true, false);
+
+      expect(table.scrollFrame).to.equal(23456);
+      expect(table.hoverRow).to.equal(null);
+      expect(vm.$el.querySelectorAll('.el-table-virtual__row.hover-row').length).to.equal(0);
+    });
+
+    it('syncs fixed hover classes while body scrolls under pointer', async() => {
+      vm = createVue({
+        template: `
+        <el-table-virtual ref="table" :data="tableData" height="240" row-key="id" :row-height="40">
+          <el-table-column fixed prop="id" label="ID" width="80" />
+          <el-table-column prop="name" label="Name" width="160" />
+          <el-table-column fixed="right" prop="score" label="Score" width="100" />
+        </el-table-virtual>
+      `,
+        data() {
+          return {
+            tableData: getData(100)
+          };
+        }
+      }, true);
+
+      await wait(50);
+      const table = vm.$refs.table;
+      const body = table.$refs.body;
+      Object.defineProperty(body, 'getBoundingClientRect', {
+        configurable: true,
+        value() {
+          return { top: 0, bottom: 240, left: 0, right: 400 };
+        }
+      });
+
+      table.handleBodyMouseMove({ clientX: 120, clientY: 20 });
+      body.scrollTop = 160;
+      triggerEvent(body, 'scroll', true, false);
+      await wait(50);
+
+      expect(table.hoverRow.id).to.equal(4);
+      expect(vm.$el.querySelectorAll('.el-table-virtual__row.hover-row').length).to.equal(3);
+    });
+
+  });
+
+  describe('Milestone 2: sorting', () => {
     it('supports sorting props and methods', async() => {
       const sortChange = sinon.spy();
       vm = createVue({
@@ -699,6 +909,231 @@ describe('TableVirtual', () => {
       expect(sortChange.calledTwice).to.true;
     });
 
+    it('keeps custom sorting external', async() => {
+      const sortChange = sinon.spy();
+      vm = createVue({
+        template: `
+        <el-table-virtual ref="table" :data="tableData" height="240" row-key="id" @sort-change="sortChange">
+          <el-table-column prop="score" label="Score" width="120" sortable="custom" />
+          <el-table-column prop="name" label="Name" width="160" />
+        </el-table-virtual>
+      `,
+        data() {
+          return {
+            tableData: getData(5)
+          };
+        },
+        methods: {
+          sortChange
+        }
+      }, true);
+
+      await wait(50);
+      vm.$refs.table.sort('score', 'ascending');
+      await wait(50);
+      expect(vm.$refs.table.visibleRows[0].score).to.equal(5);
+      expect(sortChange.calledOnce).to.true;
+      expect(sortChange.args[0][0].order).to.equal('ascending');
+    });
+
+  });
+
+  describe('Milestone 2: selection', () => {
+    it('supports selection methods, selectable and events', async() => {
+      const select = sinon.spy();
+      const selectAll = sinon.spy();
+      const selectionChange = sinon.spy();
+      vm = createVue({
+        template: `
+        <el-table-virtual
+          ref="table"
+          :data="tableData"
+          height="240"
+          row-key="id"
+          @select="select"
+          @select-all="selectAll"
+          @selection-change="selectionChange">
+          <el-table-column type="selection" width="48" :selectable="selectable" />
+          <el-table-column prop="name" label="Name" width="160" />
+        </el-table-virtual>
+      `,
+        data() {
+          return {
+            tableData: getData(4)
+          };
+        },
+        methods: {
+          selectable(row) {
+            return row.id % 2 === 0;
+          },
+          select,
+          selectAll,
+          selectionChange
+        }
+      }, true);
+
+      await wait(50);
+      expect(vm.$el.querySelector('.el-table-column--selection')).to.exist;
+
+      vm.$refs.table.toggleRowSelection(vm.tableData[1], true);
+      await waitImmediate();
+      expect(vm.$refs.table.selection.length).to.equal(0);
+
+      vm.$refs.table.toggleRowSelection(vm.tableData[0], true);
+      await waitImmediate();
+      expect(select.calledOnce).to.true;
+      expect(selectionChange.calledOnce).to.true;
+      expect(vm.$refs.table.selection.map(row => row.id)).to.eql([0]);
+
+      vm.$refs.table.toggleAllSelection();
+      await waitImmediate();
+      expect(selectAll.calledOnce).to.true;
+      expect(vm.$refs.table.selection.map(row => row.id)).to.eql([0, 2]);
+      expect(vm.$refs.table.isAllSelected).to.true;
+
+      vm.$refs.table.clearSelection();
+      await waitImmediate();
+      expect(vm.$refs.table.selection.length).to.equal(0);
+      expect(vm.$refs.table.isAllSelected).to.false;
+
+      vm.$refs.table.toggleRowSelection(vm.tableData[0], true);
+      await waitImmediate();
+      vm.$refs.table.toggleRowSelection(vm.tableData[0], false);
+      await waitImmediate();
+      expect(vm.$refs.table.selection.length).to.equal(0);
+    });
+
+    it('reserves selection by row key when data changes', async() => {
+      vm = createVue({
+        template: `
+        <el-table-virtual ref="table" :data="tableData" height="240" row-key="id">
+          <el-table-column type="selection" reserve-selection width="48" />
+          <el-table-column prop="name" label="Name" width="160" />
+        </el-table-virtual>
+      `,
+        data() {
+          return {
+            tableData: getData(4)
+          };
+        }
+      }, true);
+
+      await wait(50);
+      vm.$refs.table.toggleRowSelection(vm.tableData[2], true);
+      await waitImmediate();
+      vm.tableData = [
+        { id: 2, name: 'Updated Name 2', score: 10, address: 'Updated Address 2' },
+        { id: 5, name: 'Name 5', score: 1, address: 'Address 5' }
+      ];
+      await wait(50);
+
+      expect(vm.$refs.table.selection.length).to.equal(1);
+      expect(vm.$refs.table.selection[0].name).to.equal('Updated Name 2');
+    });
+
+  });
+
+  describe('Milestone 2: filtering', () => {
+    it('supports filter method, clearFilter and filter events', async() => {
+      const filterChange = sinon.spy();
+      vm = createVue({
+        template: `
+        <el-table-virtual ref="table" :data="tableData" height="240" row-key="id" @filter-change="filterChange">
+          <el-table-column
+            column-key="score"
+            prop="score"
+            label="Score"
+            width="120"
+            :filters="[{ text: 'High', value: 'high' }]"
+            :filter-method="filterMethod" />
+          <el-table-column prop="name" label="Name" width="160" />
+        </el-table-virtual>
+      `,
+        data() {
+          return {
+            tableData: getData(5)
+          };
+        },
+        methods: {
+          filterMethod(value, row) {
+            return value === 'high' ? row.score >= 4 : true;
+          },
+          filterChange
+        }
+      }, true);
+
+      await wait(50);
+      expect(vm.$el.querySelector('.el-table__column-filter-trigger')).to.exist;
+
+      vm.$refs.table.columns[0].filteredValue = ['high'];
+      await wait(50);
+      expect(vm.$refs.table.sortedData.length).to.equal(5);
+      expect(filterChange.called).to.false;
+
+      vm.$refs.table.filter('score', ['high']);
+      await wait(50);
+      expect(vm.$refs.table.sortedData.length).to.equal(2);
+      expect(vm.$refs.table.visibleRows.map(row => row.score)).to.eql([5, 4]);
+      expect(filterChange.calledOnce).to.true;
+      expect(filterChange.args[0][0].score).to.eql(['high']);
+
+      vm.$refs.table.clearFilter();
+      await wait(50);
+      expect(vm.$refs.table.sortedData.length).to.equal(5);
+      expect(filterChange.calledTwice).to.true;
+      expect(filterChange.args[1][0].score).to.eql([]);
+    });
+
+  });
+
+  describe('Milestone 1 and 2: typed array state diagnostics', () => {
+    it('reports named array state when array state is invalid', async() => {
+      vm = createVue({
+        template: `
+        <el-table-virtual ref="table" :data="tableData" height="240" row-key="id">
+          <el-table-column type="selection" width="48" />
+          <el-table-column
+            column-key="score"
+            prop="score"
+            label="Score"
+            width="120"
+            :filters="[{ text: 'High', value: 'high' }]"
+            :filter-method="filterMethod" />
+        </el-table-virtual>
+      `,
+        data() {
+          return {
+            tableData: getData(5)
+          };
+        },
+        methods: {
+          filterMethod(value, row) {
+            return value === 'high' ? row.score >= 4 : true;
+          }
+        }
+      }, true);
+
+      await wait(50);
+      const table = vm.$refs.table;
+      const column = table.columns[1];
+
+      table.selection = null;
+      expect(() => table.clearSelection()).to.throw(TypeError, 'selection must be an array');
+      table.selection = [];
+
+      table.activeFilters.score = null;
+      expect(() => table.getFilterValues(column)).to.throw(TypeError, 'activeFilters.score must be an array');
+      table.activeFilters.score = [];
+      expect(() => table.filterChange({ column, values: null, silent: true })).to.throw(TypeError, 'filterChange.values must be an array');
+
+      table.columns = null;
+      expect(() => table.updateColumns()).to.throw(TypeError, 'columns must be an array');
+      table.columns = [];
+    });
+
+  });
+
+  describe('Milestone 1: header slots', () => {
     it('renders column header slot', async() => {
       vm = createVue({
         template: `
@@ -741,7 +1176,7 @@ describe('TableVirtual', () => {
 
   });
 
-  describe('overflow title and tooltip', () => {
+  describe('Milestone 1: show-overflow-tooltip', () => {
     it('shows tooltip when overflow cell is hovered', async() => {
       vm = createVue({
         template: `
@@ -838,7 +1273,7 @@ describe('TableVirtual', () => {
 
   });
 
-  describe('destroy cleanup', () => {
+  describe('TableVirtual robustness and cleanup', () => {
     it('cleans pending frames, tooltip and retained references on destroy', async() => {
       oldRequestAnimationFrame = window.requestAnimationFrame;
       oldCancelAnimationFrame = window.cancelAnimationFrame;
@@ -881,9 +1316,9 @@ describe('TableVirtual', () => {
       expect(table.scrollFrame).to.equal(12345);
       expect(tooltip.referenceElm).to.equal(cell);
       expect(table.currentRow).to.equal(vm.tableData[1]);
-      expect(table.hoverRow).to.equal(table.visibleRows[0]);
+      expect(table.hoverRow).to.equal(null);
       expect(table.columns.length).to.be.above(0);
-      expect(table.store.states.data).to.equal(vm.tableData);
+      expect(table.store.states.data).to.equal(table.sortedData);
       expect(table.$el.__resizeListeners__).to.include(table.resizeListener);
 
       destroyVM(vm);

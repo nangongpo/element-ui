@@ -246,7 +246,7 @@
 <template>
   <el-table-virtual
     :data="tableData"
-    height="300"
+    height="250"
     row-key="id"
     border
     style="width: 100%">
@@ -371,7 +371,7 @@
     <el-table-virtual
       ref="singleTable"
       :data="tableData"
-      height="260"
+      height="250"
       row-key="id"
       highlight-current-row
       style="width: 100%"
@@ -435,7 +435,82 @@
 
 ### 多选
 
-待 TableVirtual 支持 `type="selection"` 后补充示例。
+选择多行数据时使用 Checkbox。虚拟表格展示大量数据时建议设置 `height`，以启用稳定的可视区渲染。
+
+:::demo 实现多选非常简单：手动添加一个`el-table-column`，设`type`属性为`selection`即可。可以通过 `toggleRowSelection` 和 `clearSelection` 方法控制选中项。
+```html
+<template>
+  <div>
+    <el-table-virtual
+      ref="multipleTable"
+      :data="tableData"
+      height="250"
+      row-key="id"
+      tooltip-effect="dark"
+      style="width: 100%"
+      @selection-change="handleSelectionChange">
+      <el-table-column
+        type="selection"
+        width="55">
+      </el-table-column>
+      <el-table-column
+        label="日期"
+        width="120">
+        <template slot-scope="scope">{{ scope.row.date }}</template>
+      </el-table-column>
+      <el-table-column
+        prop="name"
+        label="姓名"
+        width="120">
+      </el-table-column>
+      <el-table-column
+        prop="address"
+        label="地址"
+        show-overflow-tooltip>
+      </el-table-column>
+    </el-table-virtual>
+    <div style="margin-top: 20px">
+      <el-button @click="toggleSelection([tableData[1], tableData[2]])">切换第二、第三行的选中状态</el-button>
+      <el-button @click="toggleSelection()">取消选择</el-button>
+    </div>
+  </div>
+</template>
+
+<script>
+  export default {
+    data() {
+      const tableData = [];
+      for (let i = 0; i < 1000; i++) {
+        tableData.push({
+          id: i,
+          date: '2016-05-' + ((i % 28) + 1),
+          name: '王小虎',
+          address: '上海市普陀区金沙江路 ' + (1516 + i) + ' 弄'
+        });
+      }
+      return {
+        tableData,
+        multipleSelection: []
+      };
+    },
+    methods: {
+      toggleSelection(rows) {
+        if (rows) {
+          rows.forEach(row => {
+            this.$refs.multipleTable.toggleRowSelection(row);
+          });
+        } else {
+          this.$refs.multipleTable.clearSelection();
+        }
+      },
+      handleSelectionChange(val) {
+        this.multipleSelection = val;
+      }
+    }
+  };
+</script>
+```
+:::
 
 ### 排序
 
@@ -446,7 +521,7 @@
 <template>
   <el-table-virtual
     :data="tableData"
-    height="300"
+    height="250"
     row-key="id"
     :default-sort="{ prop: 'date', order: 'descending' }"
     style="width: 100%">
@@ -479,26 +554,145 @@
 
 ### 筛选
 
-待 TableVirtual 支持 `filters` 和 `filter-method` 后补充示例。
+对虚拟表格进行筛选，可快速查找到自己想看的数据。数据量较大时，记得设置 `height`。
+
+:::demo 在列中设置`filters` `filter-method`属性即可开启该列的筛选，filters 是一个数组，`filter-method`是一个方法，它用于决定某些数据是否显示，会传入三个参数：`value`、`row` 和 `column`。
+```html
+<template>
+  <div>
+    <el-button @click="resetDateFilter">清除日期过滤器</el-button>
+    <el-button @click="clearFilter">清除所有过滤器</el-button>
+    <el-table-virtual
+      ref="filterTable"
+      :data="tableData"
+      height="250"
+      row-key="id"
+      style="width: 100%">
+      <el-table-column
+        prop="date"
+        label="日期"
+        sortable
+        width="180"
+        column-key="date"
+        :filters="dateFilters"
+        :filter-method="filterHandler">
+      </el-table-column>
+      <el-table-column
+        prop="name"
+        label="姓名"
+        width="180">
+      </el-table-column>
+      <el-table-column
+        prop="address"
+        label="地址"
+        :formatter="formatter">
+      </el-table-column>
+      <el-table-column
+        prop="tag"
+        label="标签"
+        width="100"
+        :filters="[{ text: '家', value: '家' }, { text: '公司', value: '公司' }]"
+        :filter-method="filterTag"
+        filter-placement="bottom-end">
+        <template slot-scope="scope">
+          <el-tag
+            :type="scope.row.tag === '家' ? 'primary' : 'success'"
+            disable-transitions>{{ scope.row.tag }}</el-tag>
+        </template>
+      </el-table-column>
+    </el-table-virtual>
+  </div>
+</template>
+
+<script>
+  export default {
+    data() {
+      const tableData = [];
+      for (let i = 0; i < 1000; i++) {
+        const day = '2016-05-0' + ((i % 4) + 1);
+        tableData.push({
+          id: i,
+          date: day,
+          name: '王小虎',
+          address: '上海市普陀区金沙江路 ' + (1516 + i) + ' 弄',
+          tag: i % 2 === 0 ? '家' : '公司'
+        });
+      }
+      return {
+        tableData,
+        dateFilters: [
+          { text: '2016-05-01', value: '2016-05-01' },
+          { text: '2016-05-02', value: '2016-05-02' },
+          { text: '2016-05-03', value: '2016-05-03' },
+          { text: '2016-05-04', value: '2016-05-04' }
+        ]
+      };
+    },
+    methods: {
+      resetDateFilter() {
+        this.$refs.filterTable.clearFilter('date');
+      },
+      clearFilter() {
+        this.$refs.filterTable.clearFilter();
+      },
+      formatter(row) {
+        return row.address;
+      },
+      filterTag(value, row) {
+        return row.tag === value;
+      },
+      filterHandler(value, row, column) {
+        const property = column['property'];
+        return row[property] === value;
+      }
+    }
+  };
+</script>
+```
+:::
 
 ### 自定义列模板
 
-可以通过 Scoped slot 自定义列内容。
+自定义列的显示内容，可组合其他组件使用。虚拟表格展示大量数据时建议设置 `height`。
 
-:::demo 作用域参数包含 `row`、`column` 和 `$index`。
+:::demo 通过 `Scoped slot` 可以获取到 `row`、`column`、`$index` 和 `store` 的数据，用法参考 demo。
 ```html
 <template>
   <el-table-virtual
     :data="tableData"
-    height="260"
+    height="250"
     row-key="id"
     style="width: 100%">
-    <el-table-column prop="date" label="日期" width="180"></el-table-column>
-    <el-table-column prop="name" label="姓名" width="180"></el-table-column>
-    <el-table-column label="地址">
+    <el-table-column
+      label="日期"
+      width="180">
       <template slot-scope="scope">
         <i class="el-icon-time"></i>
-        <span style="margin-left: 10px">{{ scope.row.address }}</span>
+        <span style="margin-left: 10px">{{ scope.row.date }}</span>
+      </template>
+    </el-table-column>
+    <el-table-column
+      label="姓名"
+      width="180">
+      <template slot-scope="scope">
+        <el-popover trigger="hover" placement="top">
+          <p>姓名: {{ scope.row.name }}</p>
+          <p>住址: {{ scope.row.address }}</p>
+          <div slot="reference" class="name-wrapper" style="display: inline-block">
+            <el-tag size="medium">{{ scope.row.name }}</el-tag>
+          </div>
+        </el-popover>
+      </template>
+    </el-table-column>
+    <el-table-column label="操作">
+      <template slot-scope="scope">
+        <el-button
+          size="mini"
+          @click="handleEdit(scope.$index, scope.row)">编辑</el-button>
+        <el-button
+          size="mini"
+          type="danger"
+          @click="handleDelete(scope.$index, scope.row)">删除</el-button>
       </template>
     </el-table-column>
   </el-table-virtual>
@@ -507,16 +701,37 @@
 <script>
   export default {
     data() {
-      const tableData = [];
-      for (let i = 0; i < 1000; i++) {
-        tableData.push({
-          id: i,
-          date: '2016-05-' + ((i % 28) + 1),
+      return {
+        tableData: [{
+          id: 1,
+          date: '2016-05-02',
           name: '王小虎',
-          address: '上海市普陀区金沙江路 ' + (1516 + i) + ' 弄'
-        });
+          address: '上海市普陀区金沙江路 1518 弄'
+        }, {
+          id: 2,
+          date: '2016-05-04',
+          name: '王小虎',
+          address: '上海市普陀区金沙江路 1517 弄'
+        }, {
+          id: 3,
+          date: '2016-05-01',
+          name: '王小虎',
+          address: '上海市普陀区金沙江路 1519 弄'
+        }, {
+          id: 4,
+          date: '2016-05-03',
+          name: '王小虎',
+          address: '上海市普陀区金沙江路 1516 弄'
+        }]
+      };
+    },
+    methods: {
+      handleEdit(index, row) {
+        console.log(index, row);
+      },
+      handleDelete(index, row) {
+        console.log(index, row);
       }
-      return { tableData };
     }
   };
 </script>
@@ -525,27 +740,111 @@
 
 ### 自定义表头
 
-可以通过 Scoped slot 自定义表头。
+表头支持自定义。虚拟表格展示大量数据时建议设置 `height`。
 
-:::demo 通过设置 `slot="header"` 来自定义表头内容。
+:::demo 通过设置 [Scoped slot](https://v2.cn.vuejs.org/v2/guide/components-slots.html#%E4%BD%9C%E7%94%A8%E5%9F%9F%E6%8F%92%E6%A7%BD) 来自定义表头。
+```html
+<template>
+  <el-table-virtual
+    :data="filteredTableData"
+    height="250"
+    row-key="id"
+    style="width: 100%">
+    <el-table-column
+      label="Date"
+      prop="date">
+    </el-table-column>
+    <el-table-column
+      label="Name"
+      prop="name">
+    </el-table-column>
+    <el-table-column align="right">
+      <template slot="header" slot-scope="scope">
+        <el-input
+          v-model="search"
+          size="mini"
+          placeholder="输入关键字搜索"/>
+      </template>
+      <template slot-scope="scope">
+        <el-button
+          size="mini"
+          @click="handleEdit(scope.$index, scope.row)">Edit</el-button>
+        <el-button
+          size="mini"
+          type="danger"
+          @click="handleDelete(scope.$index, scope.row)">Delete</el-button>
+      </template>
+    </el-table-column>
+  </el-table-virtual>
+</template>
+
+<script>
+  export default {
+    data() {
+      const tableData = [];
+      for (let i = 0; i < 1000; i++) {
+        tableData.push({
+          id: i,
+          date: '2016-05-' + ((i % 28) + 1),
+          name: '王小虎',
+          address: '上海市普陀区金沙江路 ' + (1516 + i) + ' 弄'
+        });
+      }
+      return {
+        tableData,
+        search: ''
+      };
+    },
+    computed: {
+      filteredTableData() {
+        const search = this.search && this.search.toLowerCase();
+        if (!search) return this.tableData;
+        return this.tableData.filter(data => data.name.toLowerCase().indexOf(search) > -1);
+      }
+    },
+    methods: {
+      handleEdit(index, row) {
+        console.log(index, row);
+      },
+      handleDelete(index, row) {
+        console.log(index, row);
+      }
+    }
+  };
+</script>
+```
+:::
+
+### 自定义索引
+
+自定义 `type=index` 列的行号。虚拟表格在大数据下请设置 `height`。
+
+:::demo 通过给 `type=index` 的列传入 `index` 属性，可以自定义索引。该属性传入数字时，将作为索引的起始值。也可以传入一个方法，它提供当前行的行号（从 `0` 开始）作为参数，返回值将作为索引展示。
 ```html
 <template>
   <el-table-virtual
     :data="tableData"
-    height="260"
+    height="250"
     row-key="id"
     style="width: 100%">
-    <el-table-column prop="date" width="180">
-      <template slot="header">
-        日期
-      </template>
+    <el-table-column
+      type="index"
+      :index="indexMethod">
     </el-table-column>
-    <el-table-column prop="name" width="180">
-      <template slot="header">
-        姓名
-      </template>
+    <el-table-column
+      prop="date"
+      label="日期"
+      width="180">
     </el-table-column>
-    <el-table-column prop="address" label="地址"></el-table-column>
+    <el-table-column
+      prop="name"
+      label="姓名"
+      width="180">
+    </el-table-column>
+    <el-table-column
+      prop="address"
+      label="地址">
+    </el-table-column>
   </el-table-virtual>
 </template>
 
@@ -562,15 +861,16 @@
         });
       }
       return { tableData };
+    },
+    methods: {
+      indexMethod(index) {
+        return index * 2;
+      }
     }
   };
 </script>
 ```
 :::
-
-### 自定义索引
-
-待 TableVirtual 支持 `type="index"` 和 `index` 属性后补充示例。
 
 ### 流体高度
 
@@ -640,10 +940,19 @@
 | label-class-name | 表头 className | string | — | — |
 | formatter | 单元格格式化方法 | function(row, column, cellValue, index) | — | — |
 | render-header | 表头渲染函数 | function(h, scope) | — | — |
-| sortable | 是否排序 | boolean | — | false |
+| type | 列类型 | string | selection / index | — |
+| index | `type="index"` 的自定义索引 | number/function(index) | — | — |
+| selectable | 行是否可选 | function(row, index) | — | — |
+| reserve-selection | 数据更新后保留选中项，需指定 `row-key` | boolean | — | false |
+| sortable | 是否排序 | boolean/string | true / false / custom | false |
 | sort-method | 排序方法 | function(a, b) | — | — |
 | sort-by | 指定排序字段 | string/function/array | — | — |
 | sort-orders | 排序顺序 | array | ascending / descending / null | ['ascending', 'descending', null] |
+| filters | 筛选选项 | array | — | — |
+| filter-method | 筛选方法 | function(value, row, column) | — | — |
+| filter-multiple | 筛选是否支持多选 | boolean | — | true |
+| filtered-value | 已选中的筛选值 | array | — | — |
+| column-key | `filter-change` 的列标识 | string | — | — |
 | show-overflow-tooltip | 内容过长时显示 tooltip | boolean | — | false |
 
 ### TableVirtual Events
@@ -655,12 +964,17 @@
 | row-contextmenu | 右键点击行时触发 | row, column, event |
 | cell-click | 点击单元格时触发 | row, column, cell, event |
 | cell-dblclick | 双击单元格时触发 | row, column, cell, event |
+| cell-contextmenu | 右键点击单元格时触发 | row, column, cell, event |
 | cell-mouse-enter | hover 进入单元格时触发 | row, column, cell, event |
 | cell-mouse-leave | hover 离开单元格时触发 | row, column, cell, event |
 | header-click | 点击表头时触发 | column, event |
 | header-contextmenu | 右键点击表头时触发 | column, event |
 | current-change | 当前行变化时触发 | currentRow, oldCurrentRow |
+| select | 勾选或取消勾选某一行时触发 | selection, row |
+| select-all | 点击表头全选框时触发 | selection |
+| selection-change | 选中项变化时触发 | selection |
 | sort-change | 排序变化时触发 | { column, prop, order } |
+| filter-change | 筛选条件变化时触发 | filters |
 | scroll | 滚动时触发 | { scrollTop, scrollLeft } |
 
 ### TableVirtual Methods
@@ -669,9 +983,15 @@
 |--------|------|------|
 | doLayout | 重新计算布局 | — |
 | scrollTo | 滚动到指定纵向位置 | scrollTop |
+| reloadData | 通过组件内部非响应式数据源重新加载数据，适合超大数据场景 | data |
 | setCurrentRow | 设置当前行 | row |
+| clearSelection | 清空选中项 | — |
+| toggleRowSelection | 切换或设置某行选中状态 | row, selected |
+| toggleAllSelection | 切换所有可选行 | — |
 | sort | 手动排序 | prop, order |
 | clearSort | 清空排序 | — |
+| filter | 设置某列筛选值 | columnKey, values |
+| clearFilter | 清空筛选 | columnKeys |
 
 ### TableVirtual Slots
 

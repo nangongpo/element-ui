@@ -1,61 +1,37 @@
 import ElTooltip from 'element-ui/packages/tooltip';
-import { getValueByPath } from 'element-ui/src/utils/util';
 import Locale from 'element-ui/src/mixins/locale';
 import scrollbarWidth from 'element-ui/src/utils/scrollbar-width';
 import { addResizeListener, removeResizeListener } from 'element-ui/src/utils/resize-event';
-import { getRowIdentity, orderBy } from 'element-ui/packages/table/src/util';
+import { orderBy } from 'element-ui/packages/table/src/util';
+import { getDefaultCellValue } from './config';
+import TableVirtualBody from './table-body';
+import TableVirtualHeader from './table-header';
+import TableLayout from './table-layout';
+import createStore from './store';
+import Current from './store/current';
+import Filter from './store/filter';
+import Selection from './store/selection';
+import Sort from './store/sort';
+import {
+  assertArray,
+  formatHeight,
+  getColumnAlignClass,
+  getColumnWidth,
+  getRowKey
+} from './util';
 
 let tableIdSeed = 1;
-
-const getStyleNumber = function(value) {
-  const number = parseInt(value, 10);
-  return isNaN(number) ? 0 : number;
-};
-
-const formatHeight = function(value) {
-  if (typeof value === 'number') return value + 'px';
-  if (typeof value === 'string' && /^\d+$/.test(value)) return value + 'px';
-  return value;
-};
-
-const getColumnWidth = function(column) {
-  return getStyleNumber(column.realWidth || column.width || column.minWidth || 80);
-};
-
-const getColumnMinWidth = function(column) {
-  return getStyleNumber(column.minWidth || 80);
-};
-
-const isFlexColumn = function(column) {
-  return typeof column.width !== 'number';
-};
-
-const getColumnAlignClass = function(align) {
-  return align ? 'is-' + align.replace('is-', '') : '';
-};
-
-const getRowKey = function(row, rowKey, index) {
-  if (!rowKey) return index;
-  return getRowIdentity(row, rowKey);
-};
-
-const getDefaultCellValue = function(row, column, index) {
-  const property = column.property;
-  const value = property ? getValueByPath(row, property) : '';
-  if (column.formatter) {
-    return column.formatter(row, column, value, index);
-  }
-  return value;
-};
 
 export default {
   name: 'ElTableVirtual',
 
   components: {
-    ElTooltip
+    ElTooltip,
+    TableVirtualBody,
+    TableVirtualHeader
   },
 
-  mixins: [Locale],
+  mixins: [Locale, TableLayout, Current, Filter, Selection, Sort],
 
   props: {
     data: {
@@ -125,19 +101,40 @@ export default {
       currentRow: null,
       sortingColumn: null,
       sortProp: null,
-      sortOrder: null
+      sortOrder: null,
+      selection: [],
+      isAllSelected: false,
+      activeFilters: {},
+      useInternalData: false,
+      internalDataVersion: 0
     };
   },
 
   computed: {
+    tableData() {
+      if (this.useInternalData) {
+        return this.getInternalData(this.internalDataVersion);
+      }
+      return assertArray(this.data, 'data');
+    },
+
+    tableColumns() {
+      return assertArray(this.columns, 'columns');
+    },
+
+    tableSelection() {
+      return assertArray(this.selection, 'selection');
+    },
+
     tableClasses() {
       const classes = ['el-table-virtual', 'el-table'];
       if (this.border) classes.push('el-table--border', 'el-table-virtual--border');
       if (this.stripe) classes.push('el-table--striped', 'el-table-virtual--striped');
       if (this.fit) classes.push('el-table--fit');
       if (this.tableSize) classes.push('el-table--' + this.tableSize, 'el-table-virtual--' + this.tableSize);
-      if (this.columns.length && this.fixedColumns.length) classes.push('el-table-virtual--has-fixed-left');
-      if (this.columns.length && this.rightFixedColumns.length) classes.push('el-table-virtual--has-fixed-right');
+      const columns = this.tableColumns;
+      if (columns.length && this.fixedColumns.length) classes.push('el-table-virtual--has-fixed-left');
+      if (columns.length && this.rightFixedColumns.length) classes.push('el-table-virtual--has-fixed-right');
       return classes.join(' ');
     },
 
@@ -158,9 +155,34 @@ export default {
       return style;
     },
 
+    filteredData() {
+      const data = this.tableData;
+      const columns = this.tableColumns;
+      const filteredColumns = columns.filter(column => this.getFilterValues(column).length);
+      if (!filteredColumns.length) return data;
+      return data.filter((row) => {
+        for (let i = 0; i < filteredColumns.length; i++) {
+          const column = filteredColumns[i];
+          const values = this.getFilterValues(column);
+          if (!values.length) continue;
+          if (typeof column.filterMethod !== 'function') continue;
+          let matched = false;
+          for (let j = 0; j < values.length; j++) {
+            if (column.filterMethod.call(null, values[j], row, column)) {
+              matched = true;
+              break;
+            }
+          }
+          if (!matched) return false;
+        }
+        return true;
+      });
+    },
+
     sortedData() {
-      const data = this.data || [];
+      const data = this.filteredData;
       if (!this.sortingColumn || !this.sortOrder) return data;
+      if (this.sortingColumn.sortable === 'custom') return data;
       return orderBy(data, this.sortProp, this.sortOrder, this.sortingColumn.sortMethod, this.sortingColumn.sortBy);
     },
 
@@ -181,32 +203,22 @@ export default {
     },
 
     fixedColumns() {
-      return this.columns.filter(column => column.fixed === true || column.fixed === 'left');
+      return this.tableColumns.filter(column => column.fixed === true || column.fixed === 'left');
     },
 
     rightFixedColumns() {
-      return this.columns.filter(column => column.fixed === 'right');
+      return this.tableColumns.filter(column => column.fixed === 'right');
     },
 
     mainWidth() {
-      return this.getColumnsWidth(this.columns);
-    },
-
-    fixedLeftWidth() {
-      return this.getColumnsWidth(this.fixedColumns);
-    },
-
-    fixedRightWidth() {
-      return this.getColumnsWidth(this.rightFixedColumns);
-    },
-
-    scrollBodyWidth() {
-      return this.mainWidth + (this.rightFixedColumns.length ? this.fixedRightWidth : 0);
+      return this.getColumnsWidth(this.tableColumns);
     }
   },
 
   watch: {
     data() {
+      this.syncSelection();
+      this.updateAllSelected();
       this.updateRange();
       this.syncCurrentRowByKey();
     },
@@ -221,32 +233,28 @@ export default {
 
     columns() {
       this.$nextTick(this.doLayout);
+    },
+
+    sortedData() {
+      this.syncSelection();
+      this.updateAllSelected();
+      this.updateRange();
     }
   },
 
   created() {
     this.hoverRow = null;
     this.hoverRowVisibleIndex = null;
-    this.store = {
-      commit: (name, column, index, parent) => {
-        if (name === 'insertColumn') {
-          this.insertColumn(column, index, parent);
-        } else if (name === 'removeColumn') {
-          this.removeColumn(column, parent);
-        }
-      },
-      scheduleLayout: () => {
-        this.updateColumns();
-        this.$nextTick(this.doLayout);
-      },
-      states: {
-        data: this.data
-      }
-    };
+    this.lastMouseClientX = null;
+    this.lastMouseClientY = null;
+    this.filterPanels = {};
+    this.internalData = [];
+    this.store = createStore(this);
   },
 
   mounted() {
     this.scrollbarWidth = scrollbarWidth();
+    this.bodyWrapper = this.$refs.body;
     this.applyDefaultSort();
     this.syncCurrentRowByKey();
     this.doLayout();
@@ -267,6 +275,7 @@ export default {
       this.cancelFrame(this.scrollFrame);
       this.scrollFrame = null;
     }
+    this.destroyFilterPanels();
     this.pendingScrollTop = null;
     this.pendingScrollLeft = null;
 
@@ -288,14 +297,22 @@ export default {
     this.columns = [];
     this.hoverRow = null;
     this.hoverRowVisibleIndex = null;
+    this.lastMouseClientX = null;
+    this.lastMouseClientY = null;
     this.currentRow = null;
     this.sortingColumn = null;
     this.sortProp = null;
     this.sortOrder = null;
+    this.selection = [];
+    this.isAllSelected = false;
+    this.internalData = [];
+    this.useInternalData = false;
     if (this.store && this.store.states) {
       this.store.states.data = null;
+      this.store.states.selection = null;
     }
     this.store = null;
+    this.bodyWrapper = null;
   },
 
   methods: {
@@ -312,120 +329,74 @@ export default {
     },
 
     insertColumn(column, index, parent) {
-      const target = parent ? parent.children || (parent.children = []) : this.columns;
+      const target = parent
+        ? (typeof parent.children === 'undefined' ? (parent.children = []) : assertArray(parent.children, 'column.children'))
+        : this.tableColumns;
       if (typeof index === 'undefined' || index < 0 || index > target.length) {
         target.push(column);
       } else {
         target.splice(index, 0, column);
       }
+      this.syncColumnFilter(column);
+      this.syncStoreStates();
       this.updateColumns();
       this.$nextTick(this.doLayout);
     },
 
     removeColumn(column, parent) {
-      const target = parent ? parent.children : this.columns;
-      if (!target) return;
+      const target = parent ? parent.children : this.tableColumns;
+      if (typeof target === 'undefined') return;
+      assertArray(target, parent ? 'column.children' : 'columns');
       const index = target.indexOf(column);
       if (index > -1) {
         target.splice(index, 1);
       }
+      this.syncStoreStates();
       this.updateColumns();
       this.$nextTick(this.doLayout);
     },
 
-    updateColumns() {
-      const columns = this.columns;
-      const bodyWidth = this.bodyWidth || (this.$refs.body && this.$refs.body.clientWidth) || 0;
-      const flexColumns = columns.filter(column => isFlexColumn(column));
-      let bodyMinWidth = 0;
+    syncStoreStates() {
+      if (!this.store || !this.store.states) return;
+      this.store.states.data = this.sortedData;
+      this.store.states.selection = this.tableSelection;
+    },
 
-      columns.forEach(column => {
-        if (isFlexColumn(column)) {
-          column.realWidth = getColumnMinWidth(column);
-        } else {
-          column.realWidth = getStyleNumber(column.width);
-        }
-        bodyMinWidth += column.realWidth;
-      });
+    getInternalData(version) {
+      if (version < 0) return [];
+      return assertArray(this.internalData, 'reloadData.data');
+    },
 
-      if (this.fit && flexColumns.length && bodyWidth > bodyMinWidth) {
-        let totalFlexWidth = bodyWidth - bodyMinWidth;
-        if (flexColumns.length === 1) {
-          flexColumns[0].realWidth += totalFlexWidth;
-        } else {
-          const allColumnsWidth = flexColumns.reduce((prev, column) => prev + getColumnMinWidth(column), 0);
-          const flexWidthPerPixel = totalFlexWidth / allColumnsWidth;
-          let noneFirstWidth = 0;
-
-          flexColumns.forEach((column, index) => {
-            if (index === 0) return;
-            const flexWidth = Math.floor(getColumnMinWidth(column) * flexWidthPerPixel);
-            noneFirstWidth += flexWidth;
-            column.realWidth += flexWidth;
-          });
-          flexColumns[0].realWidth += totalFlexWidth - noneFirstWidth;
-        }
+    reloadData(data) {
+      this.internalData = assertArray(data, 'reloadData.data');
+      this.useInternalData = true;
+      this.internalDataVersion++;
+      this.scrollTop = 0;
+      this.scrollLeft = 0;
+      if (this.$refs.body) {
+        this.$refs.body.scrollTop = 0;
+        this.$refs.body.scrollLeft = 0;
       }
-
-      let left = 0;
-      columns.forEach(column => {
-        column.left = left;
-        left += column.realWidth;
-      });
-    },
-
-    getColumnsWidth(columns) {
-      let width = 0;
-      columns.forEach(column => {
-        width += getColumnWidth(column);
-      });
-      return width;
-    },
-
-    doLayout() {
-      const body = this.$refs.body;
-      if (!body) return;
-      const bodyHeight = body.clientHeight;
-      const bodyWidth = body.clientWidth;
-      this.bodyHeight = bodyHeight;
-      this.bodyWidth = bodyWidth;
-      this.hasVerticalScroll = this.totalHeight > bodyHeight;
-      this.updateColumns();
-      this.hasHorizontalScroll = this.scrollBodyWidth > bodyWidth;
+      this.clearHoverRow();
+      this.syncSelection();
+      this.updateAllSelected();
+      this.syncCurrentRowByKey();
       this.updateRange();
-    },
-
-    resizeListener() {
-      const el = this.$el;
-      if (!el) return;
-      const width = el.offsetWidth;
-      const height = el.offsetHeight;
-      if (width === this.resizeState.width && height === this.resizeState.height) return;
-      this.resizeState.width = width;
-      this.resizeState.height = height;
-      this.doLayout();
-    },
-
-    updateRange() {
-      const dataLength = this.sortedData.length;
-      const visibleCount = Math.ceil((this.bodyHeight || 0) / this.rowHeight);
-      const start = Math.max(0, Math.floor(this.scrollTop / this.rowHeight) - this.overscan);
-      const end = Math.min(dataLength, start + visibleCount + this.overscan * 2 + 1);
-      this.start = start;
-      this.end = end;
-      this.offsetY = start * this.rowHeight;
+      this.$nextTick(this.doLayout);
     },
 
     handleScroll(event) {
       const target = event.target;
       this.pendingScrollTop = target.scrollTop;
       this.pendingScrollLeft = target.scrollLeft;
+      this.clearHoverRow();
       if (this.scrollFrame) return;
       this.scrollFrame = this.getFrame(() => {
         this.scrollFrame = null;
         this.scrollTop = this.pendingScrollTop || 0;
         this.scrollLeft = this.pendingScrollLeft || 0;
         this.updateRange();
+        this.$nextTick(this.syncHoverRowByPointer);
         this.$emit('scroll', {
           scrollTop: this.scrollTop,
           scrollLeft: this.scrollLeft
@@ -465,6 +436,7 @@ export default {
       if (column.className && !header) classes.push(column.className);
       if (column.labelClassName && header) classes.push(column.labelClassName);
       if (column.showOverflowTooltip && !header) classes.push('el-tooltip');
+      if (header && this.getFilterValues(column).length) classes.push('highlight');
 
       const custom = header ? this.headerCellClassName : this.cellClassName;
       if (typeof custom === 'string') {
@@ -497,7 +469,7 @@ export default {
       if (typeof this.headerRowClassName === 'string') {
         classes.push(this.headerRowClassName);
       } else if (typeof this.headerRowClassName === 'function') {
-        const result = this.headerRowClassName({ row: this.columns, rowIndex: 0 });
+        const result = this.headerRowClassName({ row: this.tableColumns, rowIndex: 0 });
         if (result) classes.push(result);
       }
       return classes.join(' ');
@@ -506,7 +478,7 @@ export default {
     getHeaderRowStyle() {
       const base = { height: '48px' };
       if (typeof this.headerRowStyle === 'function') {
-        return Object.assign(base, this.headerRowStyle({ row: this.columns, rowIndex: 0 }) || {});
+        return Object.assign(base, this.headerRowStyle({ row: this.tableColumns, rowIndex: 0 }) || {});
       }
       return Object.assign(base, this.headerRowStyle || {});
     },
@@ -516,13 +488,20 @@ export default {
         row,
         column,
         $index: index,
+        isSelected: this.isSelected(row),
         store: this.store,
         _self: this.$parent
       };
     },
 
-    renderCellContent(h, row, column, rowIndex) {
-      const scope = this.getCellScope(row, column, rowIndex);
+    getRowIdentityValue(row, index) {
+      return getRowKey(row, this.rowKey, index);
+    },
+
+    renderCellContent(h, row, column, rowIndex, visibleIndex) {
+      const isBuiltInType = column.type === 'selection' || column.type === 'index' || column.type === 'expand';
+      const scopeIndex = isBuiltInType ? rowIndex : visibleIndex;
+      const scope = this.getCellScope(row, column, scopeIndex);
       if (column.renderCell) {
         return column.renderCell(h, scope);
       }
@@ -542,7 +521,19 @@ export default {
       return column.label;
     },
 
+    handleBodyMouseMove(event) {
+      this.lastMouseClientX = event.clientX;
+      this.lastMouseClientY = event.clientY;
+    },
+
+    handleBodyMouseLeave() {
+      this.lastMouseClientX = null;
+      this.lastMouseClientY = null;
+      this.clearHoverRow();
+    },
+
     handleCellMouseEnter(event, row, column, rowIndex) {
+      this.handleBodyMouseMove(event);
       const cell = event.currentTarget;
       this.$emit('cell-mouse-enter', row, column, cell, event);
       const cellChild = cell.querySelector('.cell') || cell;
@@ -595,7 +586,8 @@ export default {
       this.$emit('row-dblclick', row, column, event);
     },
 
-    handleRowContextmenu(event, row, column) {
+    handleCellContextmenu(event, row, column) {
+      this.$emit('cell-contextmenu', row, column, event.currentTarget, event);
       this.$emit('row-contextmenu', row, column, event);
     },
 
@@ -621,12 +613,22 @@ export default {
       }
     },
 
+    clearHoverRowClasses() {
+      const root = this.$el;
+      if (!root) return;
+      const rows = root.querySelectorAll('.el-table-virtual__row.hover-row');
+      for (let i = 0; i < rows.length; i++) {
+        rows[i].classList.remove('hover-row');
+      }
+    },
+
     setHoverRow(row, cell) {
       const visibleIndex = this.getVisibleRowIndex(cell);
-      if (this.hoverRowVisibleIndex === visibleIndex) return;
-      if (this.hoverRowVisibleIndex !== null) {
-        this.syncHoverRowClass(this.hoverRowVisibleIndex, false);
-      }
+      this.setHoverRowByVisibleIndex(row, visibleIndex);
+    },
+
+    setHoverRowByVisibleIndex(row, visibleIndex) {
+      this.clearHoverRowClasses();
       this.hoverRow = row;
       this.hoverRowVisibleIndex = visibleIndex;
       if (visibleIndex > -1) {
@@ -635,16 +637,37 @@ export default {
     },
 
     clearHoverRow() {
-      if (this.hoverRowVisibleIndex !== null) {
-        this.syncHoverRowClass(this.hoverRowVisibleIndex, false);
-      }
+      this.clearHoverRowClasses();
       this.hoverRow = null;
       this.hoverRowVisibleIndex = null;
+    },
+
+    syncHoverRowByPointer() {
+      const body = this.$refs.body;
+      if (!body || this.lastMouseClientX === null || this.lastMouseClientY === null) return;
+      const rect = body.getBoundingClientRect();
+      if (
+        this.lastMouseClientX < rect.left ||
+        this.lastMouseClientX > rect.right ||
+        this.lastMouseClientY < rect.top ||
+        this.lastMouseClientY > rect.bottom
+      ) return;
+
+      const bodyOffsetY = this.lastMouseClientY - rect.top;
+      const rowIndex = Math.floor((this.scrollTop + bodyOffsetY) / this.rowHeight);
+      const visibleIndex = rowIndex - this.start;
+      const row = this.visibleRows[visibleIndex];
+      if (row) {
+        this.setHoverRowByVisibleIndex(row, visibleIndex);
+      }
     },
 
     handleHeaderClick(event, column) {
       if (column.sortable) {
         this.toggleSort(column);
+      }
+      if (column.filterable && !column.sortable) {
+        this.handleFilterClick(event, column);
       }
       this.$emit('header-click', column, event);
     },
@@ -653,147 +676,14 @@ export default {
       this.$emit('header-contextmenu', column, event);
     },
 
-    setCurrentRow(row) {
-      const oldCurrentRow = this.currentRow;
-      if (row !== oldCurrentRow) {
-        this.currentRow = row || null;
-        this.$emit('current-change', this.currentRow, oldCurrentRow);
-      }
-    },
-
-    syncCurrentRowByKey() {
-      if (!this.rowKey || typeof this.currentRowKey === 'undefined') return;
-      const data = this.sortedData;
-      for (let i = 0; i < data.length; i++) {
-        if (getRowIdentity(data[i], this.rowKey) === this.currentRowKey) {
-          this.currentRow = data[i];
-          return;
-        }
-      }
-      this.currentRow = null;
-    },
-
-    applyDefaultSort() {
-      if (!this.defaultSort || !this.defaultSort.prop) return;
-      const column = this.columns.filter(item => item.property === this.defaultSort.prop)[0];
-      if (column) {
-        this.sort(column.property, this.defaultSort.order || 'ascending');
-      }
-    },
-
-    toggleSort(column) {
-      const orders = column.sortOrders || ['ascending', 'descending', null];
-      const index = orders.indexOf(column.order);
-      const nextOrder = orders[(index + 1) % orders.length];
-      this.sort(column.property, nextOrder);
-    },
-
-    sort(prop, order) {
-      const column = this.columns.filter(item => item.property === prop)[0];
-      if (!column) return;
-      this.columns.forEach(item => {
-        if (item !== column) item.order = null;
-      });
-      column.order = order;
-      this.sortingColumn = order ? column : null;
-      this.sortProp = order ? prop : null;
-      this.sortOrder = order || null;
-      this.updateRange();
-      this.$emit('sort-change', {
-        column,
-        prop,
-        order
-      });
-    },
-
-    clearSort() {
-      if (!this.sortingColumn) return;
-      const column = this.sortingColumn;
-      column.order = null;
-      this.sortingColumn = null;
-      this.sortProp = null;
-      this.sortOrder = null;
-      this.updateRange();
-      this.$emit('sort-change', {
-        column,
-        prop: null,
-        order: null
-      });
-    },
-
     scrollTo(scrollTop) {
       const body = this.$refs.body;
       if (body) {
         body.scrollTop = scrollTop;
         this.scrollTop = scrollTop;
+        this.clearHoverRow();
         this.updateRange();
       }
-    },
-
-    renderHeaderLayer(h, columns, fixed) {
-      if (!this.showHeader || !columns.length) return null;
-      const style = fixed
-        ? { width: this.getColumnsWidth(columns) + 'px' }
-        : {
-          width: this.mainWidth + 'px',
-          transform: 'translateX(' + (-this.scrollLeft) + 'px)'
-        };
-      return (
-        <div class="el-table-virtual__header-layer" style={style}>
-          <div class={this.getHeaderRowClass()} style={this.getHeaderRowStyle()}>
-            { columns.map((column, columnIndex) => (
-              <div
-                class={this.getCellClass(null, column, 0, columnIndex, true)}
-                style={this.getCellStyle(null, column, 0, columnIndex, true)}
-                on-click={event => this.handleHeaderClick(event, column)}
-                on-contextmenu={event => this.handleHeaderContextmenu(event, column)}>
-                <div class="cell">
-                  { this.renderHeaderContent(h, column, columnIndex) }
-                  { column.sortable ? <span class="caret-wrapper"><i class="sort-caret ascending"></i><i class="sort-caret descending"></i></span> : null }
-                </div>
-              </div>
-            )) }
-          </div>
-        </div>
-      );
-    },
-
-    renderRowsLayer(h, columns, fixed) {
-      const style = fixed
-        ? {
-          width: this.getColumnsWidth(columns) + 'px',
-          transform: 'translateY(' + (this.offsetY - this.scrollTop) + 'px)'
-        }
-        : {
-          width: this.mainWidth + 'px',
-          transform: 'translate3d(0,' + this.offsetY + 'px,0)'
-        };
-      return (
-        <div class="el-table-virtual__rows" style={style}>
-          { this.visibleRows.map((row, index) => {
-            const rowIndex = this.start + index;
-            return (
-              <div
-                class={this.getRowClass(row, rowIndex)}
-                style={this.getRowStyle(row, rowIndex)}
-                key={getRowKey(row, this.rowKey, rowIndex)}
-                on-contextmenu={event => this.handleRowContextmenu(event, row, null)}>
-                { columns.map((column, columnIndex) => (
-                  <div
-                    class={this.getCellClass(row, column, rowIndex, columnIndex, false)}
-                    style={this.getCellStyle(row, column, rowIndex, columnIndex, false)}
-                    on-mouseenter={event => this.handleCellMouseEnter(event, row, column, rowIndex)}
-                    on-mouseleave={event => this.handleCellMouseLeave(event, row, column)}
-                    on-click={event => this.handleCellClick(event, row, column, rowIndex)}
-                    on-dblclick={event => this.handleCellDblclick(event, row, column)}>
-                    { this.renderCellContent(h, row, column, rowIndex) }
-                  </div>
-                )) }
-              </div>
-            );
-          }) }
-        </div>
-      );
     },
 
     renderEmpty(h) {
@@ -831,21 +721,27 @@ export default {
         { this.showHeader ? (
           <div class="el-table-virtual__header-wrapper" style={{ height: headerHeight + 'px' }}>
             <div class="el-table-virtual__header-main">
-              { this.renderHeaderLayer(h, this.columns, false) }
+              <TableVirtualHeader table={this} columns={this.tableColumns} />
             </div>
-            { this.fixedColumns.length ? <div class="el-table-virtual__fixed-header el-table-virtual__fixed-left" style={{ width: this.fixedLeftWidth + 'px' }}>{ this.renderHeaderLayer(h, this.fixedColumns, true) }</div> : null }
-            { this.rightFixedColumns.length ? <div class="el-table-virtual__fixed-header el-table-virtual__fixed-right" style={fixedRightStyle}>{ this.renderHeaderLayer(h, this.rightFixedColumns, true) }</div> : null }
+            { this.fixedColumns.length ? <div class="el-table-virtual__fixed-header el-table-virtual__fixed-left" style={{ width: this.fixedLeftWidth + 'px' }}><TableVirtualHeader table={this} columns={this.fixedColumns} fixed /></div> : null }
+            { this.rightFixedColumns.length ? <div class="el-table-virtual__fixed-header el-table-virtual__fixed-right" style={fixedRightStyle}><TableVirtualHeader table={this} columns={this.rightFixedColumns} fixed /></div> : null }
             { fixedRightGutterWidth ? <div class="el-table-virtual__fixed-right-gutter" style={{ width: fixedRightGutterWidth + 'px' }}></div> : null }
           </div>
         ) : null }
-        <div ref="body" class="el-table-virtual__body-wrapper" style={bodyStyle} on-scroll={this.handleScroll}>
+        <div
+          ref="body"
+          class="el-table-virtual__body-wrapper"
+          style={bodyStyle}
+          on-scroll={this.handleScroll}
+          on-mousemove={this.handleBodyMouseMove}
+          on-mouseleave={this.handleBodyMouseLeave}>
           <div class="el-table-virtual__phantom" style={phantomStyle}></div>
-          { this.renderRowsLayer(h, this.columns, false) }
+          <TableVirtualBody table={this} columns={this.tableColumns} />
           { this.renderEmpty(h) }
           { this.$slots.append ? <div class="el-table__append-wrapper el-table-virtual__append" style={{ width: this.scrollBodyWidth + 'px' }}>{ this.$slots.append }</div> : null }
         </div>
-        { this.fixedColumns.length ? <div class="el-table-virtual__fixed-body el-table-virtual__fixed-left" style={{ top: this.headerHeight + 'px', bottom: (this.hasHorizontalScroll ? this.scrollbarWidth : 0) + 'px', width: this.fixedLeftWidth + 'px' }}>{ this.renderRowsLayer(h, this.fixedColumns, true) }</div> : null }
-        { this.rightFixedColumns.length ? <div class="el-table-virtual__fixed-body el-table-virtual__fixed-right" style={Object.assign({ top: this.headerHeight + 'px', bottom: (this.hasHorizontalScroll ? this.scrollbarWidth : 0) + 'px' }, fixedRightStyle)}>{ this.renderRowsLayer(h, this.rightFixedColumns, true) }</div> : null }
+        { this.fixedColumns.length ? <div class="el-table-virtual__fixed-body el-table-virtual__fixed-left" style={{ top: this.headerHeight + 'px', bottom: (this.hasHorizontalScroll ? this.scrollbarWidth : 0) + 'px', width: this.fixedLeftWidth + 'px' }}><TableVirtualBody table={this} columns={this.fixedColumns} fixed /></div> : null }
+        { this.rightFixedColumns.length ? <div class="el-table-virtual__fixed-body el-table-virtual__fixed-right" style={Object.assign({ top: this.headerHeight + 'px', bottom: (this.hasHorizontalScroll ? this.scrollbarWidth : 0) + 'px' }, fixedRightStyle)}><TableVirtualBody table={this} columns={this.rightFixedColumns} fixed /></div> : null }
       </div>
     );
   }
