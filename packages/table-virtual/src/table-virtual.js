@@ -102,11 +102,15 @@ export default {
       sortingColumn: null,
       sortProp: null,
       sortOrder: null,
-      selection: [],
       isAllSelected: false,
       activeFilters: {},
       useInternalData: false,
-      internalDataVersion: 0
+      dataVersion: 0,
+      internalDataVersion: 0,
+      filterVersion: 0,
+      sortVersion: 0,
+      viewVersion: 0,
+      viewLength: 0
     };
   },
 
@@ -156,38 +160,15 @@ export default {
     },
 
     filteredData() {
-      const data = this.tableData;
-      const columns = this.tableColumns;
-      const filteredColumns = columns.filter(column => this.getFilterValues(column).length);
-      if (!filteredColumns.length) return data;
-      return data.filter((row) => {
-        for (let i = 0; i < filteredColumns.length; i++) {
-          const column = filteredColumns[i];
-          const values = this.getFilterValues(column);
-          if (!values.length) continue;
-          if (typeof column.filterMethod !== 'function') continue;
-          let matched = false;
-          for (let j = 0; j < values.length; j++) {
-            if (column.filterMethod.call(null, values[j], row, column)) {
-              matched = true;
-              break;
-            }
-          }
-          if (!matched) return false;
-        }
-        return true;
-      });
+      return this.getFilteredData(this.dataVersion, this.internalDataVersion, this.filterVersion);
     },
 
     sortedData() {
-      const data = this.filteredData;
-      if (!this.sortingColumn || !this.sortOrder) return data;
-      if (this.sortingColumn.sortable === 'custom') return data;
-      return orderBy(data, this.sortProp, this.sortOrder, this.sortingColumn.sortMethod, this.sortingColumn.sortBy);
+      return this.getViewData();
     },
 
     totalHeight() {
-      return this.sortedData.length * this.rowHeight;
+      return this.viewLength * this.rowHeight;
     },
 
     headerHeight() {
@@ -199,7 +180,7 @@ export default {
     },
 
     visibleRows() {
-      return this.sortedData.slice(this.start, this.end);
+      return this.getVisibleRows();
     },
 
     fixedColumns() {
@@ -217,6 +198,10 @@ export default {
 
   watch: {
     data() {
+      if (!this.useInternalData) {
+        this.dataVersion++;
+        this.refreshViewData();
+      }
       this.syncSelection();
       this.updateAllSelected();
       this.updateRange();
@@ -232,13 +217,11 @@ export default {
     },
 
     columns() {
+      this.filterVersion++;
+      this.sortVersion++;
+      this.refreshViewData();
+      this.syncStoreStates();
       this.$nextTick(this.doLayout);
-    },
-
-    sortedData() {
-      this.syncSelection();
-      this.updateAllSelected();
-      this.updateRange();
     }
   },
 
@@ -249,6 +232,17 @@ export default {
     this.lastMouseClientY = null;
     this.filterPanels = {};
     this.internalData = [];
+    this.filteredDataCache = [];
+    this.filteredDataCacheKey = null;
+    this.sortedDataCache = [];
+    this.sortedDataCacheKey = null;
+    this.viewData = [];
+    this.viewDataCacheKey = null;
+    this.selection = [];
+    this.selectionMapCache = {};
+    this.allSelectionMode = false;
+    this.excludedSelectionMap = {};
+    this.selectionCount = 0;
     this.store = createStore(this);
   },
 
@@ -256,6 +250,7 @@ export default {
     this.scrollbarWidth = scrollbarWidth();
     this.bodyWrapper = this.$refs.body;
     this.applyDefaultSort();
+    this.refreshViewData();
     this.syncCurrentRowByKey();
     this.doLayout();
     this.resizeState = {
@@ -304,8 +299,19 @@ export default {
     this.sortProp = null;
     this.sortOrder = null;
     this.selection = [];
+    this.selectionMapCache = {};
+    this.allSelectionMode = false;
+    this.excludedSelectionMap = {};
+    this.selectionCount = 0;
     this.isAllSelected = false;
     this.internalData = [];
+    this.filteredDataCache = [];
+    this.filteredDataCacheKey = null;
+    this.sortedDataCache = [];
+    this.sortedDataCacheKey = null;
+    this.viewData = [];
+    this.viewDataCacheKey = null;
+    this.viewLength = 0;
     this.useInternalData = false;
     if (this.store && this.store.states) {
       this.store.states.data = null;
@@ -358,8 +364,229 @@ export default {
 
     syncStoreStates() {
       if (!this.store || !this.store.states) return;
-      this.store.states.data = this.sortedData;
-      this.store.states.selection = this.tableSelection;
+      this.store.states.data = this.getViewData();
+      this.store.states.selection = this.getSelection ? this.getSelection() : this.tableSelection;
+    },
+
+    getFilterCacheKey(dataVersion, internalDataVersion, filterVersion) {
+      return [
+        this.useInternalData ? 'internal' : 'props',
+        dataVersion,
+        internalDataVersion,
+        filterVersion,
+        this.tableColumns.length
+      ].join('|');
+    },
+
+    getSortCacheKey(dataVersion, internalDataVersion, filterVersion, sortVersion) {
+      return [
+        this.getFilterCacheKey(dataVersion, internalDataVersion, filterVersion),
+        sortVersion,
+        this.sortProp || '',
+        this.sortOrder || ''
+      ].join('|');
+    },
+
+    hasActiveFilters() {
+      const filters = this.activeFilters || {};
+      const keys = Object.keys(filters);
+      for (let i = 0; i < keys.length; i++) {
+        const values = filters[keys[i]];
+        if (Array.isArray(values) && values.length) return true;
+      }
+      return false;
+    },
+
+    hasActiveSort() {
+      return !!(this.sortingColumn && this.sortOrder && this.sortingColumn.sortable !== 'custom');
+    },
+
+    shouldAsyncFilter(data, filteredColumns) {
+      return data.length > 50000 && filteredColumns.length > 0;
+    },
+
+    getViewCacheKey() {
+      return this.getSortCacheKey(this.dataVersion, this.internalDataVersion, this.filterVersion, this.sortVersion);
+    },
+
+    getFilteredData(dataVersion, internalDataVersion, filterVersion) {
+      const key = this.getFilterCacheKey(dataVersion, internalDataVersion, filterVersion);
+      if (this.filteredDataCacheKey === key) return this.filteredDataCache;
+
+      const data = this.tableData;
+      const columns = this.tableColumns;
+      const filteredColumns = columns.filter(column => this.getFilterValues(column).length);
+      if (!filteredColumns.length) {
+        this.filteredDataCache = data;
+        this.filteredDataCacheKey = key;
+        return data;
+      }
+
+      const result = [];
+      for (let rowIndex = 0; rowIndex < data.length; rowIndex++) {
+        const row = data[rowIndex];
+        let rowMatched = true;
+        for (let i = 0; i < filteredColumns.length; i++) {
+          const column = filteredColumns[i];
+          const values = this.getFilterValues(column);
+          if (!values.length || typeof column.filterMethod !== 'function') continue;
+          let matched = false;
+          for (let j = 0; j < values.length; j++) {
+            if (column.filterMethod.call(null, values[j], row, column)) {
+              matched = true;
+              break;
+            }
+          }
+          if (!matched) {
+            rowMatched = false;
+            break;
+          }
+        }
+        if (rowMatched) result.push(row);
+      }
+      this.filteredDataCache = result;
+      this.filteredDataCacheKey = key;
+      return result;
+    },
+
+    getFilteredColumns() {
+      const columns = this.tableColumns;
+      return columns.filter(column => this.getFilterValues(column).length);
+    },
+
+    rowPassesFilters(row, filteredColumns) {
+      for (let i = 0; i < filteredColumns.length; i++) {
+        const column = filteredColumns[i];
+        const values = this.getFilterValues(column);
+        if (!values.length || typeof column.filterMethod !== 'function') continue;
+        let matched = false;
+        for (let j = 0; j < values.length; j++) {
+          if (column.filterMethod.call(null, values[j], row, column)) {
+            matched = true;
+            break;
+          }
+        }
+        if (!matched) return false;
+      }
+      return true;
+    },
+
+    getSortedData(dataVersion, internalDataVersion, filterVersion, sortVersion) {
+      const key = this.getSortCacheKey(dataVersion, internalDataVersion, filterVersion, sortVersion);
+      if (this.sortedDataCacheKey === key) return this.sortedDataCache;
+
+      const data = this.filteredData;
+      if (!this.sortingColumn || !this.sortOrder || this.sortingColumn.sortable === 'custom') {
+        this.sortedDataCache = data;
+        this.sortedDataCacheKey = key;
+        return data;
+      }
+
+      const result = this.getOrderedData(data);
+      this.sortedDataCache = result;
+      this.sortedDataCacheKey = key;
+      return result;
+    },
+
+    getOrderedData(data) {
+      const column = this.sortingColumn;
+      if (column.sortMethod || column.sortBy) {
+        return orderBy(data, this.sortProp, this.sortOrder, column.sortMethod, column.sortBy);
+      }
+      const prop = this.sortProp;
+      const reverse = this.sortOrder === 'descending' ? -1 : 1;
+      const result = data.slice();
+      result.sort((a, b) => {
+        const valueA = this.getSortValue(a, prop);
+        const valueB = this.getSortValue(b, prop);
+        if (valueA < valueB) return -1 * reverse;
+        if (valueA > valueB) return 1 * reverse;
+        return 0;
+      });
+      return result;
+    },
+
+    getSortValue(row, prop) {
+      if (!row || !prop) return row;
+      if (prop.indexOf('.') === -1) return row[prop];
+      const path = prop.split('.');
+      let value = row;
+      for (let i = 0; i < path.length && value != null; i++) {
+        value = value[path[i]];
+      }
+      return value;
+    },
+
+    getViewData() {
+      const key = this.getViewCacheKey();
+      if (this.viewDataCacheKey === key) return this.viewData;
+      return this.refreshViewData();
+    },
+
+    refreshViewData() {
+      const key = this.getViewCacheKey();
+      const data = this.getSortedData(this.dataVersion, this.internalDataVersion, this.filterVersion, this.sortVersion);
+      this.viewData = data;
+      this.viewDataCacheKey = key;
+      this.viewLength = data.length;
+      this.viewVersion++;
+      return data;
+    },
+
+    refreshViewDataAsync(done) {
+      const key = this.getViewCacheKey();
+      const data = this.tableData;
+      const filteredColumns = this.getFilteredColumns();
+      if (!this.shouldAsyncFilter(data, filteredColumns)) {
+        const result = this.refreshViewData();
+        if (done) done(result);
+        return;
+      }
+
+      const token = {};
+      this.filterTaskToken = token;
+      const result = [];
+      let index = 0;
+      const chunkSize = 5000;
+      const next = () => {
+        if (this.filterTaskToken !== token) return;
+        const end = Math.min(index + chunkSize, data.length);
+        for (; index < end; index++) {
+          const row = data[index];
+          if (this.rowPassesFilters(row, filteredColumns)) {
+            result.push(row);
+          }
+        }
+        if (index < data.length) {
+          this.getFrame(next);
+          return;
+        }
+
+        this.filteredDataCache = result;
+        this.filteredDataCacheKey = this.getFilterCacheKey(this.dataVersion, this.internalDataVersion, this.filterVersion);
+        this.sortedDataCache = null;
+        this.sortedDataCacheKey = null;
+        this.viewData = this.getSortedData(this.dataVersion, this.internalDataVersion, this.filterVersion, this.sortVersion);
+        this.viewDataCacheKey = key;
+        this.viewLength = this.viewData.length;
+        this.viewVersion++;
+        this.syncStoreStates();
+        this.updateRange();
+        this.updateAllSelected();
+        this.$forceUpdate();
+        if (done) done(this.viewData);
+      };
+      next();
+    },
+
+    getVisibleRows() {
+      const data = this.getViewData();
+      return data.slice(this.start, this.end);
+    },
+
+    getViewRow(index) {
+      const data = this.getViewData();
+      return data[index];
     },
 
     getInternalData(version) {
@@ -370,7 +597,19 @@ export default {
     reloadData(data) {
       this.internalData = assertArray(data, 'reloadData.data');
       this.useInternalData = true;
+      this.dataVersion++;
       this.internalDataVersion++;
+      this.filteredDataCache = [];
+      this.filteredDataCacheKey = null;
+      this.sortedDataCache = [];
+      this.sortedDataCacheKey = null;
+      this.viewData = this.hasActiveFilters() || this.hasActiveSort()
+        ? this.getSortedData(this.dataVersion, this.internalDataVersion, this.filterVersion, this.sortVersion)
+        : this.internalData;
+      this.viewDataCacheKey = this.getViewCacheKey();
+      this.viewLength = this.viewData.length;
+      this.viewVersion++;
+      this.syncStoreStates();
       this.scrollTop = 0;
       this.scrollLeft = 0;
       if (this.$refs.body) {
@@ -378,8 +617,6 @@ export default {
         this.$refs.body.scrollLeft = 0;
       }
       this.clearHoverRow();
-      this.syncSelection();
-      this.updateAllSelected();
       this.syncCurrentRowByKey();
       this.updateRange();
       this.$nextTick(this.doLayout);
@@ -687,7 +924,7 @@ export default {
     },
 
     renderEmpty(h) {
-      if (this.sortedData.length) return null;
+      if (this.viewLength) return null;
       return (
         <div class="el-table__empty-block el-table-virtual__empty" style={{ height: this.bodyHeight + 'px' }}>
           <span class="el-table__empty-text">

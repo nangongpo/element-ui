@@ -516,14 +516,14 @@ Use el scoped slot `header` para personalizar la cabecera.
 ```html
 <template>
   <el-table-virtual :data="filteredTableData" height="250" row-key="id" style="width: 100%">
-    <el-table-column label="Date" prop="date"></el-table-column>
-    <el-table-column label="Name" prop="name"></el-table-column>
-    <el-table-column align="right"><template slot="header" slot-scope="scope"><el-input v-model="search" size="mini" placeholder="Escriba para buscar"/></template><template slot-scope="scope"><el-button size="mini" @click="handleEdit(scope.$index, scope.row)">Edit</el-button><el-button size="mini" type="danger" @click="handleDelete(scope.$index, scope.row)">Delete</el-button></template></el-table-column>
+    <el-table-column label="Fecha" prop="date"></el-table-column>
+    <el-table-column label="Nombre" prop="name"></el-table-column>
+    <el-table-column align="right"><template slot="header" slot-scope="scope"><el-input v-model="search" size="mini" placeholder="Introduzca una palabra clave del nombre para buscar"/></template><template slot-scope="scope"><el-button size="mini" @click="handleEdit(scope.$index, scope.row)">Editar</el-button><el-button size="mini" type="danger" @click="handleDelete(scope.$index, scope.row)">Eliminar</el-button></template></el-table-column>
   </el-table-virtual>
 </template>
 
 <script>
-  export default { data() { const tableData = []; for (let i = 0; i < 1000; i++) tableData.push({ id: i, date: '2016-05-' + ((i % 28) + 1), name: 'Tom', address: 'Grove St ' + i }); return { tableData, search: '' }; }, computed: { filteredTableData() { const search = this.search && this.search.toLowerCase(); if (!search) return this.tableData; return this.tableData.filter(data => data.name.toLowerCase().indexOf(search) > -1); } }, methods: { handleEdit(index, row) { console.log(index, row); }, handleDelete(index, row) { console.log(index, row); } } };
+  export default { data() { const tableData = []; for (let i = 0; i < 1000; i++) tableData.push({ id: i, date: '2016-05-' + ((i % 28) + 1), name: 'Tom ' + i, address: 'Grove St ' + i }); return { tableData, search: '' }; }, computed: { filteredTableData() { const search = this.search && this.search.toLowerCase(); if (!search) return this.tableData; return this.tableData.filter(data => data.name.toLowerCase().indexOf(search) > -1); } }, methods: { handleEdit(index, row) { console.log(index, row); }, handleDelete(index, row) { console.log(index, row); } } };
 </script>
 ```
 :::
@@ -572,6 +572,128 @@ El ejemplo se añadirá cuando TableVirtual soporte esta función.
 ### Combinar filas o columnas
 
 El ejemplo se añadirá cuando TableVirtual soporte esta función.
+
+### Renderizado de grandes datos
+
+Cuando el conjunto de datos es muy grande, puede usar `reloadData` para cargar los datos en la fuente interna no reactiva del componente y evitar que Vue observe todo el conjunto de datos. Los métodos de ordenación, filtrado y selección siguen estando disponibles. El siguiente ejemplo usa `reloadData` para cargar grandes datos y usa `sort`, `filter`, `toggleRowSelection` y `clearSelection` para controlar el estado de la tabla.
+
+:::demo
+```html
+<template>
+  <div>
+    <div style="margin-bottom: 10px">
+      <span style="display: inline-block; margin: 0 10px 10px 0">
+        <el-button @click="reloadLargeData(10000)">Cargar 10000 filas</el-button>
+      </span>
+      <span style="display: inline-block; margin: 0 10px 10px 0">
+        <el-button @click="reloadLargeData(200000)">Cargar 200000 filas</el-button>
+      </span>
+      <span style="display: inline-block; margin: 0 10px 10px 0">
+        <el-button @click="reloadLargeData(1000000)">Cargar 1000000 filas</el-button>
+      </span>
+      <span style="display: inline-block; margin: 0 10px 10px 0">
+        <el-button @click="sortByScore">Ordenar puntuación ascendente</el-button>
+      </span>
+      <span style="display: inline-block; margin: 0 10px 10px 0">
+        <el-button @click="filterActive">Filtrar estado activo</el-button>
+      </span>
+      <span style="display: inline-block; margin: 0 10px 10px 0">
+        <el-button @click="clearFilter">Limpiar filtros</el-button>
+      </span>
+      <span style="display: inline-block; margin: 0 10px 10px 0">
+        <el-button @click="toggleSelection">Seleccionar dos filas activas</el-button>
+      </span>
+      <span style="display: inline-block; margin: 0 10px 10px 0">
+        <el-button @click="clearSelection">Limpiar selección</el-button>
+      </span>
+    </div>
+    <div style="margin-bottom: 12px">Seleccionadas {{ selectedCount }} filas</div>
+    <el-table-virtual
+      ref="largeTable"
+      height="250"
+      row-key="id"
+      border
+      style="width: 100%"
+      @selection-change="handleSelectionChange">
+      <el-table-column type="selection" width="55"></el-table-column>
+      <el-table-column prop="id" label="ID" width="80"></el-table-column>
+      <el-table-column prop="name" label="Nombre" width="120"></el-table-column>
+      <el-table-column prop="score" label="Puntuación" sortable width="120"></el-table-column>
+      <el-table-column
+        prop="status"
+        label="Estado"
+        column-key="status"
+        width="120"
+        :filters="[{ text: 'Activo', value: 'active' }, { text: 'Deshabilitado', value: 'disabled' }]"
+        :filter-method="filterStatus">
+        <template slot-scope="scope">
+          <el-tag :type="scope.row.status === 'active' ? 'success' : 'info'" disable-transitions>
+            {{ scope.row.status === 'active' ? 'Activo' : 'Deshabilitado' }}
+          </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column prop="address" label="Dirección" min-width="300" show-overflow-tooltip></el-table-column>
+    </el-table-virtual>
+  </div>
+</template>
+
+<script>
+  export default {
+    data() {
+      return {
+        selectedCount: 0
+      };
+    },
+    mounted() {
+      this.reloadLargeData(10000);
+    },
+    methods: {
+      createData(count) {
+        const data = [];
+        for (let i = 0; i < count; i++) {
+          data.push({
+            id: i,
+            name: 'Usuario ' + i,
+            score: count - i,
+            status: i % 3 === 0 ? 'disabled' : 'active',
+            address: 'No. ' + (1516 + i) + ', Grove St, Los Angeles'
+          });
+        }
+        return data;
+      },
+      reloadLargeData(count) {
+        this._largeData = this.createData(count);
+        this.selectedCount = 0;
+        this.$refs.largeTable.reloadData(this._largeData);
+      },
+      sortByScore() {
+        this.$refs.largeTable.sort('score', 'ascending');
+      },
+      filterActive() {
+        this.$refs.largeTable.filter('status', ['active']);
+      },
+      toggleSelection() {
+        this.$refs.largeTable.toggleRowSelection(this._largeData[1], true);
+        this.$refs.largeTable.toggleRowSelection(this._largeData[2], true);
+      },
+      clearSelection() {
+        this.$refs.largeTable.clearSelection();
+      },
+      clearFilter() {
+        this.$refs.largeTable.clearFilter();
+      },
+      filterStatus(value, row) {
+        return row.status === value;
+      },
+      handleSelectionChange(val) {
+        this._multipleSelection = val;
+        this.selectedCount = val.length;
+      }
+    }
+  };
+</script>
+```
+:::
 
 ### Atributos de TableVirtual
 

@@ -96,14 +96,13 @@ export default {
     },
 
     updateRange() {
-      const dataLength = this.sortedData.length;
+      const dataLength = this.viewLength;
       const visibleCount = Math.ceil((this.bodyHeight || 0) / this.rowHeight);
       const start = Math.max(0, Math.floor(this.scrollTop / this.rowHeight) - this.overscan);
       const end = Math.min(dataLength, start + visibleCount + this.overscan * 2 + 1);
       this.start = start;
       this.end = end;
       this.offsetY = start * this.rowHeight;
-      this.syncStoreStates();
     }
   }
 };

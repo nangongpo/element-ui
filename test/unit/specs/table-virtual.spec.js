@@ -936,6 +936,32 @@ describe('TableVirtual', () => {
       expect(sortChange.args[0][0].order).to.equal('ascending');
     });
 
+    it('does not rerun sorting while scrolling cached data', async() => {
+      const sortMethod = sinon.spy((a, b) => a.score - b.score);
+      vm = createVue({
+        template: `
+        <el-table-virtual ref="table" :data="tableData" height="240" row-key="id" :row-height="40" :default-sort="{ prop: 'score', order: 'ascending' }">
+          <el-table-column prop="score" label="Score" width="120" sortable :sort-method="sortMethod" />
+          <el-table-column prop="name" label="Name" width="160" />
+        </el-table-virtual>
+      `,
+        data() {
+          return {
+            tableData: getData(100)
+          };
+        },
+        methods: {
+          sortMethod
+        }
+      }, true);
+
+      await wait(50);
+      const callCount = sortMethod.callCount;
+      vm.$refs.table.scrollTo(400);
+      await wait(50);
+      expect(sortMethod.callCount).to.equal(callCount);
+    });
+
   });
 
   describe('Milestone 2: selection', () => {
@@ -984,6 +1010,7 @@ describe('TableVirtual', () => {
       expect(select.calledOnce).to.true;
       expect(selectionChange.calledOnce).to.true;
       expect(vm.$refs.table.selection.map(row => row.id)).to.eql([0]);
+      expect(vm.$el.querySelector('.el-table-virtual__body-wrapper .el-table-column--selection .el-checkbox__input').className).to.contain('is-checked');
 
       vm.$refs.table.toggleAllSelection();
       await waitImmediate();
@@ -995,12 +1022,38 @@ describe('TableVirtual', () => {
       await waitImmediate();
       expect(vm.$refs.table.selection.length).to.equal(0);
       expect(vm.$refs.table.isAllSelected).to.false;
+      expect(vm.$el.querySelector('.el-table-virtual__body-wrapper .el-table-column--selection .el-checkbox__input').className).to.not.contain('is-checked');
 
       vm.$refs.table.toggleRowSelection(vm.tableData[0], true);
       await waitImmediate();
       vm.$refs.table.toggleRowSelection(vm.tableData[0], false);
       await waitImmediate();
       expect(vm.$refs.table.selection.length).to.equal(0);
+    });
+
+    it('keeps selection storage non-reactive after select all', async() => {
+      vm = createVue({
+        template: `
+        <el-table-virtual ref="table" :data="tableData" height="240" row-key="id">
+          <el-table-column type="selection" width="48" />
+          <el-table-column prop="name" label="Name" width="160" />
+        </el-table-virtual>
+      `,
+        data() {
+          return {
+            tableData: getData(100)
+          };
+        }
+      }, true);
+
+      await wait(50);
+      vm.$refs.table.toggleAllSelection();
+      await waitImmediate();
+
+      expect(vm.$refs.table.selection).to.have.length(100);
+      expect(vm.$refs.table.selection.__ob__).to.equal(undefined);
+      expect(vm.$refs.table.selectionMapCache[0]).to.equal(vm.tableData[0]);
+      expect(vm.$refs.table.isSelected(vm.tableData[50])).to.true;
     });
 
     it('reserves selection by row key when data changes', async() => {
@@ -1082,6 +1135,40 @@ describe('TableVirtual', () => {
       expect(vm.$refs.table.sortedData.length).to.equal(5);
       expect(filterChange.calledTwice).to.true;
       expect(filterChange.args[1][0].score).to.eql([]);
+    });
+
+    it('does not rerun filtering while scrolling cached data', async() => {
+      const filterMethod = sinon.spy((value, row) => row.score >= value);
+      vm = createVue({
+        template: `
+        <el-table-virtual ref="table" :data="tableData" height="240" row-key="id" :row-height="40">
+          <el-table-column
+            column-key="score"
+            prop="score"
+            label="Score"
+            width="120"
+            :filters="[{ text: 'High', value: 50 }]"
+            :filter-method="filterMethod" />
+          <el-table-column prop="name" label="Name" width="160" />
+        </el-table-virtual>
+      `,
+        data() {
+          return {
+            tableData: getData(100)
+          };
+        },
+        methods: {
+          filterMethod
+        }
+      }, true);
+
+      await wait(50);
+      vm.$refs.table.filter('score', [50]);
+      await wait(50);
+      const callCount = filterMethod.callCount;
+      vm.$refs.table.scrollTo(400);
+      await wait(50);
+      expect(filterMethod.callCount).to.equal(callCount);
     });
 
   });

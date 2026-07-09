@@ -21,8 +21,8 @@ export default function createStore(table) {
       table.updateAllSelected();
     },
     states: {
-      data: table.sortedData,
-      selection: table.tableSelection
+      data: table.getViewData ? table.getViewData() : table.sortedData,
+      selection: table.getSelection ? table.getSelection() : table.tableSelection
     }
   };
 }

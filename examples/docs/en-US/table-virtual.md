@@ -518,12 +518,12 @@ Use the `header` scoped slot to customize header content.
   <el-table-virtual :data="filteredTableData" height="250" row-key="id" style="width: 100%">
     <el-table-column label="Date" prop="date"></el-table-column>
     <el-table-column label="Name" prop="name"></el-table-column>
-    <el-table-column align="right"><template slot="header" slot-scope="scope"><el-input v-model="search" size="mini" placeholder="Type to search"/></template><template slot-scope="scope"><el-button size="mini" @click="handleEdit(scope.$index, scope.row)">Edit</el-button><el-button size="mini" type="danger" @click="handleDelete(scope.$index, scope.row)">Delete</el-button></template></el-table-column>
+    <el-table-column align="right"><template slot="header" slot-scope="scope"><el-input v-model="search" size="mini" placeholder="Enter name keyword to search"/></template><template slot-scope="scope"><el-button size="mini" @click="handleEdit(scope.$index, scope.row)">Edit</el-button><el-button size="mini" type="danger" @click="handleDelete(scope.$index, scope.row)">Delete</el-button></template></el-table-column>
   </el-table-virtual>
 </template>
 
 <script>
-  export default { data() { const tableData = []; for (let i = 0; i < 1000; i++) tableData.push({ id: i, date: '2016-05-' + ((i % 28) + 1), name: 'Tom', address: 'Grove St ' + i }); return { tableData, search: '' }; }, computed: { filteredTableData() { const search = this.search && this.search.toLowerCase(); if (!search) return this.tableData; return this.tableData.filter(data => data.name.toLowerCase().indexOf(search) > -1); } }, methods: { handleEdit(index, row) { console.log(index, row); }, handleDelete(index, row) { console.log(index, row); } } };
+  export default { data() { const tableData = []; for (let i = 0; i < 1000; i++) tableData.push({ id: i, date: '2016-05-' + ((i % 28) + 1), name: 'Tom ' + i, address: 'Grove St ' + i }); return { tableData, search: '' }; }, computed: { filteredTableData() { const search = this.search && this.search.toLowerCase(); if (!search) return this.tableData; return this.tableData.filter(data => data.name.toLowerCase().indexOf(search) > -1); } }, methods: { handleEdit(index, row) { console.log(index, row); }, handleDelete(index, row) { console.log(index, row); } } };
 </script>
 ```
 :::
@@ -572,6 +572,128 @@ Example will be added after TableVirtual supports this feature.
 ### Rowspan and Colspan
 
 Example will be added after TableVirtual supports this feature.
+
+### Big Data Rendering
+
+When the dataset is very large, use `reloadData` to load data into the component's internal non-reactive data source and avoid observing the whole dataset with Vue reactivity. Sorting, filtering and selection methods can still be used. The following example loads big data with `reloadData` and controls table state with `sort`, `filter`, `toggleRowSelection` and `clearSelection`.
+
+:::demo
+```html
+<template>
+  <div>
+    <div style="margin-bottom: 10px">
+      <span style="display: inline-block; margin: 0 10px 10px 0">
+        <el-button @click="reloadLargeData(10000)">Load 10000 rows</el-button>
+      </span>
+      <span style="display: inline-block; margin: 0 10px 10px 0">
+        <el-button @click="reloadLargeData(200000)">Load 200000 rows</el-button>
+      </span>
+      <span style="display: inline-block; margin: 0 10px 10px 0">
+        <el-button @click="reloadLargeData(1000000)">Load 1000000 rows</el-button>
+      </span>
+      <span style="display: inline-block; margin: 0 10px 10px 0">
+        <el-button @click="sortByScore">Sort score ascending</el-button>
+      </span>
+      <span style="display: inline-block; margin: 0 10px 10px 0">
+        <el-button @click="filterActive">Filter active status</el-button>
+      </span>
+      <span style="display: inline-block; margin: 0 10px 10px 0">
+        <el-button @click="clearFilter">Clear filters</el-button>
+      </span>
+      <span style="display: inline-block; margin: 0 10px 10px 0">
+        <el-button @click="toggleSelection">Select two active rows</el-button>
+      </span>
+      <span style="display: inline-block; margin: 0 10px 10px 0">
+        <el-button @click="clearSelection">Clear selection</el-button>
+      </span>
+    </div>
+    <div style="margin-bottom: 12px">Selected {{ selectedCount }} rows</div>
+    <el-table-virtual
+      ref="largeTable"
+      height="250"
+      row-key="id"
+      border
+      style="width: 100%"
+      @selection-change="handleSelectionChange">
+      <el-table-column type="selection" width="55"></el-table-column>
+      <el-table-column prop="id" label="ID" width="80"></el-table-column>
+      <el-table-column prop="name" label="Name" width="120"></el-table-column>
+      <el-table-column prop="score" label="Score" sortable width="120"></el-table-column>
+      <el-table-column
+        prop="status"
+        label="Status"
+        column-key="status"
+        width="120"
+        :filters="[{ text: 'Active', value: 'active' }, { text: 'Disabled', value: 'disabled' }]"
+        :filter-method="filterStatus">
+        <template slot-scope="scope">
+          <el-tag :type="scope.row.status === 'active' ? 'success' : 'info'" disable-transitions>
+            {{ scope.row.status === 'active' ? 'Active' : 'Disabled' }}
+          </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column prop="address" label="Address" min-width="300" show-overflow-tooltip></el-table-column>
+    </el-table-virtual>
+  </div>
+</template>
+
+<script>
+  export default {
+    data() {
+      return {
+        selectedCount: 0
+      };
+    },
+    mounted() {
+      this.reloadLargeData(10000);
+    },
+    methods: {
+      createData(count) {
+        const data = [];
+        for (let i = 0; i < count; i++) {
+          data.push({
+            id: i,
+            name: 'User ' + i,
+            score: count - i,
+            status: i % 3 === 0 ? 'disabled' : 'active',
+            address: 'No. ' + (1516 + i) + ', Grove St, Los Angeles'
+          });
+        }
+        return data;
+      },
+      reloadLargeData(count) {
+        this._largeData = this.createData(count);
+        this.selectedCount = 0;
+        this.$refs.largeTable.reloadData(this._largeData);
+      },
+      sortByScore() {
+        this.$refs.largeTable.sort('score', 'ascending');
+      },
+      filterActive() {
+        this.$refs.largeTable.filter('status', ['active']);
+      },
+      toggleSelection() {
+        this.$refs.largeTable.toggleRowSelection(this._largeData[1], true);
+        this.$refs.largeTable.toggleRowSelection(this._largeData[2], true);
+      },
+      clearSelection() {
+        this.$refs.largeTable.clearSelection();
+      },
+      clearFilter() {
+        this.$refs.largeTable.clearFilter();
+      },
+      filterStatus(value, row) {
+        return row.status === value;
+      },
+      handleSelectionChange(val) {
+        this._multipleSelection = val;
+        this.selectedCount = val.length;
+      }
+    }
+  };
+</script>
+```
+:::
 
 ### TableVirtual Attributes
 

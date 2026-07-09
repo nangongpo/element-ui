@@ -75,10 +75,13 @@ export default {
       const values = typeof options.values === 'undefined' ? [] : assertArray(options.values, 'filterChange.values');
       column.filteredValue = values;
       this.$set(this.activeFilters, this.getColumnFilterKey(column), values.slice());
+      this.filterVersion++;
       this.scrollTop = 0;
       if (this.$refs.body) this.$refs.body.scrollTop = 0;
-      this.updateRange();
-      this.updateAllSelected();
+      this.refreshViewDataAsync(() => {
+        this.updateRange();
+        this.updateAllSelected();
+      });
       if (!options.silent) {
         this.$emit('filter-change', this.getFilterChangePayload());
       }
@@ -94,10 +97,13 @@ export default {
         column.filteredValue = [];
         this.$set(this.activeFilters, key, []);
       });
+      this.filterVersion++;
       this.scrollTop = 0;
       if (this.$refs.body) this.$refs.body.scrollTop = 0;
-      this.updateRange();
-      this.updateAllSelected();
+      this.refreshViewDataAsync(() => {
+        this.updateRange();
+        this.updateAllSelected();
+      });
       this.$emit('filter-change', this.getFilterChangePayload());
     },
 

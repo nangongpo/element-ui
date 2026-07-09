@@ -28,6 +28,9 @@ export default {
       this.sortingColumn = order ? column : null;
       this.sortProp = order ? prop : null;
       this.sortOrder = order || null;
+      this.sortVersion++;
+      this.refreshViewData();
+      this.syncStoreStates();
       this.scrollTop = 0;
       if (this.$refs.body) this.$refs.body.scrollTop = 0;
       this.updateRange();
@@ -45,6 +48,9 @@ export default {
       this.sortingColumn = null;
       this.sortProp = null;
       this.sortOrder = null;
+      this.sortVersion++;
+      this.refreshViewData();
+      this.syncStoreStates();
       this.updateRange();
       this.$emit('sort-change', {
         column,

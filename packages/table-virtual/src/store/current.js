@@ -12,7 +12,7 @@ export default {
 
     syncCurrentRowByKey() {
       if (!this.rowKey || typeof this.currentRowKey === 'undefined') return;
-      const data = this.sortedData;
+      const data = this.getViewData();
       for (let i = 0; i < data.length; i++) {
         if (getRowIdentity(data[i], this.rowKey) === this.currentRowKey) {
           this.currentRow = data[i];

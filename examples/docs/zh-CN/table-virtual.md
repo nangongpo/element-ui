@@ -751,11 +751,11 @@
     row-key="id"
     style="width: 100%">
     <el-table-column
-      label="Date"
+      label="日期"
       prop="date">
     </el-table-column>
     <el-table-column
-      label="Name"
+      label="姓名"
       prop="name">
     </el-table-column>
     <el-table-column align="right">
@@ -763,16 +763,16 @@
         <el-input
           v-model="search"
           size="mini"
-          placeholder="输入关键字搜索"/>
+          placeholder="请输入姓名关键词搜索"/>
       </template>
       <template slot-scope="scope">
         <el-button
           size="mini"
-          @click="handleEdit(scope.$index, scope.row)">Edit</el-button>
+          @click="handleEdit(scope.$index, scope.row)">编辑</el-button>
         <el-button
           size="mini"
           type="danger"
-          @click="handleDelete(scope.$index, scope.row)">Delete</el-button>
+          @click="handleDelete(scope.$index, scope.row)">删除</el-button>
       </template>
     </el-table-column>
   </el-table-virtual>
@@ -786,7 +786,7 @@
         tableData.push({
           id: i,
           date: '2016-05-' + ((i % 28) + 1),
-          name: '王小虎',
+          name: '王小虎 ' + i,
           address: '上海市普陀区金沙江路 ' + (1516 + i) + ' 弄'
         });
       }
@@ -895,6 +895,129 @@
 ### 合并行或列
 
 待 TableVirtual 完善后补充示例。
+
+### 大数据渲染
+
+当数据量很大时，可以通过 `reloadData` 将数据加载到组件内部的非响应式数据源，避免整批数据进入 Vue 响应式观测。排序、筛选和选择方法仍可继续使用。下面示例使用 `reloadData` 加载大数据，并使用 `sort`、`filter`、`toggleRowSelection` 和 `clearSelection` 控制表格状态。
+
+:::demo
+```html
+<template>
+  <div>
+    <div style="margin-bottom: 10px">
+      <span style="display: inline-block; margin: 0 10px 10px 0">
+        <el-button @click="reloadLargeData(10000)">加载 10000 条</el-button>
+      </span>
+      <span style="display: inline-block; margin: 0 10px 10px 0">
+        <el-button @click="reloadLargeData(200000)">加载 200000 条</el-button>
+      </span>
+      <span style="display: inline-block; margin: 0 10px 10px 0">
+        <el-button @click="reloadLargeData(1000000)">加载 1000000 条</el-button>
+      </span>
+      <span style="display: inline-block; margin: 0 10px 10px 0">
+        <el-button @click="sortByScore">按分数升序</el-button>
+      </span>
+      <span style="display: inline-block; margin: 0 10px 10px 0">
+        <el-button @click="filterActive">筛选启用状态</el-button>
+      </span>
+      <span style="display: inline-block; margin: 0 10px 10px 0">
+        <el-button @click="clearFilter">清空筛选</el-button>
+      </span>
+      <span style="display: inline-block; margin: 0 10px 10px 0">
+        <el-button @click="toggleSelection">选中两条启用数据</el-button>
+      </span>
+      <span style="display: inline-block; margin: 0 10px 10px 0">
+        <el-button @click="clearSelection">清空选中</el-button>
+      </span>
+    </div>
+    <div style="margin-bottom: 12px">已选中 {{ selectedCount }} 条</div>
+    <el-table-virtual
+      ref="largeTable"
+      height="250"
+      row-key="id"
+      border
+      style="width: 100%"
+      @selection-change="handleSelectionChange">
+      <el-table-column type="selection" width="55"></el-table-column>
+      <el-table-column prop="id" label="ID" width="80"></el-table-column>
+      <el-table-column prop="name" label="姓名" width="120"></el-table-column>
+      <el-table-column prop="score" label="分数" sortable width="120"></el-table-column>
+      <el-table-column
+        prop="status"
+        label="状态"
+        column-key="status"
+        width="120"
+        :filters="[{ text: '启用', value: 'active' }, { text: '停用', value: 'disabled' }]"
+        :filter-method="filterStatus">
+        <template slot-scope="scope">
+          <el-tag :type="scope.row.status === 'active' ? 'success' : 'info'" disable-transitions>
+            {{ scope.row.status === 'active' ? '启用' : '停用' }}
+          </el-tag>
+        </template>
+      </el-table-column>
+      <el-table-column prop="address" label="地址" min-width="300" show-overflow-tooltip></el-table-column>
+    </el-table-virtual>
+  </div>
+</template>
+
+<script>
+  export default {
+    data() {
+      return {
+        selectedCount: 0
+      };
+    },
+    mounted() {
+      this.reloadLargeData(10000);
+    },
+    methods: {
+      createData(count) {
+        const data = [];
+        for (let i = 0; i < count; i++) {
+          data.push({
+            id: i,
+            name: '用户 ' + i,
+            score: count - i,
+            status: i % 3 === 0 ? 'disabled' : 'active',
+            address: '上海市普陀区金沙江路 ' + (1516 + i) + ' 弄'
+          });
+        }
+        return data;
+      },
+      reloadLargeData(count) {
+        this._largeData = this.createData(count);
+        this.selectedCount = 0;
+        this.$refs.largeTable.reloadData(this._largeData);
+      },
+      sortByScore() {
+        this.$refs.largeTable.sort('score', 'ascending');
+      },
+      filterActive() {
+        this.$refs.largeTable.filter('status', ['active']);
+      },
+      toggleSelection() {
+        this.$refs.largeTable.toggleRowSelection(this._largeData[1], true);
+        this.$refs.largeTable.toggleRowSelection(this._largeData[2], true);
+      },
+      clearSelection() {
+        this.$refs.largeTable.clearSelection();
+      },
+      clearFilter() {
+        this.$refs.largeTable.clearFilter();
+      },
+      filterStatus(value, row) {
+        return row.status === value;
+      },
+      handleSelectionChange(val) {
+        this._multipleSelection = val;
+        this.selectedCount = val.length;
+      }
+    }
+  };
+</script>
+
+```
+:::
 
 ### TableVirtual Attributes
 
