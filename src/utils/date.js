@@ -85,7 +85,17 @@ export function parse(dateStr, mask, i18nSettings) {
   // 针对含有 [0]d 的特殊 format 字符串，在 parse 时调整为可识别的 d
   const parseMask = convertedMask.replace(/\[0\]d/g, 'd');
 
-  const d = dayjs(dateStr, parseMask, locale, true);
+  let d = dayjs(dateStr, parseMask, locale, true);
+
+  // fecha accepted single-digit numeric months and days for MM/DD masks.
+  // Preserve that user-input compatibility while keeping strict validation.
+  if (!d.isValid()) {
+    const relaxedMask = parseMask
+      .replace(/(^|[^M])MM(?!M)/g, '$1M')
+      .replace(/(^|[^D])DD(?!D)/g, '$1D');
+    d = dayjs(dateStr, relaxedMask, locale, true);
+  }
+
   return d.isValid() ? d.toDate() : null;
 }
 

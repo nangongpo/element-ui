@@ -16,7 +16,7 @@ const TAB = 9;
 const keyDown = (el, keyCode) => {
   const evt = document.createEvent('Events');
   evt.initEvent('keydown', true, true);
-  evt.keyCode = keyCode;
+  Object.defineProperty(evt, 'keyCode', { value: keyCode });
   el.dispatchEvent(evt);
 };
 
@@ -1239,6 +1239,7 @@ describe('DatePicker', () => {
         const input = vm.picker.$el.querySelector('.el-date-picker__editor-wrap input');
 
         input.value = '2017-2-2';
+        triggerEvent(input, 'input', true);
         triggerEvent(input, 'change', true);
         setTimeout(_ => {
           expect(vm.picker.date.getFullYear()).to.equal(2017);
@@ -2239,8 +2240,8 @@ describe('DatePicker', () => {
         triggerEvent(rightCell, 'click', true);
 
         setTimeout(_ => {
-          triggerEvent(input, 'input');
           input.value = '1989-6-4';
+          triggerEvent(input, 'input', true);
           triggerEvent(input, 'change', true);
 
           setTimeout(_ => {
@@ -2737,8 +2738,8 @@ describe('DatePicker', () => {
           const disabledHours = [].slice
             .call(hoursEl.querySelectorAll('.disabled'))
             .map(node => Number(node.textContent));
-          expect(disabledHours[disabledHours.length - 2]).to.equal(16);
-          expect(disabledHours[disabledHours.length - 1]).to.equal(23);
+          expect(disabledHours).to.include.members([0, 16, 23]);
+          expect(disabledHours).to.not.include.members([17, 18, 19, 20, 21, 22]);
           const minutesEl = list[1];
           const disabledMinutes = [].slice
             .call(minutesEl.querySelectorAll('.disabled'))

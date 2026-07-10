@@ -227,6 +227,10 @@
       }
     },
 
+    beforeDestroy() {
+      document.body.removeEventListener('keydown', this.handleKeydown);
+    },
+
     methods: {
       proxyTimePickerDataProperties() {
         const format = timeFormat => {this.$refs.timepicker.format = timeFormat;};
@@ -412,6 +416,7 @@
       },
 
       handleEnter() {
+        if (this._isDestroyed || this._isBeingDestroyed) return;
         document.body.addEventListener('keydown', this.handleKeydown);
       },
 

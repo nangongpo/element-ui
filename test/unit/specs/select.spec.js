@@ -87,7 +87,7 @@ describe('Select', () => {
   });
 
   it('create', () => {
-    vm = createTest(Select, true);
+    vm = createTest(Select, { value: null }, true);
     expect(vm.$el.className).to.equal('el-select');
     expect(vm.$el.querySelector('.el-input__inner').placeholder).to.equal('请选择');
     vm.toggleMenu();
@@ -221,7 +221,7 @@ describe('Select', () => {
   });
 
   it('disabled select', () => {
-    vm = createTest(Select, { disabled: true }, true);
+    vm = createTest(Select, { value: null, disabled: true }, true);
     expect(vm.$el.querySelector('.el-input').classList.contains('is-disabled')).to.true;
   });
 
@@ -677,7 +677,7 @@ describe('Select', () => {
   it('event:focus & blur', done => {
     vm = createVue({
       template: `
-        <el-select ref="select"></el-select>
+        <el-select ref="select" :value="null"></el-select>
       `
     }, true);
 
@@ -754,7 +754,7 @@ describe('Select', () => {
   it('focus', done => {
     vm = createVue({
       template: `
-        <el-select ref="select"></el-select>
+        <el-select ref="select" :value="null"></el-select>
       `
     }, true);
     const spy = sinon.spy();

@@ -261,6 +261,7 @@ describe('InputNumber', () => {
     });
 
     it('precision greater than the precision of step', done => {
+      const warnStub = sinon.stub(console, 'warn');
       vm = createVue({
         template: `
           <el-input-number v-model="value" :max="8" :precision="0" :step="0.1">
@@ -284,6 +285,10 @@ describe('InputNumber', () => {
       vm.$nextTick(_ => {
         expect(vm.value).to.be.equal(7);
         expect(input.value).to.be.equal('7');
+        expect(warnStub.calledWith(
+          '[Element Warn][InputNumber]precision should not be less than the decimal places of step'
+        )).to.be.true;
+        warnStub.restore();
         done();
       });
     });

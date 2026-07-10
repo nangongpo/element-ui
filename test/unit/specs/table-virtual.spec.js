@@ -598,6 +598,7 @@ describe('TableVirtual', () => {
     });
 
     it('supports column attributes', async() => {
+      const warnStub = sinon.stub(console, 'warn');
       vm = createVue({
         template: `
         <el-table-virtual :data="tableData" height="240" row-key="id" :row-height="40" :render-header="renderHeader">
@@ -638,6 +639,10 @@ describe('TableVirtual', () => {
       expect(bodyCell.classList.contains('is-right')).to.true;
       expect(bodyCell.classList.contains('score-column-class')).to.true;
       expect(bodyCell.textContent).to.contain('Score: 20');
+      expect(warnStub.calledWith(
+        '[Element Warn][TableColumn]Comparing to render-header, scoped-slot header is easier to use. We recommend users to use scoped-slot header.'
+      )).to.true;
+      warnStub.restore();
       expect(bodyCell.hasAttribute('title')).to.false;
       expect(bodyCell.hasAttribute('attrs')).to.false;
     });

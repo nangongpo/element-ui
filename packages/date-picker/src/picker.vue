@@ -113,7 +113,9 @@ const DEFAULT_FORMATS = {
   months: 'yyyy-MM',
   datetime: 'yyyy-MM-dd HH:mm:ss',
   time: 'HH:mm:ss',
-  week: 'yyyywWW',
+  // Keep the week marker as a literal. Week numbers are calculated and
+  // substituted by the week formatter below rather than by Day.js plugins.
+  week: 'yyyy[w][WW]',
   timerange: 'HH:mm:ss',
   daterange: 'yyyy-MM-dd',
   monthrange: 'yyyy-MM',
@@ -161,8 +163,9 @@ const RANGE_PARSER = function(array, format, separator) {
     array = array.split(separator);
   }
   if (array.length === 2) {
-    const range1 = array[0];
-    const range2 = array[1];
+    // Strict date parsers do not ignore whitespace around range separators.
+    const range1 = typeof array[0] === 'string' ? array[0].trim() : array[0];
+    const range2 = typeof array[1] === 'string' ? array[1].trim() : array[1];
 
     return [DATE_PARSER(range1, format), DATE_PARSER(range2, format)];
   }
@@ -355,6 +358,10 @@ const validator = function(val) {
 
 export default {
   mixins: [Emitter, NewPopper],
+
+  beforeDestroy() {
+    this.unmountPicker();
+  },
 
   inject: {
     elForm: {
@@ -919,7 +926,10 @@ export default {
         if (typeof this.unwatchPickerOptions === 'function') {
           this.unwatchPickerOptions();
         }
-        this.picker.$el.parentNode.removeChild(this.picker.$el);
+        if (this.picker.$el.parentNode) {
+          this.picker.$el.parentNode.removeChild(this.picker.$el);
+        }
+        this.picker = null;
       }
     },
 

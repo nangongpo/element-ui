@@ -71,6 +71,10 @@
 
     methods: {
       handleClick(evt) {
+        // Do not rely solely on the browser's disabled-button event handling.
+        // Some browsers still bubble events dispatched from descendants of a
+        // disabled button.
+        if (this.buttonDisabled || this.loading) return;
         this.$emit('click', evt);
       }
     }

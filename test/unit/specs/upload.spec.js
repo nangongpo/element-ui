@@ -301,7 +301,8 @@ describe('Upload', () => {
 
       uploader.uploadFiles = [{
         name: 'exceed1.png',
-        type: 'xml'
+        type: 'xml',
+        uid: 1
       }];
 
       handlers.onExceed = (files, fileList) => {

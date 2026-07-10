@@ -5,6 +5,7 @@ const DELAY = 50;
 describe('Form', () => {
   let vm;
   let hasPromise = true;
+  let warnStub;
   before(() => {
     if (!window.Promise) {
       hasPromise = false;
@@ -18,8 +19,16 @@ describe('Form', () => {
     }
   });
 
+  beforeEach(() => {
+    warnStub = sinon.stub(console, 'warn');
+  });
+
   afterEach(() => {
     destroyVM(vm);
+    warnStub.getCalls().forEach(call => {
+      expect(call.args[0]).to.equal('async-validator:');
+    });
+    warnStub.restore();
   });
 
   it('label width', done => {

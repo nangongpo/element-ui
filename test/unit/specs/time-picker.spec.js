@@ -217,7 +217,9 @@ describe('TimePicker', () => {
         .call(hoursEl.querySelectorAll('.disabled'))
         .map(node => Number(node.textContent));
 
-      hoursEl.querySelectorAll('.disabled')[0].click();
+      const initialHour = vm.picker.date.getHours();
+      hoursEl.querySelectorAll('.el-time-spinner__item')[16].click();
+      expect(vm.picker.date.getHours()).to.equal(initialHour);
       expect(disabledHours).to.not.include.members([17, 18, 19, 20, 21, 22]);
 
       const minutesEl = list[1];

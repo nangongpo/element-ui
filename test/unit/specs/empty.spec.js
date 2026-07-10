@@ -24,7 +24,7 @@ describe('Empty', () => {
 
   it('should render image props', () => {
     vm = createTest(Empty, {
-      image: AXIOM
+      image: 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs='
     }, true);
     expect(vm.$el.querySelector('.el-empty__image img')).to.exist;
   });
