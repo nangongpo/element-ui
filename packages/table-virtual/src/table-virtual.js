@@ -3,6 +3,7 @@ import ElCheckbox from 'element-ui/packages/checkbox';
 import Locale from 'element-ui/src/mixins/locale';
 import scrollbarWidth from 'element-ui/src/utils/scrollbar-width';
 import { addResizeListener, removeResizeListener } from 'element-ui/src/utils/resize-event';
+import { cancelFrame, requestFrame } from 'element-ui/src/utils/util';
 import { orderBy } from 'element-ui/packages/table/src/util';
 import { getDefaultCellValue } from './config';
 import TableVirtualBody from './table-body';
@@ -155,7 +156,7 @@ export default {
       if (this.height) {
         style.height = formatHeight(this.height);
       } else {
-        style.height = this.naturalHeight + 'px';
+        style.height = this.naturalHeight + (this.hasHorizontalScroll ? this.scrollbarWidth : 0) + 'px';
       }
       if (this.maxHeight) {
         style.maxHeight = formatHeight(this.maxHeight);
@@ -176,11 +177,15 @@ export default {
     },
 
     headerHeight() {
-      return this.showHeader ? 48 : 0;
+      return this.showHeader ? this.rowHeight : 0;
     },
 
     naturalHeight() {
       return this.headerHeight + this.totalHeight;
+    },
+
+    isAutoHeight() {
+      return !this.height && !this.maxHeight;
     },
 
     visibleRows() {
@@ -210,10 +215,19 @@ export default {
       this.updateAllSelected();
       this.updateRange();
       this.syncCurrentRowByKey();
+      this.scheduleLayout();
     },
 
     height() {
-      this.$nextTick(this.doLayout);
+      this.scheduleLayout();
+    },
+
+    maxHeight() {
+      this.scheduleLayout();
+    },
+
+    rowHeight() {
+      this.scheduleLayout();
     },
 
     currentRowKey() {
@@ -225,7 +239,7 @@ export default {
       this.sortVersion++;
       this.refreshViewData();
       this.syncStoreStates();
-      this.$nextTick(this.doLayout);
+      this.scheduleLayout();
     }
   },
 
@@ -247,6 +261,15 @@ export default {
     this.allSelectionMode = false;
     this.excludedSelectionMap = {};
     this.selectionCount = 0;
+    this.layoutPending = false;
+    this.filterFrame = null;
+    this.hoverScrollTimer = null;
+    this.hoverScrolling = false;
+    this.hoverScrollEndDelay = 120;
+    this.fixedScrollFrame = null;
+    this.fixedScrollTimer = null;
+    this.fixedScrollEndDelay = 80;
+    this.fixedRowsTransform = '';
     this.store = createStore(this);
   },
 
@@ -271,13 +294,26 @@ export default {
       removeResizeListener(this.$el, this.resizeListener);
     }
     if (this.scrollFrame) {
-      this.cancelFrame(this.scrollFrame);
+      cancelFrame(this.scrollFrame);
       this.scrollFrame = null;
     }
     if (this.layoutFrame) {
-      this.cancelFrame(this.layoutFrame);
+      cancelFrame(this.layoutFrame);
       this.layoutFrame = null;
     }
+    if (this.filterFrame) {
+      cancelFrame(this.filterFrame);
+      this.filterFrame = null;
+    }
+    if (this.hoverScrollTimer) {
+      clearTimeout(this.hoverScrollTimer);
+      this.hoverScrollTimer = null;
+    }
+    this.stopFixedScrollSync();
+    this.filterTaskToken = null;
+    this.hoverScrolling = false;
+    this.layoutPending = false;
+    this.fixedRowsTransform = '';
     this.destroyFilterPanels();
     this.pendingScrollTop = null;
     this.pendingScrollLeft = null;
@@ -302,6 +338,11 @@ export default {
     this.hoverRowVisibleIndex = null;
     this.lastMouseClientX = null;
     this.lastMouseClientY = null;
+    this.hoverScrollTimer = null;
+    this.hoverScrolling = false;
+    this.fixedScrollFrame = null;
+    this.fixedScrollTimer = null;
+    this.fixedRowsTransform = '';
     this.currentRow = null;
     this.sortingColumn = null;
     this.sortProp = null;
@@ -330,16 +371,21 @@ export default {
   },
 
   methods: {
-    getFrame(callback) {
-      const raf = window.requestAnimationFrame || function(fn) {
-        return setTimeout(fn, 16);
-      };
-      return raf(callback);
-    },
-
-    cancelFrame(id) {
-      const cancel = window.cancelAnimationFrame || clearTimeout;
-      cancel(id);
+    scheduleLayout() {
+      if (this.layoutPending || this.layoutFrame) return;
+      this.layoutPending = true;
+      this.$nextTick(() => {
+        if (!this.layoutPending) return;
+        if (this.layoutFrame) {
+          this.layoutPending = false;
+          return;
+        }
+        this.layoutFrame = requestFrame(() => {
+          this.layoutFrame = null;
+          this.layoutPending = false;
+          this.doLayout();
+        });
+      });
     },
 
     insertColumn(column, index, parent) {
@@ -354,7 +400,7 @@ export default {
       this.syncColumnFilter(column);
       this.syncStoreStates();
       this.updateColumns();
-      this.$nextTick(this.doLayout);
+      this.scheduleLayout();
     },
 
     removeColumn(column, parent) {
@@ -367,7 +413,7 @@ export default {
       }
       this.syncStoreStates();
       this.updateColumns();
-      this.$nextTick(this.doLayout);
+      this.scheduleLayout();
     },
 
     syncStoreStates() {
@@ -552,6 +598,10 @@ export default {
       }
 
       const token = {};
+      if (this.filterFrame) {
+        cancelFrame(this.filterFrame);
+        this.filterFrame = null;
+      }
       this.filterTaskToken = token;
       const result = [];
       let index = 0;
@@ -566,10 +616,17 @@ export default {
           }
         }
         if (index < data.length) {
-          this.getFrame(next);
+          const frame = requestFrame(() => {
+            if (this.filterFrame === frame) {
+              this.filterFrame = null;
+            }
+            next();
+          });
+          this.filterFrame = frame;
           return;
         }
 
+        this.filterFrame = null;
         this.filteredDataCache = result;
         this.filteredDataCacheKey = this.getFilterCacheKey(this.dataVersion, this.internalDataVersion, this.filterVersion);
         this.sortedDataCache = null;
@@ -627,26 +684,70 @@ export default {
       this.clearHoverRow();
       this.syncCurrentRowByKey();
       this.updateRange();
-      this.$nextTick(this.doLayout);
+      this.scheduleLayout();
     },
 
     handleScroll(event) {
       const target = event.target;
-      this.pendingScrollTop = target.scrollTop;
-      this.pendingScrollLeft = target.scrollLeft;
-      this.clearHoverRow();
+      const scrollTop = target.scrollTop || 0;
+      const scrollLeft = target.scrollLeft || 0;
+      this.pendingScrollTop = scrollTop;
+      this.pendingScrollLeft = scrollLeft;
+      this.syncFixedRowsPosition(scrollTop);
+      this.startFixedScrollSync();
+      this.scheduleFixedScrollEnd();
+      if (this.isClientInBodyArea(this.lastMouseClientX, this.lastMouseClientY)) {
+        if (!this.hoverScrolling) {
+          this.hoverScrolling = true;
+          this.clearHoverRow();
+        }
+        this.scheduleHoverScrollEnd();
+      } else {
+        this.stopHoverScrollSync();
+        this.clearHoverRow();
+      }
       if (this.scrollFrame) return;
-      this.scrollFrame = this.getFrame(() => {
+      this.scrollFrame = requestFrame(() => {
         this.scrollFrame = null;
         this.scrollTop = this.pendingScrollTop || 0;
         this.scrollLeft = this.pendingScrollLeft || 0;
         this.updateRange();
-        this.$nextTick(this.syncHoverRowByPointer);
+        this.$nextTick(() => {
+          if (!this.hoverScrolling) {
+            this.syncHoverRowByPointer();
+          }
+        });
         this.$emit('scroll', {
           scrollTop: this.scrollTop,
           scrollLeft: this.scrollLeft
         });
       });
+    },
+
+    handleBodyWheel(event) {
+      const body = this.$refs.body;
+      if (!body) return;
+      if (
+        event &&
+        event.clientX != null &&
+        event.clientY != null &&
+        !this.isClientInBodyArea(event.clientX, event.clientY)
+      ) return;
+      const deltaY = this.normalizeWheelDeltaY(event);
+      if (!deltaY) return;
+      this.startFixedScrollSync();
+      this.scheduleFixedScrollEnd();
+    },
+
+    normalizeWheelDeltaY(event) {
+      let deltaY = event && event.deltaY ? event.deltaY : 0;
+      if (!deltaY) return 0;
+      if (event.deltaMode === 1) {
+        deltaY *= this.rowHeight;
+      } else if (event.deltaMode === 2) {
+        deltaY *= this.bodyHeight || this.rowHeight;
+      }
+      return deltaY;
     },
 
     getRowClass(row, rowIndex) {
@@ -698,7 +799,7 @@ export default {
     },
 
     getCellStyle(row, column, rowIndex, columnIndex, header) {
-      const height = header ? 48 : this.rowHeight;
+      const height = this.rowHeight;
       const style = {
         width: getColumnWidth(column) + 'px',
         height: height + 'px',
@@ -723,7 +824,7 @@ export default {
     },
 
     getHeaderRowStyle() {
-      const base = { height: '48px' };
+      const base = { height: this.rowHeight + 'px' };
       if (typeof this.headerRowStyle === 'function') {
         return Object.assign(base, this.headerRowStyle({ row: this.tableColumns, rowIndex: 0 }) || {});
       }
@@ -776,6 +877,7 @@ export default {
     handleBodyMouseLeave() {
       this.lastMouseClientX = null;
       this.lastMouseClientY = null;
+      this.stopHoverScrollSync();
       this.clearHoverRow();
     },
 
@@ -814,7 +916,12 @@ export default {
 
     handleCellMouseLeave(event, row, column) {
       const tooltip = this.$refs.tooltip;
-      this.clearHoverRow();
+      this.handleBodyMouseMove(event);
+      if (this.isClientInBodyArea(event.clientX, event.clientY)) {
+        this.syncHoverRowByPointer();
+      } else {
+        this.clearHoverRow();
+      }
       this.$emit('cell-mouse-leave', row, column, event.currentTarget, event);
       if (tooltip) {
         tooltip.setExpectedState(false);
@@ -875,6 +982,7 @@ export default {
     },
 
     setHoverRowByVisibleIndex(row, visibleIndex) {
+      if (this.hoverRow === row && this.hoverRowVisibleIndex === visibleIndex) return;
       this.clearHoverRowClasses();
       this.hoverRow = row;
       this.hoverRowVisibleIndex = visibleIndex;
@@ -889,23 +997,127 @@ export default {
       this.hoverRowVisibleIndex = null;
     },
 
-    syncHoverRowByPointer() {
+    syncFixedRowsPosition(scrollTop) {
+      const root = this.$el;
+      if (!root) return;
+      const rows = root.querySelectorAll('.el-table-virtual__fixed-body .el-table-virtual__rows');
+      const transform = 'translate3d(0,' + (this.offsetY - scrollTop) + 'px,0)';
+      if (transform === this.fixedRowsTransform) return;
+      this.fixedRowsTransform = transform;
+      for (let i = 0; i < rows.length; i++) {
+        rows[i].style.transform = transform;
+      }
+    },
+
+    startFixedScrollSync() {
+      if (this.fixedScrollFrame) return;
+      const sync = () => {
+        const body = this.$refs.body;
+        if (!body) {
+          this.fixedScrollFrame = null;
+          return;
+        }
+        const scrollTop = body.scrollTop || 0;
+        this.pendingScrollTop = scrollTop;
+        this.syncFixedRowsPosition(scrollTop);
+        this.fixedScrollFrame = requestFrame(sync);
+      };
+      this.fixedScrollFrame = requestFrame(sync);
+    },
+
+    scheduleFixedScrollEnd() {
+      if (this.fixedScrollTimer) {
+        clearTimeout(this.fixedScrollTimer);
+      }
+      this.fixedScrollTimer = setTimeout(() => {
+        const body = this.$refs.body;
+        if (body) {
+          this.pendingScrollTop = body.scrollTop || 0;
+          this.syncFixedRowsPosition(this.pendingScrollTop);
+        }
+        this.stopFixedScrollSync();
+      }, this.fixedScrollEndDelay);
+    },
+
+    stopFixedScrollSync() {
+      if (this.fixedScrollTimer) {
+        clearTimeout(this.fixedScrollTimer);
+        this.fixedScrollTimer = null;
+      }
+      if (this.fixedScrollFrame) {
+        cancelFrame(this.fixedScrollFrame);
+        this.fixedScrollFrame = null;
+      }
+    },
+
+    getHoverBodyRect() {
       const body = this.$refs.body;
-      if (!body || this.lastMouseClientX === null || this.lastMouseClientY === null) return;
+      if (!body) return null;
       const rect = body.getBoundingClientRect();
-      if (
-        this.lastMouseClientX < rect.left ||
-        this.lastMouseClientX > rect.right ||
-        this.lastMouseClientY < rect.top ||
-        this.lastMouseClientY > rect.bottom
-      ) return;
+      const hoverRect = {
+        top: rect.top,
+        right: rect.right,
+        bottom: rect.bottom,
+        left: rect.left
+      };
+      const root = this.$el;
+      if (!root) return hoverRect;
+      const fixedBodies = root.querySelectorAll('.el-table-virtual__fixed-body');
+      for (let i = 0; i < fixedBodies.length; i++) {
+        const fixedRect = fixedBodies[i].getBoundingClientRect();
+        hoverRect.left = Math.min(hoverRect.left, fixedRect.left);
+        hoverRect.right = Math.max(hoverRect.right, fixedRect.right);
+      }
+      return hoverRect;
+    },
+
+    isClientInBodyArea(clientX, clientY) {
+      if (clientX == null || clientY == null) return false;
+      const rect = this.getHoverBodyRect();
+      if (!rect) return false;
+      return !(
+        clientX < rect.left ||
+        clientX > rect.right ||
+        clientY < rect.top ||
+        clientY > rect.bottom
+      );
+    },
+
+    syncHoverRowByPointer(scrollTop) {
+      const body = this.$refs.body;
+      if (!body || this.lastMouseClientX == null || this.lastMouseClientY == null) return;
+      const rect = this.getHoverBodyRect();
+      if (!rect || !this.isClientInBodyArea(this.lastMouseClientX, this.lastMouseClientY)) return;
 
       const bodyOffsetY = this.lastMouseClientY - rect.top;
-      const rowIndex = Math.floor((this.scrollTop + bodyOffsetY) / this.rowHeight);
+      const currentScrollTop = scrollTop == null ? this.scrollTop : scrollTop;
+      const rowIndex = Math.floor((currentScrollTop + bodyOffsetY) / this.rowHeight);
       const visibleIndex = rowIndex - this.start;
-      const row = this.visibleRows[visibleIndex];
+      const row = this.getViewRow(rowIndex);
       if (row) {
         this.setHoverRowByVisibleIndex(row, visibleIndex);
+      } else {
+        this.clearHoverRow();
+      }
+    },
+
+    scheduleHoverScrollEnd() {
+      if (this.hoverScrollTimer) {
+        clearTimeout(this.hoverScrollTimer);
+      }
+      this.hoverScrollTimer = setTimeout(() => {
+        this.hoverScrollTimer = null;
+        this.hoverScrolling = false;
+        const body = this.$refs.body;
+        this.syncHoverRowByPointer(body ? body.scrollTop || 0 : this.scrollTop || 0);
+      }, this.hoverScrollEndDelay);
+    },
+
+    stopHoverScrollSync() {
+      this.hoverScrolling = false;
+      if (this.hoverScrollTimer) {
+        clearTimeout(this.hoverScrollTimer);
+        this.hoverScrollTimer = null;
       }
     },
 
@@ -947,7 +1159,7 @@ export default {
 
   render(h) {
     const hiddenColumns = <div ref="hiddenColumns" class="hidden-columns">{ this.$slots.default }</div>;
-    const headerHeight = this.showHeader ? 48 : 0;
+    const headerHeight = this.showHeader ? this.rowHeight : 0;
     const bodyStyle = {
       top: this.headerHeight + 'px'
     };
@@ -962,7 +1174,7 @@ export default {
     };
 
     return (
-      <div class={this.tableClasses} style={this.tableStyle}>
+      <div class={this.tableClasses} style={this.tableStyle} on-wheel={this.handleBodyWheel}>
         { hiddenColumns }
         <el-tooltip ref="tooltip" effect={this.tooltipEffect} placement="top" content=""></el-tooltip>
         { this.showHeader ? (

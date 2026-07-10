@@ -13,6 +13,15 @@ const config = require('./config');
 
 const isProd = process.env.NODE_ENV === 'production';
 const isPlay = !!process.env.PLAY_ENV;
+const enableLint = isProd || process.env.WEBPACK_LINT === 'true';
+const supportedDemoLangs = ['zh-CN', 'en-US', 'es', 'fr-FR'];
+const demoLang = supportedDemoLangs.indexOf(process.env.DEMO_LANG) > -1
+  ? process.env.DEMO_LANG
+  : '';
+
+if (process.env.DEMO_LANG && !demoLang) {
+  console.warn(`Unsupported DEMO_LANG="${ process.env.DEMO_LANG }". Falling back to all languages.`);
+}
 
 const webpackConfig = {
   mode: process.env.NODE_ENV,
@@ -35,6 +44,9 @@ const webpackConfig = {
     port: 8085,
     publicPath: '/',
     hot: true,
+    watchOptions: {
+      ignored: /node_modules/
+    },
     before: (app) => {
       /*
        * 编辑器类型 :此处的指令表示的时各个各个编辑器在cmd或terminal中的命令
@@ -53,17 +65,23 @@ const webpackConfig = {
   },
   module: {
     rules: [
-      {
+      enableLint && {
         enforce: 'pre',
         test: /\.(vue|jsx?)$/,
         exclude: /node_modules/,
-        loader: 'eslint-loader'
+        loader: 'eslint-loader',
+        options: {
+          cache: true
+        }
       },
       {
         test: /\.(jsx?|babel|es6)$/,
         include: process.cwd(),
         exclude: config.jsexclude,
-        loader: 'babel-loader'
+        loader: 'babel-loader',
+        options: {
+          cacheDirectory: true
+        }
       },
       {
         test: /\.vue$/,
@@ -107,7 +125,7 @@ const webpackConfig = {
           name: path.posix.join('static', '[name].[hash:7].[ext]')
         }
       }
-    ]
+    ].filter(Boolean)
   },
   plugins: [
     new webpack.HotModuleReplacementPlugin(),
@@ -122,6 +140,7 @@ const webpackConfig = {
     new ProgressBarPlugin(),
     new VueLoaderPlugin(),
     new webpack.DefinePlugin({
+      'process.env.DEMO_LANG': JSON.stringify(demoLang),
       'process.env.FAAS_ENV': JSON.stringify(process.env.FAAS_ENV)
     }),
     new webpack.LoaderOptionsPlugin({
@@ -135,7 +154,7 @@ const webpackConfig = {
   optimization: {
     minimizer: []
   },
-  devtool: '#eval-source-map'
+  devtool: isProd ? false : '#cheap-module-eval-source-map'
 };
 
 if (isProd) {

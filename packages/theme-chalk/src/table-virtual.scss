@@ -84,8 +84,7 @@
     white-space: nowrap;
     background-color: $--color-white;
 
-    &.hover-row,
-    &:hover {
+    &.hover-row {
       background-color: $--table-row-hover-background-color;
     }
 
@@ -215,9 +214,7 @@
     }
 
     .el-table-virtual__row.hover-row,
-    .el-table-virtual__row.hover-row .el-table-virtual__cell,
-    .el-table-virtual__row:hover,
-    .el-table-virtual__row:hover .el-table-virtual__cell {
+    .el-table-virtual__row.hover-row .el-table-virtual__cell {
       background-color: $--table-row-hover-background-color;
     }
   }

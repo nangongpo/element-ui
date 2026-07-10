@@ -1,55 +1,85 @@
 import navConfig from './nav.config';
 import langs from './i18n/route';
 
-const LOAD_MAP = {
-  'zh-CN': name => {
+const demoLang = process.env.DEMO_LANG;
+const enabledLangs = demoLang
+  ? langs.filter(lang => lang.lang === demoLang)
+  : langs;
+const enabledNavConfig = demoLang
+  ? { [demoLang]: navConfig[demoLang] }
+  : navConfig;
+
+const LOAD_MAP = {};
+
+if (!process.env.DEMO_LANG || process.env.DEMO_LANG === 'zh-CN') {
+  LOAD_MAP['zh-CN'] = name => {
     return r => require.ensure([], () =>
       r(require(`./pages/zh-CN/${name}.vue`)),
     'zh-CN');
-  },
-  'en-US': name => {
+  };
+}
+
+if (!process.env.DEMO_LANG || process.env.DEMO_LANG === 'en-US') {
+  LOAD_MAP['en-US'] = name => {
     return r => require.ensure([], () =>
       r(require(`./pages/en-US/${name}.vue`)),
     'en-US');
-  },
-  'es': name => {
+  };
+}
+
+if (!process.env.DEMO_LANG || process.env.DEMO_LANG === 'es') {
+  LOAD_MAP.es = name => {
     return r => require.ensure([], () =>
       r(require(`./pages/es/${name}.vue`)),
     'es');
-  },
-  'fr-FR': name => {
+  };
+}
+
+if (!process.env.DEMO_LANG || process.env.DEMO_LANG === 'fr-FR') {
+  LOAD_MAP['fr-FR'] = name => {
     return r => require.ensure([], () =>
       r(require(`./pages/fr-FR/${name}.vue`)),
     'fr-FR');
-  }
-};
+  };
+}
 
 const load = function(lang, path) {
   return LOAD_MAP[lang](path);
 };
 
-const LOAD_DOCS_MAP = {
-  'zh-CN': path => {
+const LOAD_DOCS_MAP = {};
+
+if (!process.env.DEMO_LANG || process.env.DEMO_LANG === 'zh-CN') {
+  LOAD_DOCS_MAP['zh-CN'] = path => {
     return r => require.ensure([], () =>
       r(require(`./docs/zh-CN${path}.md`)),
     'zh-CN');
-  },
-  'en-US': path => {
+  };
+}
+
+if (!process.env.DEMO_LANG || process.env.DEMO_LANG === 'en-US') {
+  LOAD_DOCS_MAP['en-US'] = path => {
     return r => require.ensure([], () =>
       r(require(`./docs/en-US${path}.md`)),
     'en-US');
-  },
-  'es': path => {
+  };
+}
+
+if (!process.env.DEMO_LANG || process.env.DEMO_LANG === 'es') {
+  LOAD_DOCS_MAP.es = path => {
     return r => require.ensure([], () =>
       r(require(`./docs/es${path}.md`)),
     'es');
-  },
-  'fr-FR': path => {
+  };
+}
+
+if (!process.env.DEMO_LANG || process.env.DEMO_LANG === 'fr-FR') {
+  LOAD_DOCS_MAP['fr-FR'] = path => {
     return r => require.ensure([], () =>
       r(require(`./docs/fr-FR${path}.md`)),
     'fr-FR');
-  }
-};
+  };
+}
 
 const loadDocs = function(lang, path) {
   return LOAD_DOCS_MAP[lang](path);
@@ -103,7 +133,7 @@ const registerRoute = (navConfig) => {
   return route;
 };
 
-let route = registerRoute(navConfig);
+let route = registerRoute(enabledNavConfig);
 
 const generateMiscRoutes = function(lang) {
   let guideRoute = {
@@ -158,7 +188,7 @@ const generateMiscRoutes = function(lang) {
   return [guideRoute, resourceRoute, themeRoute, indexRoute];
 };
 
-langs.forEach(lang => {
+enabledLangs.forEach(lang => {
   route = route.concat(generateMiscRoutes(lang.lang));
 });
 
@@ -169,12 +199,12 @@ route.push({
 });
 
 let userLanguage = localStorage.getItem('ELEMENT_LANGUAGE') || window.navigator.language || 'en-US';
-let defaultPath = '/en-US';
-if (userLanguage.indexOf('zh-') !== -1) {
+let defaultPath = demoLang ? `/${ demoLang }` : '/en-US';
+if (!demoLang && userLanguage.indexOf('zh-') !== -1) {
   defaultPath = '/zh-CN';
-} else if (userLanguage.indexOf('es') !== -1) {
+} else if (!demoLang && userLanguage.indexOf('es') !== -1) {
   defaultPath = '/es';
-} else if (userLanguage.indexOf('fr') !== -1) {
+} else if (!demoLang && userLanguage.indexOf('fr') !== -1) {
   defaultPath = '/fr-FR';
 }
 

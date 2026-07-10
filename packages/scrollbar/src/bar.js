@@ -44,8 +44,9 @@ export default {
       if (e.ctrlKey || e.button === 2) {
         return;
       }
+      this.updateDragMetrics(e.currentTarget);
       this.startDrag(e);
-      this[this.bar.axis] = (e.currentTarget[this.bar.offset] - (e[this.bar.client] - e.currentTarget.getBoundingClientRect()[this.bar.direction]));
+      this[this.bar.axis] = (this._dragMetrics.thumbSize - (e[this.bar.client] - this._dragMetrics.thumbRectPosition));
     },
 
     clickTrackHandler(e) {
@@ -65,22 +66,36 @@ export default {
       document.onselectstart = () => false;
     },
 
+    updateDragMetrics(thumb) {
+      const bar = this.bar;
+
+      this._dragMetrics = {
+        barRectPosition: this.$el.getBoundingClientRect()[bar.direction],
+        barSize: this.$el[bar.offset],
+        thumbRectPosition: thumb.getBoundingClientRect()[bar.direction],
+        thumbSize: thumb[bar.offset],
+        wrapScrollSize: this.wrap[bar.scrollSize]
+      };
+    },
+
     mouseMoveDocumentHandler(e) {
       if (this.cursorDown === false) return;
       const prevPage = this[this.bar.axis];
+      const metrics = this._dragMetrics;
 
-      if (!prevPage) return;
+      if (!prevPage || !metrics) return;
 
-      const offset = ((this.$el.getBoundingClientRect()[this.bar.direction] - e[this.bar.client]) * -1);
-      const thumbClickPosition = (this.$refs.thumb[this.bar.offset] - prevPage);
-      const thumbPositionPercentage = ((offset - thumbClickPosition) * 100 / this.$el[this.bar.offset]);
+      const offset = ((metrics.barRectPosition - e[this.bar.client]) * -1);
+      const thumbClickPosition = (metrics.thumbSize - prevPage);
+      const thumbPositionPercentage = ((offset - thumbClickPosition) * 100 / metrics.barSize);
 
-      this.wrap[this.bar.scroll] = (thumbPositionPercentage * this.wrap[this.bar.scrollSize] / 100);
+      this.wrap[this.bar.scroll] = (thumbPositionPercentage * metrics.wrapScrollSize / 100);
     },
 
     mouseUpDocumentHandler(e) {
       this.cursorDown = false;
       this[this.bar.axis] = 0;
+      this._dragMetrics = null;
       off(document, 'mousemove', this.mouseMoveDocumentHandler);
       document.onselectstart = null;
     }

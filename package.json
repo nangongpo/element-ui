@@ -22,10 +22,11 @@
     "build:utils": "cross-env BABEL_ENV=utils babel src --out-dir lib --ignore src/index.js",
     "build:umd": "node build/bin/build-locale.js",
     "clean": "rimraf lib && rimraf packages/*/lib && rimraf test/**/coverage",
-    "deploy:build": "npm run build:file && gulp build --gulpfile packages/theme-chalk/gulpfile.js && node build/bin/build-theme-config.js && cross-env NODE_ENV=production webpack --config build/webpack.demo.js",
+    "deploy:build": "npm run build:file && node build/bin/build-theme-config.js && cross-env NODE_ENV=production webpack --config build/webpack.demo.js",
     "deploy:extension": "rimraf examples/extension/dist && cross-env NODE_ENV=production webpack --config build/webpack.extension.js",
     "dev:extension": "rimraf examples/extension/dist && cross-env NODE_ENV=development webpack --watch --config build/webpack.extension.js",
-    "dev": "npm run bootstrap && npm run build:file && gulp build --gulpfile packages/theme-chalk/gulpfile.js && node build/bin/build-theme-config.js && cross-env NODE_ENV=development webpack-dev-server --config build/webpack.demo.js & node build/bin/template.js",
+    "dev": "npm run bootstrap && npm run build:file && node build/bin/build-theme-config.js && cross-env NODE_ENV=development webpack-dev-server --config build/webpack.demo.js & node build/bin/template.js",
+    "dev:zh": "npm run bootstrap && npm run build:file && node build/bin/build-theme-config.js && cross-env NODE_ENV=development DEMO_LANG=zh-CN webpack-dev-server --config build/webpack.demo.js & node build/bin/template.js",
     "dev:play": "npm run build:file && cross-env NODE_ENV=development PLAY_ENV=true webpack-dev-server --config build/webpack.demo.js",
     "dist": "npm run clean && npm run build:file && npm run lint && rollup -c rollup.config.mjs && npm run build:theme && node build/bin/build-theme-config.js",
     "i18n": "node build/bin/i18n.js",
@@ -111,6 +112,7 @@
     "gulp-sass": "^4.0.2",
     "highlight.js": "^9.3.0",
     "html-webpack-plugin": "^3.2.0",
+    "husky": "4.3.8",
     "json-loader": "^0.5.7",
     "json-templater": "^1.0.4",
     "karma": "^4.0.1",
@@ -154,5 +156,10 @@
     "webpack-cli": "^3.0.8",
     "webpack-dev-server": "^3.1.11",
     "webpack-node-externals": "^1.7.2"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "npm run dist && git add ."
+    }
   }
 }

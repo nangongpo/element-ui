@@ -15,7 +15,7 @@ export default function createStore(table) {
     },
     scheduleLayout: () => {
       table.updateColumns();
-      table.$nextTick(table.doLayout);
+      table.scheduleLayout();
     },
     updateAllSelected: () => {
       table.updateAllSelected();

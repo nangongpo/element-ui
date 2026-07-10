@@ -1,10 +1,13 @@
 var fs = require('fs');
 var path = require('path');
+var childProcess = require('child_process');
 
 var root = path.join(__dirname, '../..');
 var varPath = path.join(root, 'packages/theme-chalk/src/common/var.scss');
 var cssPath = path.join(root, 'lib/theme-chalk/index.css');
 var fallbackCssPath = path.join(root, 'packages/theme-chalk/lib/index.css');
+var gulpPath = path.join(root, 'node_modules/.bin/gulp');
+var gulpfilePath = path.join(root, 'packages/theme-chalk/gulpfile.js');
 var outputPath = path.join(root, 'examples/components/theme/loader/local-theme-data.js');
 
 var globalTypeMap = {
@@ -22,6 +25,22 @@ var componentNameMap = {
 
 function readFile(file) {
   return fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : '';
+}
+
+function buildTheme() {
+  if (!fs.existsSync(gulpPath)) return;
+  childProcess.execFileSync(gulpPath, ['build', '--gulpfile', gulpfilePath], {
+    cwd: root,
+    stdio: 'inherit'
+  });
+}
+
+function getThemeCss() {
+  var css = readFile(cssPath) || readFile(fallbackCssPath);
+  if (css) return css;
+
+  buildTheme();
+  return readFile(cssPath) || readFile(fallbackCssPath);
 }
 
 function escapeString(value) {
@@ -116,11 +135,11 @@ function parseVars(source) {
 }
 
 var source = readFile(varPath);
-var css = readFile(cssPath) || readFile(fallbackCssPath);
+var css = getThemeCss();
 var config = parseVars(source);
 
 if (!css) {
-  throw new Error('Theme CSS not found. Please run npm run build:theme before build-theme-config.');
+  throw new Error('Theme CSS not found. Please install dependencies or run npm run build:theme before build-theme-config.');
 }
 
 var output = '/* eslint-disable */\n' +

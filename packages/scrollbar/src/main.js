@@ -2,7 +2,7 @@
 
 import { addResizeListener, removeResizeListener } from 'element-ui/src/utils/resize-event';
 import scrollbarWidth from 'element-ui/src/utils/scrollbar-width';
-import { toObject } from 'element-ui/src/utils/util';
+import { cancelFrame, requestFrame, toObject } from 'element-ui/src/utils/util';
 import Bar from './bar';
 
 /* istanbul ignore next */
@@ -37,6 +37,16 @@ export default {
     wrap() {
       return this.$refs.wrap;
     }
+  },
+
+  created() {
+    this._scrollbarUpdateId = null;
+    this._wrapMetrics = {
+      clientHeight: 0,
+      clientWidth: 0,
+      scrollHeight: 0,
+      scrollWidth: 0
+    };
   },
 
   render(h) {
@@ -99,32 +109,78 @@ export default {
   methods: {
     handleScroll() {
       const wrap = this.wrap;
+      const { clientHeight, clientWidth } = this._wrapMetrics;
 
-      this.moveY = ((wrap.scrollTop * 100) / wrap.clientHeight);
-      this.moveX = ((wrap.scrollLeft * 100) / wrap.clientWidth);
+      this.moveY = clientHeight ? ((wrap.scrollTop * 100) / clientHeight) : 0;
+      this.moveX = clientWidth ? ((wrap.scrollLeft * 100) / clientWidth) : 0;
     },
 
     update() {
-      let heightPercentage, widthPercentage;
-      const wrap = this.wrap;
-      if (!wrap) return;
+      if (this._scrollbarUpdateId !== null) return;
 
-      heightPercentage = (wrap.clientHeight * 100 / wrap.scrollHeight);
-      widthPercentage = (wrap.clientWidth * 100 / wrap.scrollWidth);
+      this._scrollbarUpdateId = requestFrame(() => {
+        this._scrollbarUpdateId = null;
+        this.doUpdate();
+      });
+    },
+
+    getWrapMetrics() {
+      const wrap = this.wrap;
+      if (!wrap) return null;
+
+      return {
+        clientHeight: wrap.clientHeight,
+        clientWidth: wrap.clientWidth,
+        scrollHeight: wrap.scrollHeight,
+        scrollWidth: wrap.scrollWidth
+      };
+    },
+
+    updateWrapMetrics() {
+      const metrics = this.getWrapMetrics();
+
+      if (metrics) {
+        this._wrapMetrics = metrics;
+      }
+      return metrics;
+    },
+
+    updateBarSize(metrics) {
+      const { clientHeight, clientWidth, scrollHeight, scrollWidth } = metrics;
+      const heightPercentage = scrollHeight ? (clientHeight * 100 / scrollHeight) : 0;
+      const widthPercentage = scrollWidth ? (clientWidth * 100 / scrollWidth) : 0;
 
       this.sizeHeight = (heightPercentage < 100) ? (heightPercentage + '%') : '';
       this.sizeWidth = (widthPercentage < 100) ? (widthPercentage + '%') : '';
+    },
+
+    doUpdate() {
+      const metrics = this.updateWrapMetrics();
+      if (!metrics) return;
+
+      this.updateBarSize(metrics);
+      this.handleScroll();
     }
   },
 
   mounted() {
     if (this.native) return;
     this.$nextTick(this.update);
-    !this.noresize && addResizeListener(this.$refs.resize, this.update);
+    if (!this.noresize) {
+      addResizeListener(this.$refs.resize, this.update);
+      addResizeListener(this.$refs.wrap, this.update);
+    }
   },
 
   beforeDestroy() {
     if (this.native) return;
-    !this.noresize && removeResizeListener(this.$refs.resize, this.update);
+    if (this._scrollbarUpdateId !== null) {
+      cancelFrame(this._scrollbarUpdateId);
+      this._scrollbarUpdateId = null;
+    }
+    if (!this.noresize) {
+      removeResizeListener(this.$refs.resize, this.update);
+      removeResizeListener(this.$refs.wrap, this.update);
+    }
   }
 };

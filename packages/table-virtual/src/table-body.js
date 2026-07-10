@@ -18,7 +18,7 @@ export default {
     const style = props.fixed
       ? {
         width: table.getColumnsWidth(columns) + 'px',
-        transform: 'translateY(' + (table.offsetY - table.scrollTop) + 'px)'
+        transform: 'translate3d(0,' + (table.offsetY - table.scrollTop) + 'px,0)'
       }
       : {
         width: table.mainWidth + 'px',

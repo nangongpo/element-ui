@@ -233,6 +233,16 @@ export function rafThrottle(fn) {
   };
 }
 
+export const requestFrame = function(callback) {
+  const raf = typeof window !== 'undefined' && window.requestAnimationFrame;
+  return raf ? raf.call(window, callback) : setTimeout(callback, 16);
+};
+
+export const cancelFrame = function(id) {
+  const caf = typeof window !== 'undefined' && window.cancelAnimationFrame;
+  return caf ? caf.call(window, id) : clearTimeout(id);
+};
+
 export function objToArray(obj) {
   if (Array.isArray(obj)) {
     return obj;

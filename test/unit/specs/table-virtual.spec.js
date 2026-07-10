@@ -122,8 +122,8 @@ describe('TableVirtual', () => {
 
       await wait(50);
       expect(vm.$refs.fixed.$el.style.height).to.equal('240px');
-      expect(vm.$refs.natural.$el.style.height).to.equal('168px');
-      expect(vm.$refs.border.$el.style.height).to.equal('168px');
+      expect(vm.$refs.natural.$el.style.height).to.equal(vm.$refs.natural.naturalHeight + 'px');
+      expect(vm.$refs.border.$el.style.height).to.equal(vm.$refs.border.naturalHeight + 'px');
       expect(vm.$refs.border.hasVerticalScroll).to.false;
     });
 
@@ -328,8 +328,8 @@ describe('TableVirtual', () => {
       await wait(50);
       const table = vm.$refs.table;
       const body = table.$refs.body;
-      Object.defineProperty(body, 'clientWidth', { configurable: true, value: 640 });
-      Object.defineProperty(body, 'clientHeight', { configurable: true, value: 160 });
+      Object.defineProperty(body, 'offsetWidth', { configurable: true, value: 640 });
+      Object.defineProperty(body, 'offsetHeight', { configurable: true, value: 160 });
       table.doLayout();
       expect(table.bodyWidth).to.equal(640);
       expect(table.bodyHeight).to.equal(160);
@@ -402,7 +402,7 @@ describe('TableVirtual', () => {
       expect(window.getComputedStyle(vm.$el.querySelector('.el-table-virtual__fixed-body.el-table-virtual__fixed-left')).borderLeftWidth).to.equal('1px');
       vm.$refs.table.scrollTo(400);
       await wait(50);
-      expect(vm.$el.querySelector('.el-table-virtual__fixed-body .el-table-virtual__rows').style.transform).to.contain('translateY');
+      expect(vm.$el.querySelector('.el-table-virtual__fixed-body .el-table-virtual__rows').style.transform).to.contain('translate');
     });
 
     it('keeps vertical scrollbar outside right fixed columns', async() => {
@@ -524,16 +524,17 @@ describe('TableVirtual', () => {
       const body = table.$refs.body;
       Object.defineProperty(table.$el, 'offsetWidth', { configurable: true, value: 500 });
       Object.defineProperty(table.$el, 'offsetHeight', { configurable: true, value: 240 });
-      Object.defineProperty(body, 'clientWidth', { configurable: true, value: 500 });
-      Object.defineProperty(body, 'clientHeight', { configurable: true, value: 192 });
+      Object.defineProperty(body, 'offsetWidth', { configurable: true, value: 500 });
+      Object.defineProperty(body, 'offsetHeight', { configurable: true, value: 192 });
       table.resizeState.width = 500;
       table.resizeState.height = 240;
       table.doLayout();
       const oldWidth = table.columns[2].realWidth;
 
       Object.defineProperty(table.$el, 'offsetWidth', { configurable: true, value: 700 });
-      Object.defineProperty(body, 'clientWidth', { configurable: true, value: 700 });
+      Object.defineProperty(body, 'offsetWidth', { configurable: true, value: 700 });
       table.resizeListener();
+      await wait(50);
 
       expect(table.resizeState.width).to.equal(700);
       expect(table.columns[2].realWidth).to.be.above(oldWidth);
@@ -775,6 +776,8 @@ describe('TableVirtual', () => {
       await waitImmediate();
       expect(vm.$el.querySelectorAll('.el-table-virtual__row.hover-row').length).to.equal(3);
 
+      table.lastMouseClientX = null;
+      table.lastMouseClientY = null;
       body.scrollTop = 160;
       triggerEvent(body, 'scroll', true, false);
       await wait(50);
@@ -784,7 +787,7 @@ describe('TableVirtual', () => {
       expect(vm.$el.querySelectorAll('.el-table-virtual__row.hover-row').length).to.equal(0);
     });
 
-    it('clears hover row classes immediately when scroll frame is pending', async() => {
+    it('syncs fixed rows immediately and settles hover when scroll frame is pending', async() => {
       oldRequestAnimationFrame = window.requestAnimationFrame;
       window.requestAnimationFrame = function() {
         return 23456;
@@ -809,17 +812,110 @@ describe('TableVirtual', () => {
       const table = vm.$refs.table;
       const body = table.$refs.body;
       const cell = vm.$el.querySelector('.el-table-virtual__body-wrapper .el-table-virtual__cell');
+      const fixedRows = vm.$el.querySelectorAll('.el-table-virtual__fixed-body .el-table-virtual__rows');
+      Object.defineProperty(body, 'getBoundingClientRect', {
+        configurable: true,
+        value() {
+          return { top: 0, bottom: 240, left: 0, right: 400 };
+        }
+      });
 
       triggerEvent(cell, 'mouseenter', true, false);
       await waitImmediate();
       expect(vm.$el.querySelectorAll('.el-table-virtual__row.hover-row').length).to.equal(3);
 
+      table.handleBodyMouseMove({ clientX: 120, clientY: 20 });
+      expect(table.hoverRow.id).to.equal(0);
       body.scrollTop = 160;
       triggerEvent(body, 'scroll', true, false);
 
       expect(table.scrollFrame).to.equal(23456);
       expect(table.hoverRow).to.equal(null);
+      expect(table.hoverRowVisibleIndex).to.equal(null);
+      expect(fixedRows[0].style.transform).to.contain('-160px');
+      expect(fixedRows[1].style.transform).to.contain('-160px');
       expect(vm.$el.querySelectorAll('.el-table-virtual__row.hover-row').length).to.equal(0);
+
+      await wait(160);
+
+      expect(table.hoverRow.id).to.equal(4);
+      expect(table.hoverRowVisibleIndex).to.equal(4);
+      expect(vm.$el.querySelectorAll('.el-table-virtual__row.hover-row').length).to.equal(3);
+    });
+
+    it('tracks fixed row position on wheel after native scroll updates', async() => {
+      vm = createVue({
+        template: `
+        <el-table-virtual ref="table" :data="tableData" height="240" row-key="id" :row-height="40">
+          <el-table-column fixed prop="id" label="ID" width="80" />
+          <el-table-column prop="name" label="Name" width="160" />
+          <el-table-column fixed="right" prop="score" label="Score" width="100" />
+        </el-table-virtual>
+      `,
+        data() {
+          return {
+            tableData: getData(100)
+          };
+        }
+      }, true);
+
+      await wait(50);
+      const table = vm.$refs.table;
+      const body = table.$refs.body;
+      const fixedRows = vm.$el.querySelectorAll('.el-table-virtual__fixed-body .el-table-virtual__rows');
+      Object.defineProperty(body, 'scrollHeight', { configurable: true, value: 4000 });
+      Object.defineProperty(body, 'clientHeight', { configurable: true, value: 240 });
+      body.scrollTop = 40;
+
+      table.handleBodyWheel({ deltaY: 80, deltaMode: 0 });
+      body.scrollTop = 120;
+      await wait(50);
+
+      expect(fixedRows[0].style.transform).to.contain('-120px');
+      expect(fixedRows[1].style.transform).to.contain('-120px');
+    });
+
+    it('does not start fixed scroll sync outside the visible body area', async() => {
+      vm = createVue({
+        template: `
+        <el-table-virtual ref="table" :data="tableData" height="240" row-key="id" :row-height="40">
+          <el-table-column fixed prop="id" label="ID" width="80" />
+          <el-table-column prop="name" label="Name" width="160" />
+          <el-table-column fixed="right" prop="score" label="Score" width="100" />
+        </el-table-virtual>
+      `,
+        data() {
+          return {
+            tableData: getData(100)
+          };
+        }
+      }, true);
+
+      await wait(50);
+      const table = vm.$refs.table;
+      const body = table.$refs.body;
+      const fixedRows = vm.$el.querySelectorAll('.el-table-virtual__fixed-body .el-table-virtual__rows');
+      Object.defineProperty(body, 'getBoundingClientRect', {
+        configurable: true,
+        value() {
+          return { top: 40, bottom: 240, left: 0, right: 400 };
+        }
+      });
+      Object.defineProperty(body, 'scrollHeight', { configurable: true, value: 4000 });
+      Object.defineProperty(body, 'clientHeight', { configurable: true, value: 200 });
+      body.scrollTop = 40;
+
+      const isClientInBodyArea = table.isClientInBodyArea;
+      table.isClientInBodyArea = function() {
+        return false;
+      };
+      table.handleBodyWheel({ deltaY: 80, deltaMode: 0, clientX: 120, clientY: 20 });
+      table.isClientInBodyArea = isClientInBodyArea;
+
+      expect(table.fixedScrollFrame).to.equal(null);
+      expect(table.fixedScrollTimer).to.equal(null);
+      expect(fixedRows[0].style.transform).to.not.contain('-120px');
+      expect(fixedRows[1].style.transform).to.not.contain('-120px');
     });
 
     it('syncs fixed hover classes while body scrolls under pointer', async() => {
@@ -851,9 +947,52 @@ describe('TableVirtual', () => {
       table.handleBodyMouseMove({ clientX: 120, clientY: 20 });
       body.scrollTop = 160;
       triggerEvent(body, 'scroll', true, false);
-      await wait(50);
+      await wait(160);
 
       expect(table.hoverRow.id).to.equal(4);
+      expect(vm.$el.querySelectorAll('.el-table-virtual__row.hover-row').length).to.equal(3);
+    });
+
+    it('syncs hover classes after scrolling while pointer stays over fixed columns', async() => {
+      vm = createVue({
+        template: `
+        <el-table-virtual ref="table" :data="tableData" height="240" row-key="id" :row-height="40">
+          <el-table-column fixed prop="id" label="ID" width="80" />
+          <el-table-column prop="name" label="Name" width="160" />
+          <el-table-column fixed="right" prop="score" label="Score" width="100" />
+        </el-table-virtual>
+      `,
+        data() {
+          return {
+            tableData: getData(100)
+          };
+        }
+      }, true);
+
+      await wait(50);
+      const table = vm.$refs.table;
+      const body = table.$refs.body;
+      const fixedLeft = vm.$el.querySelector('.el-table-virtual__fixed-body.el-table-virtual__fixed-left');
+      Object.defineProperty(body, 'getBoundingClientRect', {
+        configurable: true,
+        value() {
+          return { top: 0, bottom: 240, left: 80, right: 400 };
+        }
+      });
+      Object.defineProperty(fixedLeft, 'getBoundingClientRect', {
+        configurable: true,
+        value() {
+          return { top: 0, bottom: 240, left: 0, right: 80 };
+        }
+      });
+
+      table.handleBodyMouseMove({ clientX: 40, clientY: 20 });
+      body.scrollTop = 160;
+      triggerEvent(body, 'scroll', true, false);
+      await wait(160);
+
+      expect(table.hoverRow.id).to.equal(4);
+      expect(table.hoverRowVisibleIndex).to.equal(4);
       expect(vm.$el.querySelectorAll('.el-table-virtual__row.hover-row').length).to.equal(3);
     });
 
@@ -1391,16 +1530,25 @@ describe('TableVirtual', () => {
       const tooltip = table.$refs.tooltip;
       const cell = vm.$el.querySelectorAll('.el-table-virtual__body-wrapper .el-table-virtual__cell')[1];
       const cellContent = cell.querySelector('.cell');
+      Object.defineProperty(body, 'getBoundingClientRect', {
+        configurable: true,
+        value() {
+          return { top: 0, bottom: 240, left: 0, right: 400 };
+        }
+      });
       Object.defineProperty(cellContent, 'scrollWidth', { configurable: true, value: 200 });
       Object.defineProperty(cellContent, 'clientWidth', { configurable: true, value: 80 });
 
       triggerEvent(cell, 'mouseenter', true, false);
       await wait(50);
+      table.handleBodyMouseMove({ clientX: 120, clientY: 20 });
       body.scrollTop = 80;
       triggerEvent(body, 'scroll', true, false);
       table.setCurrentRow(vm.tableData[1]);
 
       expect(table.scrollFrame).to.equal(12345);
+      expect(table.hoverScrollTimer).to.not.equal(null);
+      expect(table.hoverScrolling).to.equal(true);
       expect(tooltip.referenceElm).to.equal(cell);
       expect(table.currentRow).to.equal(vm.tableData[1]);
       expect(table.hoverRow).to.equal(null);
@@ -1413,6 +1561,10 @@ describe('TableVirtual', () => {
 
       expect(cancelSpy.calledWith(12345)).to.true;
       expect(table.scrollFrame).to.equal(null);
+      expect(table.hoverScrollTimer).to.equal(null);
+      expect(table.hoverScrolling).to.equal(false);
+      expect(table.fixedScrollFrame).to.equal(null);
+      expect(table.fixedScrollTimer).to.equal(null);
       expect(table.pendingScrollTop).to.equal(null);
       expect(table.pendingScrollLeft).to.equal(null);
       expect(tooltip.referenceElm).to.equal(null);

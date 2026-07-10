@@ -27,41 +27,53 @@ export default {
       const layoutWidth = bodyWidth === undefined
         ? this.bodyWidth || (this.$refs.body && this.$refs.body.clientWidth) || 0
         : bodyWidth;
-      const flexColumns = columns.filter(column => isFlexColumn(column));
+      const flexColumns = [];
+      const columnWidths = [];
       let bodyMinWidth = 0;
 
-      columns.forEach(column => {
+      columns.forEach((column, index) => {
+        const width = isFlexColumn(column)
+          ? getColumnMinWidth(column)
+          : getStyleNumber(column.width);
+        columnWidths[index] = width;
         if (isFlexColumn(column)) {
-          column.realWidth = getColumnMinWidth(column);
-        } else {
-          column.realWidth = getStyleNumber(column.width);
+          flexColumns.push({
+            column,
+            index
+          });
         }
-        bodyMinWidth += column.realWidth;
+        bodyMinWidth += width;
       });
 
       if (this.fit && flexColumns.length && layoutWidth > bodyMinWidth) {
         let totalFlexWidth = layoutWidth - bodyMinWidth;
         if (flexColumns.length === 1) {
-          flexColumns[0].realWidth += totalFlexWidth;
+          columnWidths[flexColumns[0].index] += totalFlexWidth;
         } else {
-          const allColumnsWidth = flexColumns.reduce((prev, column) => prev + getColumnMinWidth(column), 0);
+          const allColumnsWidth = flexColumns.reduce((prev, item) => prev + getColumnMinWidth(item.column), 0);
           const flexWidthPerPixel = totalFlexWidth / allColumnsWidth;
           let noneFirstWidth = 0;
 
-          flexColumns.forEach((column, index) => {
+          flexColumns.forEach((item, index) => {
             if (index === 0) return;
-            const flexWidth = Math.floor(getColumnMinWidth(column) * flexWidthPerPixel);
+            const flexWidth = Math.floor(getColumnMinWidth(item.column) * flexWidthPerPixel);
             noneFirstWidth += flexWidth;
-            column.realWidth += flexWidth;
+            columnWidths[item.index] += flexWidth;
           });
-          flexColumns[0].realWidth += totalFlexWidth - noneFirstWidth;
+          columnWidths[flexColumns[0].index] += totalFlexWidth - noneFirstWidth;
         }
       }
 
       let left = 0;
-      columns.forEach(column => {
-        column.left = left;
-        left += column.realWidth;
+      columns.forEach((column, index) => {
+        const width = columnWidths[index];
+        if (column.realWidth !== width) {
+          column.realWidth = width;
+        }
+        if (column.left !== left) {
+          column.left = left;
+        }
+        left += width;
       });
     },
 
@@ -77,29 +89,42 @@ export default {
       const body = this.$refs.body;
       if (!body) return;
       const scrollbarWidth = this.scrollbarWidth || 0;
-      const bodyHeight = body.offsetHeight;
       const bodyWidth = body.offsetWidth;
+      const autoHeight = this.isAutoHeight;
+      const bodyHeight = autoHeight ? this.totalHeight : body.offsetHeight;
       let hasHorizontalScroll = this.hasHorizontalScroll;
       let hasVerticalScroll = this.hasVerticalScroll;
 
       for (let i = 0; i < 3; i++) {
-        const availableHeight = Math.max(0, bodyHeight - (hasHorizontalScroll ? scrollbarWidth : 0));
+        const availableHeight = autoHeight
+          ? this.totalHeight
+          : Math.max(0, bodyHeight - (hasHorizontalScroll ? scrollbarWidth : 0));
         const availableWidth = Math.max(0, bodyWidth - (hasVerticalScroll ? scrollbarWidth : 0));
         this.updateColumns(availableWidth);
         const nextHasHorizontalScroll = this.scrollBodyWidth > availableWidth;
-        const nextHasVerticalScroll = this.totalHeight > availableHeight;
+        const nextHasVerticalScroll = autoHeight ? false : this.totalHeight > availableHeight;
         if (nextHasHorizontalScroll === hasHorizontalScroll && nextHasVerticalScroll === hasVerticalScroll) break;
         hasHorizontalScroll = nextHasHorizontalScroll;
         hasVerticalScroll = nextHasVerticalScroll;
       }
 
-      const availableHeight = Math.max(0, bodyHeight - (hasHorizontalScroll ? scrollbarWidth : 0));
+      const availableHeight = autoHeight
+        ? this.totalHeight
+        : Math.max(0, bodyHeight - (hasHorizontalScroll ? scrollbarWidth : 0));
       const availableWidth = Math.max(0, bodyWidth - (hasVerticalScroll ? scrollbarWidth : 0));
       this.updateColumns(availableWidth);
-      this.bodyHeight = availableHeight;
-      this.bodyWidth = availableWidth;
-      this.hasVerticalScroll = hasVerticalScroll;
-      this.hasHorizontalScroll = hasHorizontalScroll;
+      if (this.bodyHeight !== availableHeight) {
+        this.bodyHeight = availableHeight;
+      }
+      if (this.bodyWidth !== availableWidth) {
+        this.bodyWidth = availableWidth;
+      }
+      if (this.hasVerticalScroll !== hasVerticalScroll) {
+        this.hasVerticalScroll = hasVerticalScroll;
+      }
+      if (this.hasHorizontalScroll !== hasHorizontalScroll) {
+        this.hasHorizontalScroll = hasHorizontalScroll;
+      }
       this.updateRange();
     },
 
@@ -108,14 +133,13 @@ export default {
       if (!el) return;
       const width = el.offsetWidth;
       const height = el.offsetHeight;
-      if (width === this.resizeState.width && height === this.resizeState.height) return;
+      const widthChanged = width !== this.resizeState.width;
+      const heightChanged = height !== this.resizeState.height;
+      if (!widthChanged && !heightChanged) return;
       this.resizeState.width = width;
       this.resizeState.height = height;
-      if (this.layoutFrame) return;
-      this.layoutFrame = this.getFrame(() => {
-        this.layoutFrame = null;
-        this.doLayout();
-      });
+      if (!widthChanged && this.isAutoHeight) return;
+      this.scheduleLayout();
     },
 
     updateRange() {
@@ -123,9 +147,16 @@ export default {
       const visibleCount = Math.ceil((this.bodyHeight || 0) / this.rowHeight);
       const start = Math.max(0, Math.floor(this.scrollTop / this.rowHeight) - this.overscan);
       const end = Math.min(dataLength, start + visibleCount + this.overscan * 2 + 1);
-      this.start = start;
-      this.end = end;
-      this.offsetY = start * this.rowHeight;
+      const offsetY = start * this.rowHeight;
+      if (this.start !== start) {
+        this.start = start;
+      }
+      if (this.end !== end) {
+        this.end = end;
+      }
+      if (this.offsetY !== offsetY) {
+        this.offsetY = offsetY;
+      }
     }
   }
 };
