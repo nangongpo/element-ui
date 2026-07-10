@@ -22,9 +22,11 @@ export default {
   },
 
   methods: {
-    updateColumns() {
+    updateColumns(bodyWidth) {
       const columns = this.tableColumns;
-      const bodyWidth = this.bodyWidth || (this.$refs.body && this.$refs.body.clientWidth) || 0;
+      const layoutWidth = bodyWidth === undefined
+        ? this.bodyWidth || (this.$refs.body && this.$refs.body.clientWidth) || 0
+        : bodyWidth;
       const flexColumns = columns.filter(column => isFlexColumn(column));
       let bodyMinWidth = 0;
 
@@ -37,8 +39,8 @@ export default {
         bodyMinWidth += column.realWidth;
       });
 
-      if (this.fit && flexColumns.length && bodyWidth > bodyMinWidth) {
-        let totalFlexWidth = bodyWidth - bodyMinWidth;
+      if (this.fit && flexColumns.length && layoutWidth > bodyMinWidth) {
+        let totalFlexWidth = layoutWidth - bodyMinWidth;
         if (flexColumns.length === 1) {
           flexColumns[0].realWidth += totalFlexWidth;
         } else {
@@ -74,13 +76,30 @@ export default {
     doLayout() {
       const body = this.$refs.body;
       if (!body) return;
-      const bodyHeight = body.clientHeight;
-      const bodyWidth = body.clientWidth;
-      this.bodyHeight = bodyHeight;
-      this.bodyWidth = bodyWidth;
-      this.hasVerticalScroll = this.totalHeight > bodyHeight;
-      this.updateColumns();
-      this.hasHorizontalScroll = this.scrollBodyWidth > bodyWidth;
+      const scrollbarWidth = this.scrollbarWidth || 0;
+      const bodyHeight = body.offsetHeight;
+      const bodyWidth = body.offsetWidth;
+      let hasHorizontalScroll = this.hasHorizontalScroll;
+      let hasVerticalScroll = this.hasVerticalScroll;
+
+      for (let i = 0; i < 3; i++) {
+        const availableHeight = Math.max(0, bodyHeight - (hasHorizontalScroll ? scrollbarWidth : 0));
+        const availableWidth = Math.max(0, bodyWidth - (hasVerticalScroll ? scrollbarWidth : 0));
+        this.updateColumns(availableWidth);
+        const nextHasHorizontalScroll = this.scrollBodyWidth > availableWidth;
+        const nextHasVerticalScroll = this.totalHeight > availableHeight;
+        if (nextHasHorizontalScroll === hasHorizontalScroll && nextHasVerticalScroll === hasVerticalScroll) break;
+        hasHorizontalScroll = nextHasHorizontalScroll;
+        hasVerticalScroll = nextHasVerticalScroll;
+      }
+
+      const availableHeight = Math.max(0, bodyHeight - (hasHorizontalScroll ? scrollbarWidth : 0));
+      const availableWidth = Math.max(0, bodyWidth - (hasVerticalScroll ? scrollbarWidth : 0));
+      this.updateColumns(availableWidth);
+      this.bodyHeight = availableHeight;
+      this.bodyWidth = availableWidth;
+      this.hasVerticalScroll = hasVerticalScroll;
+      this.hasHorizontalScroll = hasHorizontalScroll;
       this.updateRange();
     },
 
@@ -92,7 +111,11 @@ export default {
       if (width === this.resizeState.width && height === this.resizeState.height) return;
       this.resizeState.width = width;
       this.resizeState.height = height;
-      this.doLayout();
+      if (this.layoutFrame) return;
+      this.layoutFrame = this.getFrame(() => {
+        this.layoutFrame = null;
+        this.doLayout();
+      });
     },
 
     updateRange() {

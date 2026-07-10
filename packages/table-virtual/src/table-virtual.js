@@ -1,4 +1,5 @@
 import ElTooltip from 'element-ui/packages/tooltip';
+import ElCheckbox from 'element-ui/packages/checkbox';
 import Locale from 'element-ui/src/mixins/locale';
 import scrollbarWidth from 'element-ui/src/utils/scrollbar-width';
 import { addResizeListener, removeResizeListener } from 'element-ui/src/utils/resize-event';
@@ -26,6 +27,7 @@ export default {
   name: 'ElTableVirtual',
 
   components: {
+    ElCheckbox,
     ElTooltip,
     TableVirtualBody,
     TableVirtualHeader
@@ -135,6 +137,8 @@ export default {
       if (this.border) classes.push('el-table--border', 'el-table-virtual--border');
       if (this.stripe) classes.push('el-table--striped', 'el-table-virtual--striped');
       if (this.fit) classes.push('el-table--fit');
+      if (this.hasHorizontalScroll) classes.push('el-table-virtual--scrollable-x');
+      if (this.hasVerticalScroll) classes.push('el-table-virtual--scrollable-y');
       if (this.tableSize) classes.push('el-table--' + this.tableSize, 'el-table-virtual--' + this.tableSize);
       const columns = this.tableColumns;
       if (columns.length && this.fixedColumns.length) classes.push('el-table-virtual--has-fixed-left');
@@ -269,6 +273,10 @@ export default {
     if (this.scrollFrame) {
       this.cancelFrame(this.scrollFrame);
       this.scrollFrame = null;
+    }
+    if (this.layoutFrame) {
+      this.cancelFrame(this.layoutFrame);
+      this.layoutFrame = null;
     }
     this.destroyFilterPanels();
     this.pendingScrollTop = null;
@@ -690,9 +698,11 @@ export default {
     },
 
     getCellStyle(row, column, rowIndex, columnIndex, header) {
+      const height = header ? 48 : this.rowHeight;
       const style = {
         width: getColumnWidth(column) + 'px',
-        height: (header ? 48 : this.rowHeight) + 'px'
+        height: height + 'px',
+        lineHeight: height + 'px'
       };
       const custom = header ? this.headerCellStyle : this.cellStyle;
       if (typeof custom === 'function') {

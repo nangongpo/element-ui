@@ -48,8 +48,20 @@
     left: 0;
     right: 0;
     bottom: 0;
-    overflow: auto;
+    overflow: hidden;
     background-color: $--color-white;
+  }
+
+  @include m(scrollable-x) {
+    .el-table-virtual__body-wrapper {
+      overflow-x: auto;
+    }
+  }
+
+  @include m(scrollable-y) {
+    .el-table-virtual__body-wrapper {
+      overflow-y: auto;
+    }
   }
 
   @include e(phantom) {
@@ -87,10 +99,11 @@
     vertical-align: top;
     box-sizing: border-box;
     height: 100%;
-    padding: 12px 0;
+    padding: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    word-break: normal;
     text-align: left;
     border-bottom: $--table-border;
 
@@ -102,18 +115,36 @@
       text-align: right;
     }
 
-    > .cell {
+    & > .cell {
+      display: inline-block;
+      vertical-align: middle;
       box-sizing: border-box;
+      max-width: 100%;
       padding-left: 10px;
       padding-right: 10px;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+      word-break: normal;
+      line-height: 1;
     }
 
     &.is-sortable {
       cursor: pointer;
     }
+  }
+
+  &.el-table .el-table-virtual__cell {
+    padding: 0;
+  }
+
+  &.el-table .el-table-virtual__cell > .cell {
+    display: inline-block;
+    vertical-align: middle;
+    max-width: 100%;
+    white-space: nowrap;
+    word-break: normal;
+    line-height: 1;
   }
 
   @include e(fixed-left) {
@@ -237,25 +268,11 @@
     }
   }
 
-  @include m(medium) {
-    .el-table-virtual__cell {
-      padding: 10px 0;
-    }
-  }
-
   @include m(small) {
     font-size: 12px;
-
-    .el-table-virtual__cell {
-      padding: 8px 0;
-    }
   }
 
   @include m(mini) {
     font-size: 12px;
-
-    .el-table-virtual__cell {
-      padding: 6px 0;
-    }
   }
 }
