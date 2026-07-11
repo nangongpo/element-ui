@@ -2,7 +2,8 @@
 
 import { addResizeListener, removeResizeListener } from 'element-ui/src/utils/resize-event';
 import scrollbarWidth from 'element-ui/src/utils/scrollbar-width';
-import { cancelFrame, requestFrame, toObject } from 'element-ui/src/utils/util';
+import domScheduler from 'element-ui/src/utils/dom-scheduler';
+import { toObject } from 'element-ui/src/utils/util';
 import Bar from './bar';
 
 /* istanbul ignore next */
@@ -40,12 +41,13 @@ export default {
   },
 
   created() {
-    this._scrollbarUpdateId = null;
     this._wrapMetrics = {
       clientHeight: 0,
       clientWidth: 0,
       scrollHeight: 0,
-      scrollWidth: 0
+      scrollWidth: 0,
+      scrollTop: 0,
+      scrollLeft: 0
     };
   },
 
@@ -108,19 +110,14 @@ export default {
 
   methods: {
     handleScroll() {
-      const wrap = this.wrap;
-      const { clientHeight, clientWidth } = this._wrapMetrics;
-
-      this.moveY = clientHeight ? ((wrap.scrollTop * 100) / clientHeight) : 0;
-      this.moveX = clientWidth ? ((wrap.scrollLeft * 100) / clientWidth) : 0;
+      this.update();
     },
 
     update() {
-      if (this._scrollbarUpdateId !== null) return;
-
-      this._scrollbarUpdateId = requestFrame(() => {
-        this._scrollbarUpdateId = null;
-        this.doUpdate();
+      domScheduler.register({
+        vm: this,
+        read: this.getWrapMetrics,
+        write: this.applyWrapMetrics
       });
     },
 
@@ -132,17 +129,10 @@ export default {
         clientHeight: wrap.clientHeight,
         clientWidth: wrap.clientWidth,
         scrollHeight: wrap.scrollHeight,
-        scrollWidth: wrap.scrollWidth
+        scrollWidth: wrap.scrollWidth,
+        scrollTop: wrap.scrollTop,
+        scrollLeft: wrap.scrollLeft
       };
-    },
-
-    updateWrapMetrics() {
-      const metrics = this.getWrapMetrics();
-
-      if (metrics) {
-        this._wrapMetrics = metrics;
-      }
-      return metrics;
     },
 
     updateBarSize(metrics) {
@@ -154,12 +144,14 @@ export default {
       this.sizeWidth = (widthPercentage < 100) ? (widthPercentage + '%') : '';
     },
 
-    doUpdate() {
-      const metrics = this.updateWrapMetrics();
+    applyWrapMetrics(metrics) {
       if (!metrics) return;
 
+      this._wrapMetrics = metrics;
       this.updateBarSize(metrics);
-      this.handleScroll();
+      const { clientHeight, clientWidth, scrollTop, scrollLeft } = metrics;
+      this.moveY = clientHeight ? ((scrollTop * 100) / clientHeight) : 0;
+      this.moveX = clientWidth ? ((scrollLeft * 100) / clientWidth) : 0;
     }
   },
 
@@ -174,10 +166,7 @@ export default {
 
   beforeDestroy() {
     if (this.native) return;
-    if (this._scrollbarUpdateId !== null) {
-      cancelFrame(this._scrollbarUpdateId);
-      this._scrollbarUpdateId = null;
-    }
+    domScheduler.deregister(this);
     if (!this.noresize) {
       removeResizeListener(this.$refs.resize, this.update);
       removeResizeListener(this.$refs.wrap, this.update);

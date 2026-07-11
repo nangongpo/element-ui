@@ -1,5 +1,6 @@
 import Vue from 'vue';
 import TableVirtual from 'element-ui/packages/table-virtual/src/table-virtual';
+import domScheduler from 'element-ui/src/utils/dom-scheduler';
 import { createVue, destroyVM, triggerEvent, wait, waitImmediate } from '../util';
 
 const getData = function(count) {
@@ -334,6 +335,72 @@ describe('TableVirtual', () => {
       expect(table.bodyWidth).to.equal(640);
       expect(table.bodyHeight).to.equal(160);
       expect(table.end).to.be.above(table.start);
+    });
+
+    it('coalesces scheduled layout reads through dom scheduler', async() => {
+      vm = createVue({
+        template: `
+        <el-table-virtual ref="table" :data="tableData" height="240" row-key="id" :row-height="40">
+          <el-table-column prop="id" label="ID" width="100" />
+          <el-table-column prop="name" label="Name" width="160" />
+        </el-table-virtual>
+      `,
+        data() {
+          return {
+            tableData: getData(20)
+          };
+        }
+      }, true);
+
+      await wait(50);
+      const table = vm.$refs.table;
+      const registerSpy = sinon.spy(domScheduler, 'register');
+      try {
+        table.scheduleLayout();
+        table.scheduleLayout();
+        await table.$nextTick();
+
+        expect(registerSpy).to.have.been.calledOnce;
+        expect(registerSpy.firstCall.args[0].vm).to.equal(table);
+        expect(registerSpy.firstCall.args[0].read).to.equal(table.readLayoutMetrics);
+        expect(registerSpy.firstCall.args[0].write).to.equal(table.applyScheduledLayout);
+      } finally {
+        registerSpy.restore();
+      }
+    });
+
+    it('keeps auto-height resize-only layout optimization', async() => {
+      vm = createVue({
+        template: `
+        <el-table-virtual ref="table" :data="tableData" row-key="id" :row-height="40">
+          <el-table-column prop="id" label="ID" width="100" />
+        </el-table-virtual>
+      `,
+        data() {
+          return {
+            tableData: getData(2)
+          };
+        }
+      }, true);
+
+      await wait(50);
+      const table = vm.$refs.table;
+      table.resizeState = { width: 500, height: 120 };
+      table.layoutForce = false;
+      const layoutSpy = sinon.spy(table, 'doLayout');
+      try {
+        table.applyScheduledLayout({
+          bodyWidth: 500,
+          bodyHeight: 80,
+          width: 500,
+          height: 160
+        });
+
+        expect(layoutSpy).not.to.have.been.called;
+        expect(table.resizeState.height).to.equal(160);
+      } finally {
+        layoutSpy.restore();
+      }
     });
 
   });

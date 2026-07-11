@@ -57,8 +57,8 @@
     },
 
     watch: {
-      '$parent.inputWidth'() {
-        this.minWidth = this.$parent.$el.getBoundingClientRect().width + 'px';
+      '$parent.inputWidth'(width) {
+        this.minWidth = width + 'px';
       }
     },
 

@@ -217,6 +217,7 @@
   import { debounce, throttle } from 'throttle-debounce';
   import { addResizeListener, removeResizeListener } from 'element-ui/src/utils/resize-event';
   import Mousewheel from 'element-ui/src/directives/mousewheel';
+  import domScheduler from 'element-ui/src/utils/dom-scheduler';
   import Locale from 'element-ui/src/mixins/locale';
   import Migrating from 'element-ui/src/mixins/migrating';
   import { createStore, mapStates } from './store/helper';
@@ -392,11 +393,11 @@
         });
       },
 
-      doUpdateScrollY() {
-        const changed = this.layout.updateScrollY();
+      doUpdateScrollY(metrics) {
+        const changed = this.layout.updateScrollY(metrics);
         if (changed) {
           this.layout.notifyObservers('scrollable');
-          this.layout.updateColumnsWidth();
+          this.layout.updateColumnsWidth(metrics && metrics.tableWidth);
         }
       },
 
@@ -483,62 +484,79 @@
 
       resizeListener() {
         if (!this.$ready) return;
-        let shouldUpdateLayout = false;
-        const el = this.$el;
-        const { width: oldWidth, height: oldHeight } = this.resizeState;
-
-        const width = el.offsetWidth;
-        if (oldWidth !== width) {
-          shouldUpdateLayout = true;
-        }
-
-        const height = el.offsetHeight;
-        if ((this.height || this.shouldUpdateHeight) && oldHeight !== height) {
-          shouldUpdateLayout = true;
-        }
-
-        if (shouldUpdateLayout) {
-          this.resizeState.width = width;
-          this.resizeState.height = height;
-          this.requestLayout({
-            updateHeight: true,
-            updateColumns: true
-          });
-        }
+        this.requestLayout({ resize: true });
       },
 
       requestLayout(options = {}) {
         const req = this._layoutRequest || (this._layoutRequest = {
           updateHeight: false,
           updateColumns: false,
-          updateScrollY: false
+          updateScrollY: false,
+          resize: false
         });
         req.updateHeight = req.updateHeight || options.updateHeight;
         req.updateColumns = req.updateColumns || options.updateColumns;
         req.updateScrollY = req.updateScrollY || options.updateScrollY;
+        req.resize = req.resize || options.resize;
 
-        if (this._layoutRaf) return;
-        const raf = window.requestAnimationFrame || (fn => setTimeout(fn, 16));
-        this._layoutRaf = raf(() => {
-          const request = this._layoutRequest;
-          this._layoutRaf = null;
-          this._layoutRequest = null;
-
-          if (!this.$ready) return;
-          if (request.updateHeight || request.updateColumns) {
-            this.doLayout();
-          } else if (request.updateScrollY) {
-            this.doUpdateScrollY();
-          }
-          this.syncPostion();
+        if (this._layoutScheduled) return;
+        this._layoutScheduled = true;
+        domScheduler.register({
+          vm: this,
+          read: this.readLayoutMetrics,
+          write: this.applyLayoutRequest
         });
       },
 
-      doLayout() {
-        if (this.shouldUpdateHeight) {
-          this.layout.updateElsHeight();
+      readLayoutMetrics() {
+        const el = this.$el;
+        const bodyWrapper = this.bodyWrapper;
+        if (!el || !bodyWrapper) return null;
+        const { headerWrapper, appendWrapper, footerWrapper } = this.$refs;
+        const headerTr = headerWrapper ? headerWrapper.querySelector('.el-table__header tr') : null;
+        const body = bodyWrapper.querySelector('.el-table__body');
+        return {
+          width: el.offsetWidth,
+          height: el.offsetHeight,
+          tableWidth: el.clientWidth,
+          tableHeight: el.clientHeight,
+          appendHeight: appendWrapper ? appendWrapper.offsetHeight : 0,
+          headerHeight: headerWrapper ? headerWrapper.offsetHeight : 0,
+          headerWidth: headerWrapper ? headerWrapper.offsetWidth : 0,
+          footerHeight: footerWrapper ? footerWrapper.offsetHeight : 0,
+          bodyOffsetHeight: body ? body.offsetHeight : 0,
+          noneHeader: this.layout.headerDisplayNone(headerTr)
+        };
+      },
+
+      applyLayoutRequest(metrics) {
+        this._layoutScheduled = false;
+        const request = this._layoutRequest;
+        this._layoutRequest = null;
+        if (!this.$ready || !request || !metrics) return;
+
+        if (request.resize) {
+          const widthChanged = this.resizeState.width !== metrics.width;
+          const heightChanged = (this.height || this.shouldUpdateHeight) && this.resizeState.height !== metrics.height;
+          this.resizeState.width = metrics.width;
+          this.resizeState.height = metrics.height;
+          if (!widthChanged && !heightChanged && !request.updateHeight && !request.updateColumns && !request.updateScrollY) return;
+          request.updateHeight = true;
+          request.updateColumns = true;
         }
-        this.layout.updateColumnsWidth();
+        if (request.updateHeight || request.updateColumns) {
+          this.doLayout(metrics);
+        } else if (request.updateScrollY) {
+          this.doUpdateScrollY(metrics);
+        }
+        this.syncPostion();
+      },
+
+      doLayout(metrics) {
+        if (this.shouldUpdateHeight) {
+          this.layout.updateElsHeight(metrics);
+        }
+        this.layout.updateColumnsWidth(metrics && metrics.tableWidth);
       },
 
       sort(prop, order) {
@@ -695,6 +713,7 @@
 
     created() {
       this.tableId = 'el-table_' + tableIdSeed++;
+      this._layoutScheduled = false;
       this.debouncedUpdateLayout = debounce(50, () => this.requestLayout({
         updateHeight: true,
         updateColumns: true
@@ -728,13 +747,12 @@
     destroyed() {
       this.unbindEvents();
       const cancel = window.cancelAnimationFrame || clearTimeout;
-      if (this._layoutRaf) {
-        cancel(this._layoutRaf);
-      }
+      domScheduler.deregister(this);
       if (this._scrollRaf) {
         cancel(this._scrollRaf);
       }
-      this._layoutRaf = null;
+      this._layoutRequest = null;
+      this._layoutScheduled = false;
       this._scrollRaf = null;
     },
 

@@ -40,14 +40,15 @@ class TableLayout {
     }
   }
 
-  updateScrollY() {
+  updateScrollY(metrics) {
     const height = this.height;
     if (height === null) return false;
     const bodyWrapper = this.table.bodyWrapper;
     if (this.table.$el && bodyWrapper) {
-      const body = bodyWrapper.querySelector('.el-table__body');
+      const body = metrics ? null : bodyWrapper.querySelector('.el-table__body');
       const prevScrollY = this.scrollY;
-      const scrollY = body.offsetHeight > this.bodyHeight;
+      const bodyOffsetHeight = metrics ? metrics.bodyOffsetHeight : body.offsetHeight;
+      const scrollY = bodyOffsetHeight > this.bodyHeight;
       this.scrollY = scrollY;
       return prevScrollY !== scrollY;
     }
@@ -64,10 +65,11 @@ class TableLayout {
 
     if (typeof value === 'number') {
       el.style[prop] = value + 'px';
-      this.updateElsHeight();
     } else if (typeof value === 'string') {
       el.style[prop] = value;
-      this.updateElsHeight();
+    }
+    if (this.table.$ready) {
+      this.table.requestLayout({ updateHeight: true, updateColumns: true });
     }
   }
 
@@ -89,23 +91,24 @@ class TableLayout {
     return flattenColumns;
   }
 
-  updateElsHeight() {
+  updateElsHeight(metrics) {
     if (!this.table.$ready) return Vue.nextTick(() => this.updateElsHeight());
     const { headerWrapper, appendWrapper, footerWrapper } = this.table.$refs;
-    this.appendHeight = appendWrapper ? appendWrapper.offsetHeight : 0;
+    this.appendHeight = metrics ? metrics.appendHeight : (appendWrapper ? appendWrapper.offsetHeight : 0);
 
     if (this.showHeader && !headerWrapper) return;
 
     // fix issue (https://github.com/ElemeFE/element/pull/16956)
-    const headerTrElm = headerWrapper ? headerWrapper.querySelector('.el-table__header tr') : null;
-    const noneHeader = this.headerDisplayNone(headerTrElm);
+    const headerTrElm = !metrics && headerWrapper ? headerWrapper.querySelector('.el-table__header tr') : null;
+    const noneHeader = metrics ? metrics.noneHeader : this.headerDisplayNone(headerTrElm);
 
-    const headerHeight = this.headerHeight = !this.showHeader ? 0 : headerWrapper.offsetHeight;
-    if (this.showHeader && !noneHeader && headerWrapper.offsetWidth > 0 && (this.table.columns || []).length > 0 && headerHeight < 2) {
+    const headerHeight = this.headerHeight = !this.showHeader ? 0 : (metrics ? metrics.headerHeight : headerWrapper.offsetHeight);
+    const headerWidth = metrics ? metrics.headerWidth : headerWrapper.offsetWidth;
+    if (this.showHeader && !noneHeader && headerWidth > 0 && (this.table.columns || []).length > 0 && headerHeight < 2) {
       return Vue.nextTick(() => this.updateElsHeight());
     }
-    const tableHeight = this.tableHeight = this.table.$el.clientHeight;
-    const footerHeight = this.footerHeight = footerWrapper ? footerWrapper.offsetHeight : 0;
+    const tableHeight = this.tableHeight = metrics ? metrics.tableHeight : this.table.$el.clientHeight;
+    const footerHeight = this.footerHeight = metrics ? metrics.footerHeight : (footerWrapper ? footerWrapper.offsetHeight : 0);
     if (this.height !== null) {
       this.bodyHeight = tableHeight - headerHeight - footerHeight + (footerWrapper ? 1 : 0);
     }
@@ -113,7 +116,7 @@ class TableLayout {
 
     const noData = !(this.store.states.data && this.store.states.data.length);
     this.viewportHeight = this.scrollX ? tableHeight - (noData ? 0 : this.gutterWidth) : tableHeight;
-    this.updateScrollY();
+    this.updateScrollY(metrics);
     this.notifyObservers('scrollable');
   }
 
@@ -129,10 +132,10 @@ class TableLayout {
     return false;
   }
 
-  updateColumnsWidth() {
+  updateColumnsWidth(bodyWidthValue) {
     if (Vue.prototype.$isServer) return;
     const fit = this.fit;
-    const bodyWidth = this.table.$el.clientWidth;
+    const bodyWidth = bodyWidthValue === undefined ? this.table.$el.clientWidth : bodyWidthValue;
     let bodyMinWidth = 0;
 
     const flattenColumns = this.getFlattenColumns();

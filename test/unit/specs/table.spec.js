@@ -1,6 +1,7 @@
 import { createVue, triggerEvent, destroyVM, waitImmediate, wait } from '../util';
 import TableBody from 'packages/table/src/table-body';
 import { createStore } from 'packages/table/src/store/helper';
+import domScheduler from 'element-ui/src/utils/dom-scheduler';
 
 const DELAY = 10;
 const testDataArr = [];
@@ -2098,6 +2099,87 @@ describe('Table', () => {
     const emptyBlockEl = vm.$el.querySelector('.el-table__empty-block');
     expect(emptyBlockEl.style.height).to.be.equal('calc(100% - 48px)');
     destroyVM(vm);
+  });
+
+  describe('dom scheduler layout', () => {
+    let vm;
+
+    afterEach(() => {
+      if (vm) {
+        destroyVM(vm);
+        vm = null;
+      }
+    });
+
+    const createSchedulerTable = () => createVue({
+      template: `
+        <el-table ref="table" :data="tableData" height="240">
+          <el-table-column prop="name" label="Name" width="120" />
+          <el-table-column prop="address" label="Address" />
+        </el-table>
+      `,
+      data() {
+        return { tableData: getBenchmarkData(20) };
+      }
+    }, true);
+
+    it('coalesces layout requests into one scheduler task', async() => {
+      vm = createSchedulerTable();
+      await wait(50);
+      const table = vm.$refs.table;
+      const registerSpy = sinon.spy(domScheduler, 'register');
+      try {
+        table.requestLayout({ updateHeight: true });
+        table.requestLayout({ updateColumns: true });
+
+        expect(registerSpy).to.have.been.calledOnce;
+        expect(table._layoutRequest.updateHeight).to.equal(true);
+        expect(table._layoutRequest.updateColumns).to.equal(true);
+        expect(registerSpy.firstCall.args[0].read).to.equal(table.readLayoutMetrics);
+        expect(registerSpy.firstCall.args[0].write).to.equal(table.applyLayoutRequest);
+      } finally {
+        registerSpy.restore();
+      }
+    });
+
+    it('skips unchanged resize-only layout requests', async() => {
+      vm = createSchedulerTable();
+      await wait(50);
+      const table = vm.$refs.table;
+      const layoutSpy = sinon.spy(table, 'doLayout');
+      const metrics = table.readLayoutMetrics();
+      table.resizeState = { width: metrics.width, height: metrics.height };
+      table._layoutRequest = {
+        updateHeight: false,
+        updateColumns: false,
+        updateScrollY: false,
+        resize: true
+      };
+      try {
+        table.applyLayoutRequest(metrics);
+        expect(layoutSpy).not.to.have.been.called;
+      } finally {
+        layoutSpy.restore();
+      }
+    });
+
+    it('deregisters pending layout work when destroyed', async() => {
+      vm = createSchedulerTable();
+      await wait(50);
+      const table = vm.$refs.table;
+      const deregisterSpy = sinon.spy(domScheduler, 'deregister');
+      try {
+        table.requestLayout({ updateColumns: true });
+        destroyVM(vm);
+        vm = null;
+
+        expect(deregisterSpy).to.have.been.calledWith(table);
+        expect(table._layoutRequest).to.equal(null);
+        expect(table._layoutScheduled).to.equal(false);
+      } finally {
+        deregisterSpy.restore();
+      }
+    });
   });
 
   describe('performance constraints', () => {

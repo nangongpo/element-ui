@@ -25,7 +25,7 @@ export default {
     updateColumns(bodyWidth) {
       const columns = this.tableColumns;
       const layoutWidth = bodyWidth === undefined
-        ? this.bodyWidth || (this.$refs.body && this.$refs.body.clientWidth) || 0
+        ? this.bodyWidth || 0
         : bodyWidth;
       const flexColumns = [];
       const columnWidths = [];
@@ -85,13 +85,26 @@ export default {
       return width;
     },
 
-    doLayout() {
+    readLayoutMetrics() {
       const body = this.$refs.body;
-      if (!body) return;
+      const el = this.$el;
+      if (!body || !el) return null;
+
+      return {
+        bodyWidth: body.offsetWidth,
+        bodyHeight: body.offsetHeight,
+        width: el.offsetWidth,
+        height: el.offsetHeight
+      };
+    },
+
+    doLayout(metrics) {
+      const layoutMetrics = metrics || this.readLayoutMetrics();
+      if (!layoutMetrics) return;
       const scrollbarWidth = this.scrollbarWidth || 0;
-      const bodyWidth = body.offsetWidth;
+      const bodyWidth = layoutMetrics.bodyWidth;
       const autoHeight = this.isAutoHeight;
-      const bodyHeight = autoHeight ? this.totalHeight : body.offsetHeight;
+      const bodyHeight = autoHeight ? this.totalHeight : layoutMetrics.bodyHeight;
       let hasHorizontalScroll = this.hasHorizontalScroll;
       let hasVerticalScroll = this.hasVerticalScroll;
 
@@ -129,17 +142,7 @@ export default {
     },
 
     resizeListener() {
-      const el = this.$el;
-      if (!el) return;
-      const width = el.offsetWidth;
-      const height = el.offsetHeight;
-      const widthChanged = width !== this.resizeState.width;
-      const heightChanged = height !== this.resizeState.height;
-      if (!widthChanged && !heightChanged) return;
-      this.resizeState.width = width;
-      this.resizeState.height = height;
-      if (!widthChanged && this.isAutoHeight) return;
-      this.scheduleLayout();
+      this.scheduleLayout(true);
     },
 
     updateRange() {

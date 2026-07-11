@@ -1,5 +1,6 @@
 import { createTest, createVue, triggerEvent, destroyVM, waitImmediate } from '../util';
 import Select from 'packages/select';
+import domScheduler from 'element-ui/src/utils/dom-scheduler';
 
 describe('Select', () => {
   const getSelectVm = (configs = {}, options) => {
@@ -888,23 +889,84 @@ describe('Select', () => {
 
     it('should reset height if collapse-tags option is disabled', () => {
       const select = getSelectComponentVm();
-      sinon.stub(select, '$nextTick');
+      sinon.stub(select, 'requestDomSync');
       select.resetInputHeight();
-      expect(select.$nextTick.callCount).to.equal(1);
+      expect(select.requestDomSync.callCount).to.equal(1);
     });
 
     it('should not reset height if collapse-tags option is enabled', () => {
       const select = getSelectComponentVm({ collapseTags: true });
-      sinon.stub(select, '$nextTick');
+      sinon.stub(select, 'requestDomSync');
       select.resetInputHeight();
-      expect(select.$nextTick.callCount).to.equal(0);
+      expect(select.requestDomSync.callCount).to.equal(0);
     });
 
     it('should reset height if both collapse-tags and filterable are enabled', () => {
       const select = getSelectComponentVm({ collapseTags: true, filterable: true });
-      sinon.stub(select, '$nextTick');
+      sinon.stub(select, 'requestDomSync');
       select.resetInputHeight();
-      expect(select.$nextTick.callCount).to.equal(1);
+      expect(select.requestDomSync.callCount).to.equal(1);
+    });
+
+    it('should coalesce DOM sync requests in one scheduler task', () => {
+      const select = getSelectComponentVm({ multiple: true, filterable: true });
+      select._domSyncScheduled = false;
+      const registerSpy = sinon.spy(domScheduler, 'register');
+      try {
+        select.requestDomSync();
+        select.requestDomSync();
+
+        expect(registerSpy).to.have.been.calledOnce;
+        expect(registerSpy.firstCall.args[0].vm).to.equal(select);
+      } finally {
+        registerSpy.restore();
+      }
+    });
+
+    it('should measure before updating width and multiple input height', () => {
+      const select = getSelectComponentVm({ multiple: true, filterable: true });
+      const referenceEl = select.$refs.reference.$el;
+      const input = referenceEl.querySelector('input');
+      const tags = select.$refs.tags;
+      sinon.stub(referenceEl, 'getBoundingClientRect').returns({ width: 240 });
+      sinon.stub(input, 'getBoundingClientRect').returns({ height: 40 });
+      sinon.stub(tags, 'getBoundingClientRect').returns({ height: 52 });
+      select.selected = [{ value: '选项1', currentLabel: '黄金糕' }];
+      select._domSyncScheduled = false;
+      const registerStub = sinon.stub(domScheduler, 'register');
+      try {
+        select.requestDomSync();
+        const task = registerStub.firstCall.args[0];
+        const metrics = task.read();
+        task.write(metrics);
+
+        expect(select.inputWidth).to.equal(240);
+        expect(select.initialInputHeight).to.equal(40);
+        expect(input.style.height).to.equal('58px');
+      } finally {
+        registerStub.restore();
+        referenceEl.getBoundingClientRect.restore();
+        input.getBoundingClientRect.restore();
+        tags.getBoundingClientRect.restore();
+      }
+    });
+
+    it('should defer input height updates until a removed tag leaves', () => {
+      const select = getSelectComponentVm({ multiple: true, filterable: true });
+      const input = select.$refs.reference.$el.querySelector('input');
+      input.style.height = '80px';
+      select.handleTagBeforeLeave();
+
+      select.alignLayoutByMetrics({
+        tagsHeight: 32,
+        inputEl: input
+      });
+      expect(input.style.height).to.equal('80px');
+
+      const resetSpy = sinon.stub(select, 'resetInputHeight');
+      select.handleTagAfterLeave();
+      expect(select._tagLeaving).to.equal(false);
+      expect(resetSpy).to.have.been.calledOnce;
     });
   });
 });

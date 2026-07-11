@@ -1,6 +1,7 @@
 import ElTooltip from 'element-ui/packages/tooltip';
 import ElCheckbox from 'element-ui/packages/checkbox';
 import Locale from 'element-ui/src/mixins/locale';
+import domScheduler from 'element-ui/src/utils/dom-scheduler';
 import scrollbarWidth from 'element-ui/src/utils/scrollbar-width';
 import { addResizeListener, removeResizeListener } from 'element-ui/src/utils/resize-event';
 import { cancelFrame, requestFrame } from 'element-ui/src/utils/util';
@@ -262,6 +263,7 @@ export default {
     this.excludedSelectionMap = {};
     this.selectionCount = 0;
     this.layoutPending = false;
+    this.layoutForce = false;
     this.filterFrame = null;
     this.hoverScrollTimer = null;
     this.hoverScrolling = false;
@@ -279,10 +281,11 @@ export default {
     this.applyDefaultSort();
     this.refreshViewData();
     this.syncCurrentRowByKey();
-    this.doLayout();
+    const layoutMetrics = this.readLayoutMetrics();
+    this.doLayout(layoutMetrics);
     this.resizeState = {
-      width: this.$el.offsetWidth,
-      height: this.$el.offsetHeight
+      width: layoutMetrics ? layoutMetrics.width : null,
+      height: layoutMetrics ? layoutMetrics.height : null
     };
     if (this.fit) {
       addResizeListener(this.$el, this.resizeListener);
@@ -297,10 +300,7 @@ export default {
       cancelFrame(this.scrollFrame);
       this.scrollFrame = null;
     }
-    if (this.layoutFrame) {
-      cancelFrame(this.layoutFrame);
-      this.layoutFrame = null;
-    }
+    domScheduler.deregister(this);
     if (this.filterFrame) {
       cancelFrame(this.filterFrame);
       this.filterFrame = null;
@@ -313,6 +313,7 @@ export default {
     this.filterTaskToken = null;
     this.hoverScrolling = false;
     this.layoutPending = false;
+    this.layoutForce = false;
     this.fixedRowsTransform = '';
     this.destroyFilterPanels();
     this.pendingScrollTop = null;
@@ -371,21 +372,34 @@ export default {
   },
 
   methods: {
-    scheduleLayout() {
-      if (this.layoutPending || this.layoutFrame) return;
+    scheduleLayout(resizeOnly = false) {
+      if (!resizeOnly) {
+        this.layoutForce = true;
+      }
+      if (this.layoutPending) return;
       this.layoutPending = true;
       this.$nextTick(() => {
         if (!this.layoutPending) return;
-        if (this.layoutFrame) {
-          this.layoutPending = false;
-          return;
-        }
-        this.layoutFrame = requestFrame(() => {
-          this.layoutFrame = null;
-          this.layoutPending = false;
-          this.doLayout();
+        domScheduler.register({
+          vm: this,
+          read: this.readLayoutMetrics,
+          write: this.applyScheduledLayout
         });
       });
+    },
+
+    applyScheduledLayout(metrics) {
+      this.layoutPending = false;
+      const force = this.layoutForce;
+      this.layoutForce = false;
+      if (!metrics) return;
+
+      const widthChanged = metrics.width !== this.resizeState.width;
+      const heightChanged = metrics.height !== this.resizeState.height;
+      this.resizeState.width = metrics.width;
+      this.resizeState.height = metrics.height;
+      if (!force && !widthChanged && (!heightChanged || this.isAutoHeight)) return;
+      this.doLayout(metrics);
     },
 
     insertColumn(column, index, parent) {
