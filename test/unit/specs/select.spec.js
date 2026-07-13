@@ -887,25 +887,28 @@ describe('Select', () => {
       return vm.$refs.select;
     };
 
-    it('should reset height if collapse-tags option is disabled', () => {
+    it('should reset height if collapse-tags option is disabled', async() => {
       const select = getSelectComponentVm();
-      sinon.stub(select, 'requestDomSync');
+      sinon.stub(select, 'syncInputHeight');
       select.resetInputHeight();
-      expect(select.requestDomSync.callCount).to.equal(1);
+      await waitImmediate();
+      expect(select.syncInputHeight.callCount).to.equal(1);
     });
 
-    it('should not reset height if collapse-tags option is enabled', () => {
+    it('should not reset height if collapse-tags option is enabled', async() => {
       const select = getSelectComponentVm({ collapseTags: true });
-      sinon.stub(select, 'requestDomSync');
+      sinon.stub(select, 'syncInputHeight');
       select.resetInputHeight();
-      expect(select.requestDomSync.callCount).to.equal(0);
+      await waitImmediate();
+      expect(select.syncInputHeight.callCount).to.equal(0);
     });
 
-    it('should reset height if both collapse-tags and filterable are enabled', () => {
+    it('should reset height if both collapse-tags and filterable are enabled', async() => {
       const select = getSelectComponentVm({ collapseTags: true, filterable: true });
-      sinon.stub(select, 'requestDomSync');
+      sinon.stub(select, 'syncInputHeight');
       select.resetInputHeight();
-      expect(select.requestDomSync.callCount).to.equal(1);
+      await waitImmediate();
+      expect(select.syncInputHeight.callCount).to.equal(1);
     });
 
     it('should coalesce DOM sync requests in one scheduler task', () => {
@@ -923,14 +926,13 @@ describe('Select', () => {
       }
     });
 
-    it('should measure before updating width and multiple input height', () => {
+    it('should measure before updating width and initial input height', () => {
       const select = getSelectComponentVm({ multiple: true, filterable: true });
       const referenceEl = select.$refs.reference.$el;
       const input = referenceEl.querySelector('input');
-      const tags = select.$refs.tags;
+      input.style.height = '80px';
       sinon.stub(referenceEl, 'getBoundingClientRect').returns({ width: 240 });
       sinon.stub(input, 'getBoundingClientRect').returns({ height: 40 });
-      sinon.stub(tags, 'getBoundingClientRect').returns({ height: 52 });
       select.selected = [{ value: '选项1', currentLabel: '黄金糕' }];
       select._domSyncScheduled = false;
       const registerStub = sinon.stub(domScheduler, 'register');
@@ -942,31 +944,60 @@ describe('Select', () => {
 
         expect(select.inputWidth).to.equal(240);
         expect(select.initialInputHeight).to.equal(40);
-        expect(input.style.height).to.equal('58px');
+        expect(input.style.height).to.equal('80px');
       } finally {
         registerStub.restore();
         referenceEl.getBoundingClientRect.restore();
         input.getBoundingClientRect.restore();
-        tags.getBoundingClientRect.restore();
       }
     });
 
-    it('should defer input height updates until a removed tag leaves', () => {
+    it('should update multiple input height after Vue updates DOM without waiting for a frame', async() => {
       const select = getSelectComponentVm({ multiple: true, filterable: true });
-      const input = select.$refs.reference.$el.querySelector('input');
+      await waitImmediate();
+      const referenceEl = select.$refs.reference.$el;
+      const input = referenceEl.querySelector('input');
       input.style.height = '80px';
-      select.handleTagBeforeLeave();
+      select.initialInputHeight = 40;
+      select.selected = [{ value: '选项1', currentLabel: '黄金糕' }];
+      sinon.stub(input, 'getBoundingClientRect').returns({ height: 80 });
+      sinon.stub(select.$refs.tags, 'getBoundingClientRect').returns({ height: 52 });
+      const registerSpy = sinon.spy(domScheduler, 'register');
+      try {
+        select.resetInputHeight();
+        await waitImmediate();
 
-      select.alignLayoutByMetrics({
-        tagsHeight: 32,
-        inputEl: input
-      });
-      expect(input.style.height).to.equal('80px');
+        expect(registerSpy).to.not.have.been.called;
+        expect(input.style.height).to.equal('58px');
+      } finally {
+        registerSpy.restore();
+        input.getBoundingClientRect.restore();
+        select.$refs.tags.getBoundingClientRect.restore();
+      }
+    });
 
-      const resetSpy = sinon.stub(select, 'resetInputHeight');
-      select.handleTagAfterLeave();
-      expect(select._tagLeaving).to.equal(false);
-      expect(resetSpy).to.have.been.calledOnce;
+    it('should settle multiple input height in the same tick after value changes', async() => {
+      vm = getSelectVm({ multiple: true, filterable: true });
+      const select = vm.$refs.select;
+      await waitImmediate();
+      const referenceEl = select.$refs.reference.$el;
+      const input = referenceEl.querySelector('input');
+      input.style.height = '80px';
+      select.initialInputHeight = 40;
+      sinon.stub(input, 'getBoundingClientRect').returns({ height: 80 });
+      sinon.stub(select.$refs.tags, 'getBoundingClientRect').returns({ height: 32 });
+      const registerSpy = sinon.spy(domScheduler, 'register');
+      try {
+        vm.value = ['选项1', '选项2'];
+        await waitImmediate();
+
+        expect(registerSpy).to.not.have.been.called;
+        expect(input.style.height).to.equal('40px');
+      } finally {
+        registerSpy.restore();
+        input.getBoundingClientRect.restore();
+        select.$refs.tags.getBoundingClientRect.restore();
+      }
     });
   });
 });

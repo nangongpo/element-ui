@@ -19,6 +19,7 @@
   "checkbox-group": "./packages/checkbox-group/index.js",
   "switch": "./packages/switch/index.js",
   "select": "./packages/select/index.js",
+  "select-v2": "./packages/select-v2/index.js",
   "option": "./packages/option/index.js",
   "option-group": "./packages/option-group/index.js",
   "button": "./packages/button/index.js",

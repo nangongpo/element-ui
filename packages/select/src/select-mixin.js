@@ -2,57 +2,64 @@ import domScheduler from 'element-ui/src/utils/dom-scheduler';
 
 export default {
   methods: {
+    readDomMetrics() {
+      const reference = this.$refs.reference;
+      const referenceEl = reference && reference.$el;
+
+      if (!referenceEl) return null;
+      const inputEl = referenceEl.querySelector('input');
+
+      return {
+        referenceWidth: referenceEl.getBoundingClientRect().width,
+        inputHeight: inputEl ? inputEl.getBoundingClientRect().height : 0
+      };
+    },
+
+    writeDomMetrics(metrics) {
+      this._domSyncScheduled = false;
+      if (!metrics) return;
+      this.domMetrics = metrics;
+      this.inputWidth = metrics.referenceWidth;
+      if (!this.initialInputHeight) {
+        this.initialInputHeight = metrics.inputHeight || this._inputHeightFallback;
+      }
+    },
+
     requestDomSync() {
       if (this._domSyncScheduled) return;
       this._domSyncScheduled = true;
       domScheduler.register({
         vm: this,
-        read: () => {
-          const reference = this.$refs.reference;
-          const referenceEl = reference && reference.$el;
-          const tagsEl = this.$refs.tags;
-
-          if (!referenceEl) return null;
-          const inputEl = referenceEl.querySelector('input');
-
-          return {
-            referenceWidth: referenceEl.getBoundingClientRect().width,
-            tagsHeight: tagsEl ? tagsEl.getBoundingClientRect().height : 0,
-            inputHeight: inputEl ? inputEl.getBoundingClientRect().height : 0,
-            inputEl
-          };
-        },
-        write: (metrics) => {
-          this._domSyncScheduled = false;
-          if (!metrics) return;
-          this.domMetrics = metrics;
-          this.inputWidth = metrics.referenceWidth;
-          if (!this.initialInputHeight) {
-            this.initialInputHeight = metrics.inputHeight || this._inputHeightFallback;
-          }
-          this.alignLayoutByMetrics(metrics);
-        }
+        read: this.readDomMetrics,
+        write: this.writeDomMetrics
       });
     },
 
     resetInputHeight() {
       if (this.collapseTags && !this.filterable) return;
-      this.requestDomSync();
+      this.$nextTick(() => {
+        this.syncInputHeight();
+      });
     },
 
-    alignLayoutByMetrics(metrics = this.domMetrics) {
-      if (!this.multiple || this._tagLeaving) return;
+    syncInputHeight() {
+      if (!this.multiple) return;
+      const reference = this.$refs.reference;
+      const referenceEl = reference && reference.$el;
+      if (!referenceEl) return;
 
-      const tagsHeight = metrics.tagsHeight;
-      const initialHeight = this.initialInputHeight;
+      const inputEl = referenceEl.querySelector('input');
+      const tagsEl = this.$refs.tags;
+      const tagsHeight = tagsEl ? Math.round(tagsEl.getBoundingClientRect().height) : 0;
+      const initialHeight = this.initialInputHeight || this._inputHeightFallback;
+
+      if (!inputEl) return;
 
       const height = this.selected.length === 0
         ? initialHeight
         : Math.max(tagsHeight + (tagsHeight > initialHeight ? 6 : 0), initialHeight);
 
-      if (metrics.inputEl) {
-        metrics.inputEl.style.height = height + 'px';
-      }
+      inputEl.style.height = height + 'px';
 
       if (this.visible && this.emptyText !== false) {
         this.requestPopperUpdate();
@@ -78,15 +85,6 @@ export default {
 
     handleResize() {
       this.requestDomSync();
-    },
-
-    handleTagBeforeLeave() {
-      this._tagLeaving = true;
-    },
-
-    handleTagAfterLeave() {
-      this._tagLeaving = false;
-      this.resetInputHeight();
     }
   },
 
@@ -99,7 +97,6 @@ export default {
     };
     this._inputHeightFallback = sizeMap[this.selectSize || 'default'];
     this._domSyncScheduled = false;
-    this._tagLeaving = false;
     this.domMetrics = null;
   }
 };

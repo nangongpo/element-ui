@@ -51,6 +51,7 @@ import { ElRadioButton } from './radio-button'
 import { ElRadioGroup } from './radio-group'
 import { ElRow } from './row'
 import { ElSelect } from './select'
+import { ElSelectV2 } from './select-v2'
 import { ElSlider } from './slider'
 import { ElStep } from './step'
 import { ElSteps } from './steps'
@@ -267,6 +268,9 @@ export class Row extends ElRow {}
 
 /** Dropdown Select Component */
 export class Select extends ElSelect {}
+
+/** Virtualized Dropdown Select Component */
+export class SelectV2 extends ElSelectV2 {}
 
 /** Slider Component */
 export class Slider extends ElSlider {}

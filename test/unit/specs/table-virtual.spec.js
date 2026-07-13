@@ -332,7 +332,7 @@ describe('TableVirtual', () => {
       Object.defineProperty(body, 'offsetWidth', { configurable: true, value: 640 });
       Object.defineProperty(body, 'offsetHeight', { configurable: true, value: 160 });
       table.doLayout();
-      expect(table.bodyWidth).to.equal(640);
+      expect(table.bodyWidth).to.equal(640 - table.scrollbarWidth);
       expect(table.bodyHeight).to.equal(160);
       expect(table.end).to.be.above(table.start);
     });

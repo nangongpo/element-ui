@@ -28,10 +28,7 @@
           <span class="el-select__tags-text">+ {{ selected.length - 1 }}</span>
         </el-tag>
       </span>
-      <transition-group
-        v-if="!collapseTags"
-        @before-leave="handleTagBeforeLeave"
-        @after-leave="handleTagAfterLeave">
+      <transition-group @after-leave="resetInputHeight" v-if="!collapseTags">
         <el-tag
           v-for="item in selected"
           :key="getValueKey(item)"
@@ -865,7 +862,6 @@
     beforeDestroy() {
       domScheduler.deregister(this);
       this._domSyncScheduled = false;
-      this._tagLeaving = false;
       if (this.$el && this.handleResize) removeResizeListener(this.$el, this.handleResize);
     }
   };

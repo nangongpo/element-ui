@@ -1,0 +1,42 @@
+@import "mixins/mixins";
+@import "common/var";
+
+@mixin show-virtual-scrollbar {
+  .el-virtual-scrollbar {
+    opacity: 1;
+  }
+}
+
+@include b(vl) {
+  @include e(wrapper) {
+    position: relative;
+
+    &:hover,
+    &.always-on {
+      @include show-virtual-scrollbar;
+    }
+  }
+}
+
+@include b(vl__window) {
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@include b(virtual-scrollbar) {
+  opacity: 0;
+  transition: opacity 340ms ease-out;
+
+  &.always-on {
+    opacity: 1;
+  }
+}
+
+@include b(vg) {
+  @include e(wrapper) {
+    position: relative;
+  }
+}
