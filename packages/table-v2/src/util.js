@@ -29,7 +29,7 @@ export const getColumnAlignClass = function(align) {
 
 export const assertArray = function(value, name) {
   if (!Array.isArray(value)) {
-    throw new TypeError('[TableVirtual] ' + name + ' must be an array.');
+    throw new TypeError('[TableV2] ' + name + ' must be an array.');
   }
   return value;
 };

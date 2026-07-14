@@ -1,6 +1,6 @@
-## TableVirtual
+## TableV2
 
-Virtual table for large datasets. `TableVirtual` reuses the `el-table-column` declaration style, but it does not render `table` related elements and does not depend on `position: sticky`. Fixed columns are rendered by separated synchronized layers. When the dataset is large, set `height` to enable stable virtual rendering.
+Virtual table for large datasets. `TableV2` reuses the `el-table-column` declaration style, but it does not render `table` related elements and does not depend on `position: sticky`. Fixed columns are rendered by separated synchronized layers. When the dataset is large, set `height` to enable stable virtual rendering.
 
 ### Basic Usage
 
@@ -9,13 +9,13 @@ Basic virtual table is used to display structured data. Use `prop` and `label` o
 :::demo
 ```html
 <template>
-  <el-table-virtual
+  <el-table-v2
     :data="tableData"
     style="width: 100%">
     <el-table-column prop="date" label="Date" width="180"></el-table-column>
     <el-table-column prop="name" label="Name" width="180"></el-table-column>
     <el-table-column prop="address" label="Address"></el-table-column>
-  </el-table-virtual>
+  </el-table-v2>
 </template>
 
 <script>
@@ -65,11 +65,11 @@ Basic virtual table is used to display structured data. Use `prop` and `label` o
 :::demo
 ```html
 <template>
-  <el-table-virtual :data="tableData" stripe style="width: 100%">
+  <el-table-v2 :data="tableData" stripe style="width: 100%">
     <el-table-column prop="date" label="Date" width="180"></el-table-column>
     <el-table-column prop="name" label="Name" width="180"></el-table-column>
     <el-table-column prop="address" label="Address"></el-table-column>
-  </el-table-virtual>
+  </el-table-v2>
 </template>
 
 <script>
@@ -113,11 +113,11 @@ Basic virtual table is used to display structured data. Use `prop` and `label` o
 :::demo
 ```html
 <template>
-  <el-table-virtual :data="tableData" border style="width: 100%">
+  <el-table-v2 :data="tableData" border style="width: 100%">
     <el-table-column prop="date" label="Date" width="180"></el-table-column>
     <el-table-column prop="name" label="Name" width="180"></el-table-column>
     <el-table-column prop="address" label="Address"></el-table-column>
-  </el-table-virtual>
+  </el-table-v2>
 </template>
 
 <script>
@@ -161,11 +161,11 @@ Use `row-class-name` to add status classes to rows.
 :::demo
 ```html
 <template>
-  <el-table-virtual :data="tableData" :row-class-name="tableRowClassName" style="width: 100%">
+  <el-table-v2 :data="tableData" :row-class-name="tableRowClassName" style="width: 100%">
     <el-table-column prop="date" label="Date" width="180"></el-table-column>
     <el-table-column prop="name" label="Name" width="180"></el-table-column>
     <el-table-column prop="address" label="Address"></el-table-column>
-  </el-table-virtual>
+  </el-table-v2>
 </template>
 
 <script>
@@ -218,11 +218,11 @@ Set `height` to fix the header and enable virtual scrolling.
 :::demo
 ```html
 <template>
-  <el-table-virtual :data="tableData" height="250" row-key="id" style="width: 100%">
+  <el-table-v2 :data="tableData" height="250" row-key="id" style="width: 100%">
     <el-table-column prop="date" label="Date" width="180"></el-table-column>
     <el-table-column prop="name" label="Name" width="180"></el-table-column>
     <el-table-column prop="address" label="Address"></el-table-column>
-  </el-table-virtual>
+  </el-table-v2>
 </template>
 
 <script>
@@ -246,14 +246,14 @@ Set `fixed` or `fixed="right"` to fix columns.
 :::demo
 ```html
 <template>
-  <el-table-virtual :data="tableData" height="250" row-key="id" border style="width: 100%">
+  <el-table-v2 :data="tableData" height="250" row-key="id" border style="width: 100%">
     <el-table-column fixed prop="date" label="Date" width="150"></el-table-column>
     <el-table-column prop="name" label="Name" width="120"></el-table-column>
     <el-table-column prop="province" label="Province" width="120"></el-table-column>
     <el-table-column prop="city" label="City" width="120"></el-table-column>
     <el-table-column prop="address" label="Address" width="300"></el-table-column>
     <el-table-column fixed="right" prop="zip" label="Zip" width="120"></el-table-column>
-  </el-table-virtual>
+  </el-table-v2>
 </template>
 
 <script>
@@ -297,14 +297,14 @@ Fixed columns and fixed header can be used together.
 :::demo
 ```html
 <template>
-  <el-table-virtual :data="tableData" height="250" row-key="id" border style="width: 100%">
+  <el-table-v2 :data="tableData" height="250" row-key="id" border style="width: 100%">
     <el-table-column fixed prop="date" label="Date" width="150"></el-table-column>
     <el-table-column prop="name" label="Name" width="120"></el-table-column>
     <el-table-column prop="province" label="Province" width="120"></el-table-column>
     <el-table-column prop="city" label="City" width="120"></el-table-column>
     <el-table-column prop="address" label="Address" width="300"></el-table-column>
     <el-table-column prop="zip" label="Zip" width="120"></el-table-column>
-  </el-table-virtual>
+  </el-table-v2>
 </template>
 
 <script>
@@ -349,12 +349,12 @@ Set `highlight-current-row` to highlight the current row. Use `setCurrentRow` to
 ```html
 <template>
   <div>
-    <el-table-virtual ref="singleTable" :data="tableData" height="250" row-key="id" highlight-current-row style="width: 100%" @current-change="handleCurrentChange">
+    <el-table-v2 ref="singleTable" :data="tableData" height="250" row-key="id" highlight-current-row style="width: 100%" @current-change="handleCurrentChange">
       <el-table-column type="index" width="50"></el-table-column>
       <el-table-column property="date" label="Date" width="120"></el-table-column>
       <el-table-column property="name" label="Name" width="120"></el-table-column>
       <el-table-column property="address" label="Address"></el-table-column>
-    </el-table-virtual>
+    </el-table-v2>
     <div style="margin-top: 20px">
       <el-button @click="setCurrent(tableData[1])">Set second row current</el-button>
       <el-button @click="setCurrent()">Clear current row</el-button>
@@ -404,12 +404,12 @@ Add a column with `type="selection"` to enable multiple selection. You can use `
 ```html
 <template>
   <div>
-    <el-table-virtual ref="multipleTable" :data="tableData" height="250" row-key="id" tooltip-effect="dark" style="width: 100%" @selection-change="handleSelectionChange">
+    <el-table-v2 ref="multipleTable" :data="tableData" height="250" row-key="id" tooltip-effect="dark" style="width: 100%" @selection-change="handleSelectionChange">
       <el-table-column type="selection" width="55"></el-table-column>
       <el-table-column label="Date" width="120"><template slot-scope="scope">{{ scope.row.date }}</template></el-table-column>
       <el-table-column prop="name" label="Name" width="120"></el-table-column>
       <el-table-column prop="address" label="Address" show-overflow-tooltip></el-table-column>
-    </el-table-virtual>
+    </el-table-v2>
     <div style="margin-top: 20px">
       <el-button @click="toggleSelection([tableData[1], tableData[2]])">Toggle second and third rows</el-button>
       <el-button @click="toggleSelection()">Clear selection</el-button>
@@ -440,12 +440,12 @@ Set `sortable` on a column to sort by that column. Use `default-sort` to set the
 :::demo
 ```html
 <template>
-  <el-table-virtual :data="tableData" height="250" row-key="id" :default-sort="{ prop: 'date', order: 'descending' }" style="width: 100%">
+  <el-table-v2 :data="tableData" height="250" row-key="id" :default-sort="{ prop: 'date', order: 'descending' }" style="width: 100%">
     <el-table-column prop="date" label="Date" sortable width="180"></el-table-column>
     <el-table-column prop="name" label="Name" width="180"></el-table-column>
     <el-table-column prop="score" label="Score" sortable width="120"></el-table-column>
     <el-table-column prop="address" label="Address"></el-table-column>
-  </el-table-virtual>
+  </el-table-v2>
 </template>
 
 <script>
@@ -464,14 +464,14 @@ Set `filters` and `filter-method` on a column to enable filtering. `filter-metho
   <div>
     <el-button @click="resetDateFilter">Clear date filter</el-button>
     <el-button @click="clearFilter">Clear all filters</el-button>
-    <el-table-virtual ref="filterTable" :data="tableData" height="250" row-key="id" style="width: 100%">
+    <el-table-v2 ref="filterTable" :data="tableData" height="250" row-key="id" style="width: 100%">
       <el-table-column prop="date" label="Date" sortable width="180" column-key="date" :filters="dateFilters" :filter-method="filterHandler"></el-table-column>
       <el-table-column prop="name" label="Name" width="180"></el-table-column>
       <el-table-column prop="address" label="Address" :formatter="formatter"></el-table-column>
       <el-table-column prop="tag" label="Tag" width="100" :filters="[{ text: 'Home', value: 'Home' }, { text: 'Office', value: 'Office' }]" :filter-method="filterTag" filter-placement="bottom-end">
         <template slot-scope="scope"><el-tag :type="scope.row.tag === 'Home' ? 'primary' : 'success'" disable-transitions>{{ scope.row.tag }}</el-tag></template>
       </el-table-column>
-    </el-table-virtual>
+    </el-table-v2>
   </div>
 </template>
 
@@ -495,11 +495,11 @@ Use scoped slots to access `row`, `column`, `$index` and `store`.
 :::demo
 ```html
 <template>
-  <el-table-virtual :data="tableData" height="250" row-key="id" style="width: 100%">
+  <el-table-v2 :data="tableData" height="250" row-key="id" style="width: 100%">
     <el-table-column label="Date" width="180"><template slot-scope="scope"><i class="el-icon-time"></i><span style="margin-left: 10px">{{ scope.row.date }}</span></template></el-table-column>
     <el-table-column label="Name" width="180"><template slot-scope="scope"><el-popover trigger="hover" placement="top"><p>Name: {{ scope.row.name }}</p><p>Address: {{ scope.row.address }}</p><div slot="reference" class="name-wrapper" style="display: inline-block"><el-tag size="medium">{{ scope.row.name }}</el-tag></div></el-popover></template></el-table-column>
     <el-table-column label="Operations"><template slot-scope="scope"><el-button size="mini" @click="handleEdit(scope.$index, scope.row)">Edit</el-button><el-button size="mini" type="danger" @click="handleDelete(scope.$index, scope.row)">Delete</el-button></template></el-table-column>
-  </el-table-virtual>
+  </el-table-v2>
 </template>
 
 <script>
@@ -515,11 +515,11 @@ Use the `header` scoped slot to customize header content.
 :::demo
 ```html
 <template>
-  <el-table-virtual :data="filteredTableData" height="250" row-key="id" style="width: 100%">
+  <el-table-v2 :data="filteredTableData" height="250" row-key="id" style="width: 100%">
     <el-table-column label="Date" prop="date"></el-table-column>
     <el-table-column label="Name" prop="name"></el-table-column>
     <el-table-column align="right"><template slot="header" slot-scope="scope"><el-input v-model="search" size="mini" placeholder="Enter name keyword to search"/></template><template slot-scope="scope"><el-button size="mini" @click="handleEdit(scope.$index, scope.row)">Edit</el-button><el-button size="mini" type="danger" @click="handleDelete(scope.$index, scope.row)">Delete</el-button></template></el-table-column>
-  </el-table-virtual>
+  </el-table-v2>
 </template>
 
 <script>
@@ -535,12 +535,12 @@ Pass the `index` prop to a `type="index"` column to customize index values. It c
 :::demo
 ```html
 <template>
-  <el-table-virtual :data="tableData" height="250" row-key="id" style="width: 100%">
+  <el-table-v2 :data="tableData" height="250" row-key="id" style="width: 100%">
     <el-table-column type="index" :index="indexMethod"></el-table-column>
     <el-table-column prop="date" label="Date" width="180"></el-table-column>
     <el-table-column prop="name" label="Name" width="180"></el-table-column>
     <el-table-column prop="address" label="Address"></el-table-column>
-  </el-table-virtual>
+  </el-table-v2>
 </template>
 
 <script>
@@ -551,27 +551,27 @@ Pass the `index` prop to a `type="index"` column to customize index values. It c
 
 ### Fluid Height
 
-Example will be added after TableVirtual supports this feature.
+Example will be added after TableV2 supports this feature.
 
 ### Group Header
 
-Example will be added after TableVirtual supports this feature.
+Example will be added after TableV2 supports this feature.
 
 ### Expand Row
 
-Example will be added after TableVirtual supports this feature.
+Example will be added after TableV2 supports this feature.
 
 ### Tree Data and Lazy Loading
 
-Example will be added after TableVirtual supports this feature.
+Example will be added after TableV2 supports this feature.
 
 ### Summary Row
 
-Example will be added after TableVirtual supports this feature.
+Example will be added after TableV2 supports this feature.
 
 ### Rowspan and Colspan
 
-Example will be added after TableVirtual supports this feature.
+Example will be added after TableV2 supports this feature.
 
 ### Big Data Rendering
 
@@ -608,7 +608,7 @@ When the dataset is very large, use `reloadData` to load data into the component
       </span>
     </div>
     <div style="margin-bottom: 12px">Selected {{ selectedCount }} rows</div>
-    <el-table-virtual
+    <el-table-v2
       ref="largeTable"
       height="250"
       row-key="id"
@@ -633,7 +633,7 @@ When the dataset is very large, use `reloadData` to load data into the component
         </template>
       </el-table-column>
       <el-table-column prop="address" label="Address" min-width="300" show-overflow-tooltip></el-table-column>
-    </el-table-virtual>
+    </el-table-v2>
   </div>
 </template>
 
@@ -695,7 +695,7 @@ When the dataset is very large, use `reloadData` to load data into the component
 ```
 :::
 
-### TableVirtual Attributes
+### TableV2 Attributes
 
 | Attribute | Description | Type | Accepted Values | Default |
 |---|---|---|---|---|
@@ -724,7 +724,7 @@ When the dataset is very large, use `reloadData` to load data into the component
 | header-cell-class-name | Header cell class callback or string | function/string | — | — |
 | header-cell-style | Header cell style callback or object | function/object | — | — |
 
-### TableVirtual Column Attributes
+### TableV2 Column Attributes
 
 | Attribute | Description | Type | Accepted Values | Default |
 |---|---|---|---|---|
@@ -755,7 +755,7 @@ When the dataset is very large, use `reloadData` to load data into the component
 | filtered-value | Selected filter values | array | — | — |
 | filter-placement | Filter panel placement | string | same as Tooltip placement | — |
 
-### TableVirtual Events
+### TableV2 Events
 
 | Event Name | Description | Parameters |
 |---|---|---|
@@ -777,7 +777,7 @@ When the dataset is very large, use `reloadData` to load data into the component
 | filter-change | Triggers when filters change | filters |
 | scroll | Triggers when body scrolls | { scrollTop, scrollLeft } |
 
-### TableVirtual Methods
+### TableV2 Methods
 
 | Method | Description | Parameters |
 |---|---|---|
@@ -793,7 +793,7 @@ When the dataset is very large, use `reloadData` to load data into the component
 | filter | Set filter values for a column | columnKey, values |
 | clearFilter | Clear filters | columnKeys |
 
-### TableVirtual Slots
+### TableV2 Slots
 
 | Name | Description |
 |---|---|
@@ -801,7 +801,7 @@ When the dataset is very large, use `reloadData` to load data into the component
 | empty | Content displayed when data is empty |
 | append | Content inserted after table content |
 
-### TableVirtual Column Scoped Slot
+### TableV2 Column Scoped Slot
 
 | Name | Description |
 |---|---|

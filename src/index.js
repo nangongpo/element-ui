@@ -26,7 +26,7 @@ import OptionGroup from '../packages/option-group/index.js';
 import Button from '../packages/button/index.js';
 import ButtonGroup from '../packages/button-group/index.js';
 import Table from '../packages/table/index.js';
-import TableVirtual from '../packages/table-virtual/index.js';
+import TableV2 from '../packages/table-v2/index.js';
 import TableColumn from '../packages/table-column/index.js';
 import DatePicker from '../packages/date-picker/index.js';
 import TimeSelect from '../packages/time-select/index.js';
@@ -121,7 +121,7 @@ const components = [
   Button,
   ButtonGroup,
   Table,
-  TableVirtual,
+  TableV2,
   TableColumn,
   DatePicker,
   TimeSelect,
@@ -252,7 +252,7 @@ export default {
   Button,
   ButtonGroup,
   Table,
-  TableVirtual,
+  TableV2,
   TableColumn,
   DatePicker,
   TimeSelect,
@@ -351,7 +351,7 @@ export {
   Button,
   ButtonGroup,
   Table,
-  TableVirtual,
+  TableV2,
   TableColumn,
   DatePicker,
   TimeSelect,

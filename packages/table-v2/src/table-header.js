@@ -1,7 +1,7 @@
 import { assertArray } from './util';
 
 export default {
-  name: 'ElTableVirtualHeader',
+  name: 'ElTableV2Header',
 
   functional: true,
 
@@ -24,7 +24,7 @@ export default {
       };
 
     return (
-      <div class="el-table-virtual__header-layer" style={style}>
+      <div class="el-table-v2__header-layer" style={style}>
         <div class={table.getHeaderRowClass()} style={table.getHeaderRowStyle()}>
           { columns.map((column, columnIndex) => (
             <div

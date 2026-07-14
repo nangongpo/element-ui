@@ -1,8 +1,8 @@
 import { assertArray } from './util';
-import TableVirtualRow from './table-row';
+import TableV2Row from './table-row';
 
 export default {
-  name: 'ElTableVirtualBody',
+  name: 'ElTableV2Body',
 
   functional: true,
 
@@ -26,10 +26,10 @@ export default {
       };
 
     return (
-      <div class="el-table-virtual__rows" style={style}>
+      <div class="el-table-v2__rows" style={style}>
         { table.visibleRows.map((row, index) => {
           const rowIndex = table.start + index;
-          return h(TableVirtualRow, {
+          return h(TableV2Row, {
             props: {
               table,
               row,

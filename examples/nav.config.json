@@ -158,8 +158,8 @@
               "title": "Table 表格"
             },
             {
-              "path": "/table-virtual",
-              "title": "TableVirtual 虚拟表格"
+              "path": "/table-v2",
+              "title": "TableV2 虚拟表格"
             },
             {
               "path": "/tag",
@@ -484,8 +484,8 @@
               "title": "Table"
             },
             {
-              "path": "/table-virtual",
-              "title": "TableVirtual"
+              "path": "/table-v2",
+              "title": "TableV2"
             },
             {
               "path": "/tag",
@@ -810,8 +810,8 @@
               "title": "Table"
             },
             {
-              "path": "/table-virtual",
-              "title": "TableVirtual"
+              "path": "/table-v2",
+              "title": "TableV2"
             },
             {
               "path": "/tag",
@@ -1136,8 +1136,8 @@
               "title": "Table"
             },
             {
-              "path": "/table-virtual",
-              "title": "TableVirtual"
+              "path": "/table-v2",
+              "title": "TableV2"
             },
             {
               "path": "/tag",

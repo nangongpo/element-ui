@@ -1,6 +1,6 @@
-## TableVirtual 虚拟表格
+## TableV2 虚拟表格
 
-用于大数据列表展示的虚拟表格。`TableVirtual` 复用 `el-table-column` 的声明方式，但内部不使用 `table` 相关标签，也不依赖 `position: sticky`；固定列通过独立覆盖层同步渲染。
+用于大数据列表展示的虚拟表格。`TableV2` 复用 `el-table-column` 的声明方式，但内部不使用 `table` 相关标签，也不依赖 `position: sticky`；固定列通过独立覆盖层同步渲染。
 
 ### 基础用法
 
@@ -9,13 +9,13 @@
 :::demo 设置 `data` 后，可以通过 `el-table-column` 的 `prop` 和 `label` 定义列。
 ```html
 <template>
-  <el-table-virtual
+  <el-table-v2
     :data="tableData"
     style="width: 100%">
     <el-table-column prop="date" label="日期" width="180"></el-table-column>
     <el-table-column prop="name" label="姓名" width="180"></el-table-column>
     <el-table-column prop="address" label="地址"></el-table-column>
-  </el-table-virtual>
+  </el-table-v2>
 </template>
 
 <script>
@@ -53,14 +53,14 @@
 :::demo `stripe`属性可以创建带斑马纹的虚拟表格。
 ```html
 <template>
-  <el-table-virtual
+  <el-table-v2
     :data="tableData"
     stripe
     style="width: 100%">
     <el-table-column prop="date" label="日期" width="180"></el-table-column>
     <el-table-column prop="name" label="姓名" width="180"></el-table-column>
     <el-table-column prop="address" label="地址"></el-table-column>
-  </el-table-virtual>
+  </el-table-v2>
 </template>
 
 <script>
@@ -93,17 +93,17 @@
 
 ### 带边框表格
 
-:::demo 默认情况下，TableVirtual 组件不具有竖直方向的边框，如果需要，可以使用`border`属性。
+:::demo 默认情况下，TableV2 组件不具有竖直方向的边框，如果需要，可以使用`border`属性。
 ```html
 <template>
-  <el-table-virtual
+  <el-table-v2
     :data="tableData"
     border
     style="width: 100%">
     <el-table-column prop="date" label="日期" width="180"></el-table-column>
     <el-table-column prop="name" label="姓名" width="180"></el-table-column>
     <el-table-column prop="address" label="地址"></el-table-column>
-  </el-table-virtual>
+  </el-table-v2>
 </template>
 
 <script>
@@ -138,25 +138,25 @@
 
 可将虚拟表格内容 highlight 显示，方便区分「成功、信息、警告、危险」等内容。
 
-:::demo 可以通过指定 TableVirtual 组件的 `row-class-name` 属性来为某一行添加 class。
+:::demo 可以通过指定 TableV2 组件的 `row-class-name` 属性来为某一行添加 class。
 ```html
 <template>
-  <el-table-virtual
+  <el-table-v2
     :data="tableData"
     style="width: 100%"
     :row-class-name="tableRowClassName">
     <el-table-column prop="date" label="日期" width="180"></el-table-column>
     <el-table-column prop="name" label="姓名" width="180"></el-table-column>
     <el-table-column prop="address" label="地址"></el-table-column>
-  </el-table-virtual>
+  </el-table-v2>
 </template>
 
 <style>
-  .el-table-virtual .warning-row {
+  .el-table-v2 .warning-row {
     background: oldlace;
   }
 
-  .el-table-virtual .success-row {
+  .el-table-v2 .success-row {
     background: #f0f9eb;
   }
 </style>
@@ -203,10 +203,10 @@
 
 纵向内容过多时，可选择固定表头。
 
-:::demo 在`el-table-virtual`元素中定义了`height`属性，即可实现固定表头。
+:::demo 在`el-table-v2`元素中定义了`height`属性，即可实现固定表头。
 ```html
 <template>
-  <el-table-virtual
+  <el-table-v2
     :data="tableData"
     height="250"
     row-key="id"
@@ -215,7 +215,7 @@
     <el-table-column prop="date" label="日期" width="180"></el-table-column>
     <el-table-column prop="name" label="姓名" width="180"></el-table-column>
     <el-table-column prop="address" label="地址"></el-table-column>
-  </el-table-virtual>
+  </el-table-v2>
 </template>
 
 <script>
@@ -239,12 +239,12 @@
 
 ### 固定列
 
-横向内容过多时，可选择固定列。TableVirtual 固定列不使用 sticky，而是渲染左、右固定层，并与主滚动区域共享同一批可视行。
+横向内容过多时，可选择固定列。TableV2 固定列不使用 sticky，而是渲染左、右固定层，并与主滚动区域共享同一批可视行。
 
 :::demo 固定列需要使用`fixed`属性，它接受 Boolean 值或者`left` `right`。
 ```html
 <template>
-  <el-table-virtual
+  <el-table-v2
     :data="tableData"
     height="250"
     row-key="id"
@@ -256,7 +256,7 @@
     <el-table-column prop="city" label="市区" width="120"></el-table-column>
     <el-table-column prop="address" label="地址" width="300"></el-table-column>
     <el-table-column fixed="right" prop="zip" label="邮编" width="120"></el-table-column>
-  </el-table-virtual>
+  </el-table-v2>
 </template>
 
 <script>
@@ -288,7 +288,7 @@
 :::demo 固定列和表头可以同时使用，只需要将上述两个属性分别设置好即可。
 ```html
 <template>
-  <el-table-virtual
+  <el-table-v2
     :data="tableData"
     style="width: 100%"
     height="250">
@@ -298,7 +298,7 @@
     <el-table-column prop="city" label="市区" width="120"></el-table-column>
     <el-table-column prop="address" label="地址" width="300"></el-table-column>
     <el-table-column prop="zip" label="邮编" width="120"></el-table-column>
-  </el-table-virtual>
+  </el-table-v2>
 </template>
 
 <script>
@@ -364,11 +364,11 @@
 
 ### 单选
 
-:::demo TableVirtual 提供了单选的支持，只需要配置`highlight-current-row`属性即可实现单选。之后由`current-change`事件来管理选中时触发的事件，它会传入`currentRow`，`oldCurrentRow`。如果需要显示索引，可以增加一列`el-table-column`，设置`type`属性为`index`即可显示从 1 开始的索引号。
+:::demo TableV2 提供了单选的支持，只需要配置`highlight-current-row`属性即可实现单选。之后由`current-change`事件来管理选中时触发的事件，它会传入`currentRow`，`oldCurrentRow`。如果需要显示索引，可以增加一列`el-table-column`，设置`type`属性为`index`即可显示从 1 开始的索引号。
 ```html
 <template>
   <div>
-    <el-table-virtual
+    <el-table-v2
       ref="singleTable"
       :data="tableData"
       height="250"
@@ -394,7 +394,7 @@
         property="address"
         label="地址">
       </el-table-column>
-    </el-table-virtual>
+    </el-table-v2>
     <div style="margin-top: 20px">
       <el-button @click="setCurrent(tableData[1])">选中第二行</el-button>
       <el-button @click="setCurrent(tableData[19])">选中第二十行</el-button>
@@ -441,7 +441,7 @@
 ```html
 <template>
   <div>
-    <el-table-virtual
+    <el-table-v2
       ref="multipleTable"
       :data="tableData"
       height="250"
@@ -468,7 +468,7 @@
         label="地址"
         show-overflow-tooltip>
       </el-table-column>
-    </el-table-virtual>
+    </el-table-v2>
     <div style="margin-top: 20px">
       <el-button @click="toggleSelection([tableData[1], tableData[2]])">切换第二、第三行的选中状态</el-button>
       <el-button @click="toggleSelection()">取消选择</el-button>
@@ -519,7 +519,7 @@
 :::demo 在列中设置`sortable`属性即可实现以该列为基准的排序，可以通过`default-sort`属性设置默认的排序列和排序顺序。
 ```html
 <template>
-  <el-table-virtual
+  <el-table-v2
     :data="tableData"
     height="250"
     row-key="id"
@@ -529,7 +529,7 @@
     <el-table-column prop="name" label="姓名" width="180"></el-table-column>
     <el-table-column prop="score" label="分数" sortable width="120"></el-table-column>
     <el-table-column prop="address" label="地址"></el-table-column>
-  </el-table-virtual>
+  </el-table-v2>
 </template>
 
 <script>
@@ -562,7 +562,7 @@
   <div>
     <el-button @click="resetDateFilter">清除日期过滤器</el-button>
     <el-button @click="clearFilter">清除所有过滤器</el-button>
-    <el-table-virtual
+    <el-table-v2
       ref="filterTable"
       :data="tableData"
       height="250"
@@ -600,7 +600,7 @@
             disable-transitions>{{ scope.row.tag }}</el-tag>
         </template>
       </el-table-column>
-    </el-table-virtual>
+    </el-table-v2>
   </div>
 </template>
 
@@ -658,7 +658,7 @@
 :::demo 通过 `Scoped slot` 可以获取到 `row`、`column`、`$index` 和 `store` 的数据，用法参考 demo。
 ```html
 <template>
-  <el-table-virtual
+  <el-table-v2
     :data="tableData"
     height="250"
     row-key="id"
@@ -695,7 +695,7 @@
           @click="handleDelete(scope.$index, scope.row)">删除</el-button>
       </template>
     </el-table-column>
-  </el-table-virtual>
+  </el-table-v2>
 </template>
 
 <script>
@@ -745,7 +745,7 @@
 :::demo 通过设置 [Scoped slot](https://v2.cn.vuejs.org/v2/guide/components-slots.html#%E4%BD%9C%E7%94%A8%E5%9F%9F%E6%8F%92%E6%A7%BD) 来自定义表头。
 ```html
 <template>
-  <el-table-virtual
+  <el-table-v2
     :data="filteredTableData"
     height="250"
     row-key="id"
@@ -775,7 +775,7 @@
           @click="handleDelete(scope.$index, scope.row)">删除</el-button>
       </template>
     </el-table-column>
-  </el-table-virtual>
+  </el-table-v2>
 </template>
 
 <script>
@@ -822,7 +822,7 @@
 :::demo 通过给 `type=index` 的列传入 `index` 属性，可以自定义索引。该属性传入数字时，将作为索引的起始值。也可以传入一个方法，它提供当前行的行号（从 `0` 开始）作为参数，返回值将作为索引展示。
 ```html
 <template>
-  <el-table-virtual
+  <el-table-v2
     :data="tableData"
     height="250"
     row-key="id"
@@ -845,7 +845,7 @@
       prop="address"
       label="地址">
     </el-table-column>
-  </el-table-virtual>
+  </el-table-v2>
 </template>
 
 <script>
@@ -874,27 +874,27 @@
 
 ### 流体高度
 
-待 TableVirtual 完善后补充示例。
+待 TableV2 完善后补充示例。
 
 ### 多级表头
 
-待 TableVirtual 完善后补充示例。
+待 TableV2 完善后补充示例。
 
 ### 展开行
 
-待 TableVirtual 完善后补充示例。
+待 TableV2 完善后补充示例。
 
 ### 树形数据与懒加载
 
-待 TableVirtual 完善后补充示例。
+待 TableV2 完善后补充示例。
 
 ### 表尾合计行
 
-待 TableVirtual 完善后补充示例。
+待 TableV2 完善后补充示例。
 
 ### 合并行或列
 
-待 TableVirtual 完善后补充示例。
+待 TableV2 完善后补充示例。
 
 ### 大数据渲染
 
@@ -931,7 +931,7 @@
       </span>
     </div>
     <div style="margin-bottom: 12px">已选中 {{ selectedCount }} 条</div>
-    <el-table-virtual
+    <el-table-v2
       ref="largeTable"
       height="250"
       row-key="id"
@@ -956,7 +956,7 @@
         </template>
       </el-table-column>
       <el-table-column prop="address" label="地址" min-width="300" show-overflow-tooltip></el-table-column>
-    </el-table-virtual>
+    </el-table-v2>
   </div>
 </template>
 
@@ -1019,7 +1019,7 @@
 ```
 :::
 
-### TableVirtual Attributes
+### TableV2 Attributes
 
 | 参数 | 说明 | 类型 | 可选值 | 默认值 |
 |------|------|------|--------|--------|
@@ -1048,7 +1048,7 @@
 | header-cell-class-name | 表头单元格 className 回调或字符串 | function/string | — | — |
 | header-cell-style | 表头单元格 style 回调或对象 | function/object | — | — |
 
-### TableVirtual Column Attributes
+### TableV2 Column Attributes
 
 | 参数 | 说明 | 类型 | 可选值 | 默认值 |
 |------|------|------|--------|--------|
@@ -1078,7 +1078,7 @@
 | column-key | `filter-change` 的列标识 | string | — | — |
 | show-overflow-tooltip | 内容过长时显示 tooltip | boolean | — | false |
 
-### TableVirtual Events
+### TableV2 Events
 
 | 事件名 | 说明 | 参数 |
 |--------|------|------|
@@ -1100,7 +1100,7 @@
 | filter-change | 筛选条件变化时触发 | filters |
 | scroll | 滚动时触发 | { scrollTop, scrollLeft } |
 
-### TableVirtual Methods
+### TableV2 Methods
 
 | 方法名 | 说明 | 参数 |
 |--------|------|------|
@@ -1116,7 +1116,7 @@
 | filter | 设置某列筛选值 | columnKey, values |
 | clearFilter | 清空筛选 | columnKeys |
 
-### TableVirtual Slots
+### TableV2 Slots
 
 | 名称 | 说明 |
 |------|------|
@@ -1124,7 +1124,7 @@
 | empty | 空数据时显示的内容 |
 | append | 插入到表格内容之后的内容 |
 
-### TableVirtual Column Scoped Slot
+### TableV2 Column Scoped Slot
 
 | 名称 | 说明 |
 |------|------|

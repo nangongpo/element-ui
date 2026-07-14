@@ -1,21 +1,9 @@
 @import "mixins/mixins";
 @import "common/var";
+@import "table";
 
-@include b(table-virtual) {
-  position: relative;
-  overflow: hidden;
-  box-sizing: border-box;
-  width: 100%;
+@include b(table-v2) {
   min-height: 120px;
-  background-color: $--color-white;
-  color: $--table-font-color;
-  font-size: 14px;
-
-  .hidden-columns {
-    position: absolute;
-    z-index: -1;
-    visibility: hidden;
-  }
 
   @include e(header-wrapper) {
     position: absolute;
@@ -49,17 +37,16 @@
     right: 0;
     bottom: 0;
     overflow: hidden;
-    background-color: $--color-white;
   }
 
-  @include m(scrollable-x) {
-    .el-table-virtual__body-wrapper {
+  &.el-table--scrollable-x {
+    @include e(body-wrapper) {
       overflow-x: auto;
     }
   }
 
-  @include m(scrollable-y) {
-    .el-table-virtual__body-wrapper {
+  &.el-table--scrollable-y {
+    @include e(body-wrapper) {
       overflow-y: auto;
     }
   }
@@ -106,38 +93,16 @@
     text-align: left;
     border-bottom: $--table-border;
 
-    @include when(center) {
-      text-align: center;
-    }
-
-    @include when(right) {
-      text-align: right;
-    }
-
-    & > .cell {
-      display: inline-block;
-      vertical-align: middle;
-      box-sizing: border-box;
-      max-width: 100%;
-      padding-left: 10px;
-      padding-right: 10px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      word-break: normal;
-      line-height: 1;
-    }
-
     &.is-sortable {
       cursor: pointer;
     }
   }
 
-  &.el-table .el-table-virtual__cell {
+  &.el-table .el-table-v2__cell {
     padding: 0;
   }
 
-  &.el-table .el-table-virtual__cell > .cell {
+  &.el-table .el-table-v2__cell > .cell {
     display: inline-block;
     vertical-align: middle;
     max-width: 100%;
@@ -182,53 +147,43 @@
     z-index: 1;
     pointer-events: none;
 
-    .el-table-virtual__cell {
+    .el-table-v2__cell {
       pointer-events: auto;
     }
   }
 
-  @include e(empty) {
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: 0;
-  }
-
-  @include e(append) {
-    position: relative;
-    top: 0;
-  }
-
-  @include m(striped) {
-    .el-table-virtual__row.el-table__row--striped {
-      background: #FAFAFA;
-
-      .el-table-virtual__cell {
+  &.el-table--striped {
+    @include e(row) {
+      &.el-table__row--striped {
         background: #FAFAFA;
+
+        .el-table-v2__cell {
+          background: #FAFAFA;
+        }
+      }
+
+      &.current-row,
+      &.current-row .el-table-v2__cell {
+        background-color: $--table-current-row-background-color;
+      }
+
+      &.hover-row,
+      &.hover-row .el-table-v2__cell {
+        background-color: $--table-row-hover-background-color;
       }
     }
-
-    .el-table-virtual__row.current-row,
-    .el-table-virtual__row.current-row .el-table-virtual__cell {
-      background-color: $--table-current-row-background-color;
-    }
-
-    .el-table-virtual__row.hover-row,
-    .el-table-virtual__row.hover-row .el-table-virtual__cell {
-      background-color: $--table-row-hover-background-color;
-    }
   }
 
-  @include m(border) {
+  &.el-table--border {
     border: none;
 
-    .el-table-virtual__cell {
+    .el-table-v2__cell {
       border-right: $--table-border;
     }
 
     &::before,
     &::after,
-    .el-table-virtual__header-wrapper::before {
+    .el-table-v2__header-wrapper::before {
       content: '';
       position: absolute;
       background-color: $--table-border-color;
@@ -250,26 +205,25 @@
       height: 100%;
     }
 
-    .el-table-virtual__header-wrapper::before {
+    .el-table-v2__header-wrapper::before {
       top: 0;
       left: 0;
       width: 100%;
       height: 1px;
     }
 
-    .el-table-virtual__header-wrapper,
-    .el-table-virtual__body-wrapper,
-    .el-table-virtual__fixed-body.el-table-virtual__fixed-left {
-      box-sizing: border-box;
+    .el-table-v2__fixed-body.el-table-v2__fixed-left {
+      border-right: $--table-border;
+    }
+
+    .el-table-v2__header-wrapper,
+    .el-table-v2__body-wrapper {
       border-left: $--table-border;
     }
-  }
 
-  @include m(small) {
-    font-size: 12px;
-  }
-
-  @include m(mini) {
-    font-size: 12px;
+    .el-table-v2__fixed-body.el-table-v2__fixed-left,
+    .el-table-v2__fixed-body.el-table-v2__fixed-right {
+      border-left: $--table-border;
+    }
   }
 }

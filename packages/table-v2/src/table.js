@@ -7,8 +7,8 @@ import { addResizeListener, removeResizeListener } from 'element-ui/src/utils/re
 import { cancelFrame, requestFrame } from 'element-ui/src/utils/util';
 import { orderBy } from 'element-ui/packages/table/src/util';
 import { getDefaultCellValue } from './config';
-import TableVirtualBody from './table-body';
-import TableVirtualHeader from './table-header';
+import TableV2Body from './table-body';
+import TableV2Header from './table-header';
 import TableLayout from './table-layout';
 import createStore from './store';
 import Current from './store/current';
@@ -26,13 +26,13 @@ import {
 let tableIdSeed = 1;
 
 export default {
-  name: 'ElTableVirtual',
+  name: 'ElTableV2',
 
   components: {
     ElCheckbox,
     ElTooltip,
-    TableVirtualBody,
-    TableVirtualHeader
+    TableV2Body,
+    TableV2Header
   },
 
   mixins: [Locale, TableLayout, Current, Filter, Selection, Sort],
@@ -86,7 +86,7 @@ export default {
 
   data() {
     return {
-      tableId: 'el-table-virtual_' + tableIdSeed++,
+      tableId: 'el-table-v2_' + tableIdSeed++,
       columns: [],
       scrollTop: 0,
       scrollLeft: 0,
@@ -135,16 +135,13 @@ export default {
     },
 
     tableClasses() {
-      const classes = ['el-table-virtual', 'el-table'];
-      if (this.border) classes.push('el-table--border', 'el-table-virtual--border');
-      if (this.stripe) classes.push('el-table--striped', 'el-table-virtual--striped');
+      const classes = ['el-table-v2', 'el-table'];
+      if (this.border) classes.push('el-table--border');
+      if (this.stripe) classes.push('el-table--striped');
       if (this.fit) classes.push('el-table--fit');
-      if (this.hasHorizontalScroll) classes.push('el-table-virtual--scrollable-x');
-      if (this.hasVerticalScroll) classes.push('el-table-virtual--scrollable-y');
-      if (this.tableSize) classes.push('el-table--' + this.tableSize, 'el-table-virtual--' + this.tableSize);
-      const columns = this.tableColumns;
-      if (columns.length && this.fixedColumns.length) classes.push('el-table-virtual--has-fixed-left');
-      if (columns.length && this.rightFixedColumns.length) classes.push('el-table-virtual--has-fixed-right');
+      if (this.hasHorizontalScroll) classes.push('el-table--scrollable-x');
+      if (this.hasVerticalScroll) classes.push('el-table--scrollable-y');
+      if (this.tableSize) classes.push('el-table--' + this.tableSize);
       return classes.join(' ');
     },
 
@@ -765,7 +762,7 @@ export default {
     },
 
     getRowClass(row, rowIndex) {
-      const classes = ['el-table-virtual__row', 'el-table__row'];
+      const classes = ['el-table-v2__row', 'el-table__row'];
       if (this.stripe && rowIndex % 2 === 1) classes.push('el-table__row--striped');
       if (row === this.hoverRow) classes.push('hover-row');
       if (this.highlightCurrentRow && row === this.currentRow) classes.push('current-row');
@@ -789,7 +786,7 @@ export default {
     },
 
     getCellClass(row, column, rowIndex, columnIndex, header) {
-      const classes = ['el-table-virtual__cell', 'el-table__cell'];
+      const classes = ['el-table-v2__cell', 'el-table__cell'];
       const align = header ? column.headerAlign || column.align : column.align;
       const alignClass = getColumnAlignClass(align);
       if (alignClass) classes.push(alignClass);
@@ -827,7 +824,7 @@ export default {
     },
 
     getHeaderRowClass() {
-      const classes = ['el-table-virtual__header-row'];
+      const classes = ['el-table-v2__header-row'];
       if (typeof this.headerRowClassName === 'string') {
         classes.push(this.headerRowClassName);
       } else if (typeof this.headerRowClassName === 'function') {
@@ -972,7 +969,7 @@ export default {
     syncHoverRowClass(visibleIndex, active) {
       const root = this.$el;
       if (!root) return;
-      const layers = root.querySelectorAll('.el-table-virtual__rows');
+      const layers = root.querySelectorAll('.el-table-v2__rows');
       for (let i = 0; i < layers.length; i++) {
         const row = layers[i].children[visibleIndex];
         if (row) {
@@ -984,7 +981,7 @@ export default {
     clearHoverRowClasses() {
       const root = this.$el;
       if (!root) return;
-      const rows = root.querySelectorAll('.el-table-virtual__row.hover-row');
+      const rows = root.querySelectorAll('.el-table-v2__row.hover-row');
       for (let i = 0; i < rows.length; i++) {
         rows[i].classList.remove('hover-row');
       }
@@ -1014,7 +1011,7 @@ export default {
     syncFixedRowsPosition(scrollTop) {
       const root = this.$el;
       if (!root) return;
-      const rows = root.querySelectorAll('.el-table-virtual__fixed-body .el-table-virtual__rows');
+      const rows = root.querySelectorAll('.el-table-v2__fixed-body .el-table-v2__rows');
       const transform = 'translate3d(0,' + (this.offsetY - scrollTop) + 'px,0)';
       if (transform === this.fixedRowsTransform) return;
       this.fixedRowsTransform = transform;
@@ -1076,7 +1073,7 @@ export default {
       };
       const root = this.$el;
       if (!root) return hoverRect;
-      const fixedBodies = root.querySelectorAll('.el-table-virtual__fixed-body');
+      const fixedBodies = root.querySelectorAll('.el-table-v2__fixed-body');
       for (let i = 0; i < fixedBodies.length; i++) {
         const fixedRect = fixedBodies[i].getBoundingClientRect();
         hoverRect.left = Math.min(hoverRect.left, fixedRect.left);
@@ -1162,7 +1159,7 @@ export default {
     renderEmpty(h) {
       if (this.viewLength) return null;
       return (
-        <div class="el-table__empty-block el-table-virtual__empty" style={{ height: this.bodyHeight + 'px' }}>
+        <div class="el-table__empty-block" style={{ height: this.bodyHeight + 'px' }}>
           <span class="el-table__empty-text">
             { this.$slots.empty || this.emptyText || this.t('el.table.emptyText') }
           </span>
@@ -1192,29 +1189,29 @@ export default {
         { hiddenColumns }
         <el-tooltip ref="tooltip" effect={this.tooltipEffect} placement="top" content=""></el-tooltip>
         { this.showHeader ? (
-          <div class="el-table-virtual__header-wrapper" style={{ height: headerHeight + 'px' }}>
-            <div class="el-table-virtual__header-main">
-              <TableVirtualHeader table={this} columns={this.tableColumns} />
+          <div class="el-table-v2__header-wrapper" style={{ height: headerHeight + 'px' }}>
+            <div class="el-table-v2__header-main">
+              <TableV2Header table={this} columns={this.tableColumns} />
             </div>
-            { this.fixedColumns.length ? <div class="el-table-virtual__fixed-header el-table-virtual__fixed-left" style={{ width: this.fixedLeftWidth + 'px' }}><TableVirtualHeader table={this} columns={this.fixedColumns} fixed /></div> : null }
-            { this.rightFixedColumns.length ? <div class="el-table-virtual__fixed-header el-table-virtual__fixed-right" style={fixedRightStyle}><TableVirtualHeader table={this} columns={this.rightFixedColumns} fixed /></div> : null }
-            { fixedRightGutterWidth ? <div class="el-table-virtual__fixed-right-gutter" style={{ width: fixedRightGutterWidth + 'px' }}></div> : null }
+            { this.fixedColumns.length ? <div class="el-table-v2__fixed-header el-table-v2__fixed-left" style={{ width: this.fixedLeftWidth + 'px' }}><TableV2Header table={this} columns={this.fixedColumns} fixed /></div> : null }
+            { this.rightFixedColumns.length ? <div class="el-table-v2__fixed-header el-table-v2__fixed-right" style={fixedRightStyle}><TableV2Header table={this} columns={this.rightFixedColumns} fixed /></div> : null }
+            { fixedRightGutterWidth ? <div class="el-table-v2__fixed-right-gutter" style={{ width: fixedRightGutterWidth + 'px' }}></div> : null }
           </div>
         ) : null }
         <div
           ref="body"
-          class="el-table-virtual__body-wrapper"
+          class="el-table-v2__body-wrapper"
           style={bodyStyle}
           on-scroll={this.handleScroll}
           on-mousemove={this.handleBodyMouseMove}
           on-mouseleave={this.handleBodyMouseLeave}>
-          <div class="el-table-virtual__phantom" style={phantomStyle}></div>
-          <TableVirtualBody table={this} columns={this.tableColumns} />
+          <div class="el-table-v2__phantom" style={phantomStyle}></div>
+          <TableV2Body table={this} columns={this.tableColumns} />
           { this.renderEmpty(h) }
-          { this.$slots.append ? <div class="el-table__append-wrapper el-table-virtual__append" style={{ width: this.scrollBodyWidth + 'px' }}>{ this.$slots.append }</div> : null }
+          { this.$slots.append ? <div class="el-table__append-wrapper" style={{ width: this.scrollBodyWidth + 'px' }}>{ this.$slots.append }</div> : null }
         </div>
-        { this.fixedColumns.length ? <div class="el-table-virtual__fixed-body el-table-virtual__fixed-left" style={{ top: this.headerHeight + 'px', bottom: (this.hasHorizontalScroll ? this.scrollbarWidth : 0) + 'px', width: this.fixedLeftWidth + 'px' }}><TableVirtualBody table={this} columns={this.fixedColumns} fixed /></div> : null }
-        { this.rightFixedColumns.length ? <div class="el-table-virtual__fixed-body el-table-virtual__fixed-right" style={Object.assign({ top: this.headerHeight + 'px', bottom: (this.hasHorizontalScroll ? this.scrollbarWidth : 0) + 'px' }, fixedRightStyle)}><TableVirtualBody table={this} columns={this.rightFixedColumns} fixed /></div> : null }
+        { this.fixedColumns.length ? <div class="el-table-v2__fixed-body el-table-v2__fixed-left" style={{ top: this.headerHeight + 'px', bottom: (this.hasHorizontalScroll ? this.scrollbarWidth : 0) + 'px', width: this.fixedLeftWidth + 'px' }}><TableV2Body table={this} columns={this.fixedColumns} fixed /></div> : null }
+        { this.rightFixedColumns.length ? <div class="el-table-v2__fixed-body el-table-v2__fixed-right" style={Object.assign({ top: this.headerHeight + 'px', bottom: (this.hasHorizontalScroll ? this.scrollbarWidth : 0) + 'px' }, fixedRightStyle)}><TableV2Body table={this} columns={this.rightFixedColumns} fixed /></div> : null }
       </div>
     );
   }

@@ -1,7 +1,7 @@
 {
   "framework": "vue",
   "name": "element-ui",
-  "version": "2.15.9",
+  "version": "2.15.14",
   "description-markup": "markdown",
   "contributions": {
     "html": {
@@ -2875,6 +2875,255 @@
           ]
         },
         {
+          "name": "ElSelectV2",
+          "description": "Virtualized selector for large option lists. It keeps Select-like interactions while rendering options with virtual scrolling.",
+          "doc-url": "https://nangongpo.github.io/element-ui/#/en-US/component/select-v2",
+          "props": [
+            {
+              "name": "value",
+              "description": "The form input value",
+              "type": "any"
+            },
+            {
+              "name": "options",
+              "description": "Option data list",
+              "type": "object[]"
+            },
+            {
+              "name": "multiple",
+              "description": "Whether multiple-select is activated",
+              "type": "boolean"
+            },
+            {
+              "name": "filterable",
+              "description": "Whether Select V2 is filterable",
+              "type": "boolean"
+            },
+            {
+              "name": "clearable",
+              "description": "Whether single select can be cleared",
+              "type": "boolean"
+            },
+            {
+              "name": "disabled",
+              "description": "Whether Select V2 is disabled",
+              "type": "boolean"
+            },
+            {
+              "name": "placeholder",
+              "description": "Placeholder",
+              "type": "string"
+            },
+            {
+              "name": "height",
+              "description": "Maximum dropdown list height in pixels",
+              "type": "number"
+            },
+            {
+              "name": "itemHeight",
+              "description": "Fixed height of each option item in pixels",
+              "type": "number"
+            },
+            {
+              "name": "overscan",
+              "description": "Extra options rendered above and below the visible area",
+              "type": "number"
+            },
+            {
+              "name": "remote",
+              "description": "Whether options are loaded from server",
+              "type": "boolean"
+            },
+            {
+              "name": "remoteMethod",
+              "description": "Custom remote search method",
+              "type": "Function"
+            },
+            {
+              "name": "debounce",
+              "description": "Debounce delay when typing",
+              "type": "number"
+            },
+            {
+              "name": "size",
+              "description": "Size of Input",
+              "type": "ElementUIComponentSize"
+            },
+            {
+              "name": "name",
+              "description": "The name attribute of select input",
+              "type": "string"
+            },
+            {
+              "name": "popperClass",
+              "description": "Custom class name for Select's dropdown",
+              "type": "string"
+            },
+            {
+              "name": "popperAppendToBody",
+              "description": "Whether to append the popper menu to body",
+              "type": "boolean"
+            },
+            {
+              "name": "valueKey",
+              "description": "Unique identity key name for value, required when value is an object",
+              "type": "string"
+            },
+            {
+              "name": "allowCreate",
+              "description": "Whether creating new items is allowed",
+              "type": "boolean"
+            },
+            {
+              "name": "defaultFirstOption",
+              "description": "Select first matching option on enter key",
+              "type": "boolean"
+            },
+            {
+              "name": "collapseTags",
+              "description": "Whether multiple tags are collapsed",
+              "type": "boolean"
+            },
+            {
+              "name": "collapseTagsTooltip",
+              "description": "Whether to show tooltip for collapsed tags",
+              "type": "boolean"
+            },
+            {
+              "name": "maxCollapseTags",
+              "description": "Maximum number of visible tags when collapsed",
+              "type": "number"
+            },
+            {
+              "name": "reserveKeyword",
+              "description": "Whether to keep the search keyword after selecting an option",
+              "type": "boolean"
+            },
+            {
+              "name": "autocomplete",
+              "description": "Same as autocomplete in native input",
+              "type": "string"
+            },
+            {
+              "name": "loading",
+              "description": "Whether Select V2 is loading data from server",
+              "type": "boolean"
+            },
+            {
+              "name": "loadingText",
+              "description": "Displayed text while loading data from server",
+              "type": "string"
+            },
+            {
+              "name": "noDataText",
+              "description": "Displayed text when there is no options",
+              "type": "string"
+            },
+            {
+              "name": "noMatchText",
+              "description": "Displayed text when no data matches the filtering query",
+              "type": "string"
+            },
+            {
+              "name": "showArrow",
+              "description": "Whether to show the dropdown arrow",
+              "type": "boolean"
+            },
+            {
+              "name": "remoteShowSuffix",
+              "description": "Whether to show suffix icon when remote searching",
+              "type": "boolean"
+            },
+            {
+              "name": "suffixIcon",
+              "description": "Suffix icon class",
+              "type": "string"
+            },
+            {
+              "name": "clearIcon",
+              "description": "Clear icon class",
+              "type": "string"
+            },
+            {
+              "name": "effect",
+              "description": "Dropdown theme effect",
+              "type": "string"
+            },
+            {
+              "name": "placement",
+              "description": "Placement of the popup menu",
+              "type": "string"
+            },
+            {
+              "name": "fallbackPlacements",
+              "description": "Fallback placements for the popup menu",
+              "type": "string[]"
+            },
+            {
+              "name": "appendTo",
+              "description": "Popup container target",
+              "type": "string|object"
+            },
+            {
+              "name": "fitInputWidth",
+              "description": "Whether the dropdown width follows the input width",
+              "type": "boolean|number"
+            },
+            {
+              "name": "tagType",
+              "description": "Type of tags in multiple mode",
+              "type": "string"
+            },
+            {
+              "name": "tagEffect",
+              "description": "Effect of tags in multiple mode",
+              "type": "string"
+            },
+            {
+              "name": "tabindex",
+              "description": "Tab index of the select input",
+              "type": "string|number"
+            },
+            {
+              "name": "emptyValues",
+              "description": "Empty values list",
+              "type": "array"
+            },
+            {
+              "name": "ariaLabel",
+              "description": "ARIA label",
+              "type": "string"
+            },
+            {
+              "name": "validateEvent",
+              "description": "Whether to trigger form validation events",
+              "type": "boolean"
+            }
+          ],
+          "slots": [
+            {
+              "name": "default",
+              "description": "Custom option content."
+            },
+            {
+              "name": "header",
+              "description": "Content at the top of the dropdown."
+            },
+            {
+              "name": "empty",
+              "description": "Content when there are no options."
+            },
+            {
+              "name": "loading",
+              "description": "Content displayed while loading options."
+            },
+            {
+              "name": "footer",
+              "description": "Content at the bottom of the dropdown."
+            }
+          ]
+        },
+        {
           "name": "ElSkeleton",
           "description": "When loading data, and you need a rich experience for visual and interactions for your end users, you can choose `skeleton`.",
           "doc-url": "https://nangongpo.github.io/element-ui/#/en-US/component/skeleton",
@@ -3410,6 +3659,139 @@
             {
               "name": "append",
               "description": "Contents to be inserted after the last row. You may need this slot if you want to implement infinite scroll for the table. This slot will be displayed above the summary row if there is one."
+            }
+          ]
+        },
+        {
+          "name": "ElTableV2",
+          "description": "Virtual table for large datasets. It reuses the `el-table-column` declaration style and keeps table behavior compatible while rendering rows in a virtualized way.",
+          "doc-url": "https://nangongpo.github.io/element-ui/#/en-US/component/table-v2",
+          "props": [
+            {
+              "name": "data",
+              "description": "Table data",
+              "type": "object[]"
+            },
+            {
+              "name": "height",
+              "description": "Table's height. If set, virtual scrolling uses this height as the viewport size",
+              "type": "string|number"
+            },
+            {
+              "name": "maxHeight",
+              "description": "Table's max-height",
+              "type": "string|number"
+            },
+            {
+              "name": "stripe",
+              "description": "Whether table is striped",
+              "type": "boolean"
+            },
+            {
+              "name": "border",
+              "description": "Whether table has vertical border",
+              "type": "boolean"
+            },
+            {
+              "name": "size",
+              "description": "Size of Input",
+              "type": "ElementUIComponentSize"
+            },
+            {
+              "name": "fit",
+              "description": "Whether width of column automatically fits its container",
+              "type": "boolean"
+            },
+            {
+              "name": "showHeader",
+              "description": "Whether table header is visible",
+              "type": "boolean"
+            },
+            {
+              "name": "highlightCurrentRow",
+              "description": "Whether current row is highlighted",
+              "type": "boolean"
+            },
+            {
+              "name": "currentRowKey",
+              "description": "Key of current row, a set only prop",
+              "type": "string|number"
+            },
+            {
+              "name": "rowClassName",
+              "description": "Function that returns custom class names for a row, or a string assigning class names for every row",
+              "type": "string|(function(rowCallbackParams): string)"
+            },
+            {
+              "name": "rowStyle",
+              "description": "Function that returns custom style for a row, or an object assigning custom style for every row",
+              "type": "object|(function(rowCallbackParams): object)"
+            },
+            {
+              "name": "cellClassName",
+              "description": "Function that returns custom class names for a cell, or a string assigning class names for every cell",
+              "type": "string|(function(cellCallbackParams): string)"
+            },
+            {
+              "name": "cellStyle",
+              "description": "Function that returns custom style for a cell, or an object assigning custom style for every cell",
+              "type": "object|(function(cellCallbackParams): object)"
+            },
+            {
+              "name": "headerRowClassName",
+              "description": "Function that returns custom class names for a row in table header, or a string assigning class names for every row in table header",
+              "type": "string|(function(rowCallbackParams): string)"
+            },
+            {
+              "name": "headerRowStyle",
+              "description": "Function that returns custom style for a row in table header, or an object assigning custom style for every row in table header",
+              "type": "object|(function(rowCallbackParams): object)"
+            },
+            {
+              "name": "headerCellClassName",
+              "description": "Function that returns custom class names for a cell in table header, or a string assigning class names for every cell in table header",
+              "type": "string|(function(cellCallbackParams): string)"
+            },
+            {
+              "name": "headerCellStyle",
+              "description": "Function that returns custom style for a cell in table header, or an object assigning custom style for every cell in table header",
+              "type": "object|(function(cellCallbackParams): object)"
+            },
+            {
+              "name": "rowKey",
+              "description": "Key of row data, used for identity comparison and virtual rendering",
+              "type": "string|(function(row): string)"
+            },
+            {
+              "name": "emptyText",
+              "description": "Displayed text when data is empty",
+              "type": "String"
+            },
+            {
+              "name": "tooltipEffect",
+              "description": "Tooltip effect property",
+              "type": "TooltipEffect"
+            },
+            {
+              "name": "defaultSort",
+              "description": "Set the default sort column and order",
+              "type": "DefaultSortOptions"
+            },
+            {
+              "name": "rowHeight",
+              "description": "Height of each row in pixels",
+              "type": "number"
+            },
+            {
+              "name": "overscan",
+              "description": "Extra rows rendered above and below the visible area to reduce scroll jitter",
+              "type": "number"
+            }
+          ],
+          "slots": [
+            {
+              "name": "append",
+              "description": "Contents to be inserted after the last row."
             }
           ]
         },

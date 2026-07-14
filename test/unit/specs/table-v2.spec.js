@@ -1,5 +1,5 @@
 import Vue from 'vue';
-import TableVirtual from 'element-ui/packages/table-virtual/src/table-virtual';
+import TableV2 from 'element-ui/packages/table-v2/src/table';
 import domScheduler from 'element-ui/src/utils/dom-scheduler';
 import { createVue, destroyVM, triggerEvent, wait, waitImmediate } from '../util';
 
@@ -16,7 +16,7 @@ const getData = function(count) {
   return data;
 };
 
-describe('TableVirtual', () => {
+describe('TableV2', () => {
   let vm;
   let oldElement;
   let oldRequestAnimationFrame;
@@ -42,11 +42,11 @@ describe('TableVirtual', () => {
     it('renders only visible rows', async() => {
       vm = createVue({
         template: `
-        <el-table-virtual :data="tableData" height="240" row-key="id" :row-height="40">
+        <el-table-v2 :data="tableData" height="240" row-key="id" :row-height="40">
           <el-table-column prop="id" label="ID" width="80" />
           <el-table-column prop="name" label="Name" width="160" />
           <el-table-column prop="address" label="Address" width="240" />
-        </el-table-virtual>
+        </el-table-v2>
       `,
         data() {
           return {
@@ -56,7 +56,7 @@ describe('TableVirtual', () => {
       }, true);
 
       await wait(50);
-      const rows = vm.$el.querySelectorAll('.el-table-virtual__body-wrapper .el-table-virtual__row');
+      const rows = vm.$el.querySelectorAll('.el-table-v2__body-wrapper .el-table-v2__row');
       expect(rows.length).to.be.above(0);
       expect(rows.length).to.be.below(40);
       expect(vm.$el.textContent).to.contain('Name 0');
@@ -66,10 +66,10 @@ describe('TableVirtual', () => {
       const tableData = getData(1000);
       vm = createVue({
         template: `
-        <el-table-virtual ref="table" height="240" row-key="id" :row-height="40">
+        <el-table-v2 ref="table" height="240" row-key="id" :row-height="40">
           <el-table-column prop="id" label="ID" width="80" />
           <el-table-column prop="name" label="Name" width="160" />
-        </el-table-virtual>
+        </el-table-v2>
       `
       }, true);
 
@@ -78,7 +78,7 @@ describe('TableVirtual', () => {
       await wait(50);
 
       const table = vm.$refs.table;
-      const rows = vm.$el.querySelectorAll('.el-table-virtual__body-wrapper .el-table-virtual__row');
+      const rows = vm.$el.querySelectorAll('.el-table-v2__body-wrapper .el-table-v2__row');
       expect(table.useInternalData).to.true;
       expect(table.tableData).to.equal(tableData);
       expect(table.totalHeight).to.equal(40000);
@@ -102,15 +102,15 @@ describe('TableVirtual', () => {
       vm = createVue({
         template: `
         <div>
-          <el-table-virtual ref="fixed" :data="tableData" height="240" row-key="id" :row-height="40">
+          <el-table-v2 ref="fixed" :data="tableData" height="240" row-key="id" :row-height="40">
             <el-table-column prop="id" label="ID" width="80" />
-          </el-table-virtual>
-          <el-table-virtual ref="natural" :data="smallData" row-key="id" :row-height="40">
+          </el-table-v2>
+          <el-table-v2 ref="natural" :data="smallData" row-key="id" :row-height="40">
             <el-table-column prop="id" label="ID" width="80" />
-          </el-table-virtual>
-          <el-table-virtual ref="border" :data="smallData" row-key="id" :row-height="40" border>
+          </el-table-v2>
+          <el-table-v2 ref="border" :data="smallData" row-key="id" :row-height="40" border>
             <el-table-column prop="id" label="ID" width="80" />
-          </el-table-virtual>
+          </el-table-v2>
         </div>
       `,
         data() {
@@ -131,10 +131,10 @@ describe('TableVirtual', () => {
     it('keeps border left line while body scrolls', async() => {
       vm = createVue({
         template: `
-        <el-table-virtual :data="tableData" height="240" row-key="id" :row-height="40" border>
+        <el-table-v2 :data="tableData" height="240" row-key="id" :row-height="40" border>
           <el-table-column prop="id" label="ID" width="80" />
           <el-table-column prop="name" label="Name" width="120" />
-        </el-table-virtual>
+        </el-table-v2>
       `,
         data() {
           return {
@@ -144,7 +144,7 @@ describe('TableVirtual', () => {
       }, true);
 
       await wait(50);
-      const body = vm.$el.querySelector('.el-table-virtual__body-wrapper');
+      const body = vm.$el.querySelector('.el-table-v2__body-wrapper');
       body.scrollTop = 200;
       triggerEvent(body, 'scroll');
       await wait(50);
@@ -154,10 +154,10 @@ describe('TableVirtual', () => {
     it('applies stripe classes', async() => {
       vm = createVue({
         template: `
-        <el-table-virtual :data="tableData" height="240" row-key="id" :row-height="40" stripe>
+        <el-table-v2 :data="tableData" height="240" row-key="id" :row-height="40" stripe>
           <el-table-column prop="id" label="ID" width="80" />
           <el-table-column prop="name" label="Name" width="160" />
-        </el-table-virtual>
+        </el-table-v2>
       `,
         data() {
           return {
@@ -167,7 +167,7 @@ describe('TableVirtual', () => {
       }, true);
 
       await wait(50);
-      expect(vm.$el.classList.contains('el-table-virtual--striped')).to.true;
+      expect(vm.$el.classList.contains('el-table--striped')).to.true;
       expect(vm.$el.querySelectorAll('.el-table__row--striped').length).to.be.above(0);
     });
 
@@ -177,12 +177,12 @@ describe('TableVirtual', () => {
       vm = createVue({
         template: `
         <div>
-          <el-table-virtual ref="global" :data="tableData" height="240" row-key="id" :row-height="40">
+          <el-table-v2 ref="global" :data="tableData" height="240" row-key="id" :row-height="40">
             <el-table-column prop="id" label="ID" width="80" />
-          </el-table-virtual>
-          <el-table-virtual ref="local" :data="tableData" height="240" row-key="id" :row-height="40" size="mini">
+          </el-table-v2>
+          <el-table-v2 ref="local" :data="tableData" height="240" row-key="id" :row-height="40" size="mini">
             <el-table-column prop="id" label="ID" width="80" />
-          </el-table-virtual>
+          </el-table-v2>
         </div>
       `,
         data() {
@@ -194,15 +194,15 @@ describe('TableVirtual', () => {
 
       await wait(50);
       expect(vm.$refs.global.$el.classList.contains('el-table--small')).to.true;
-      expect(vm.$refs.global.$el.classList.contains('el-table-virtual--small')).to.true;
+      expect(vm.$refs.global.$el.classList.contains('el-table--small')).to.true;
       expect(vm.$refs.local.$el.classList.contains('el-table--mini')).to.true;
-      expect(vm.$refs.local.$el.classList.contains('el-table-virtual--mini')).to.true;
+      expect(vm.$refs.local.$el.classList.contains('el-table--mini')).to.true;
     });
 
     it('applies style and class callback props', async() => {
       vm = createVue({
         template: `
-        <el-table-virtual
+        <el-table-v2
           :data="tableData"
           height="240"
           max-height="320"
@@ -218,7 +218,7 @@ describe('TableVirtual', () => {
           :header-cell-style="headerCellStyle">
           <el-table-column prop="id" label="ID" width="80" />
           <el-table-column prop="name" label="Name" width="160" />
-        </el-table-virtual>
+        </el-table-v2>
       `,
         data() {
           return {
@@ -265,14 +265,14 @@ describe('TableVirtual', () => {
       vm = createVue({
         template: `
         <div>
-          <el-table-virtual ref="empty" :data="[]" height="160" empty-text="No rows" :show-header="false">
+          <el-table-v2 ref="empty" :data="[]" height="160" empty-text="No rows" :show-header="false">
             <el-table-column prop="name" label="Name" width="160" />
             <template slot="empty">Custom empty</template>
-          </el-table-virtual>
-          <el-table-virtual ref="append" :data="tableData" height="180" row-key="id">
+          </el-table-v2>
+          <el-table-v2 ref="append" :data="tableData" height="180" row-key="id">
             <el-table-column prop="name" label="Name" width="160" />
             <template slot="append"><div class="append-api-slot">Append slot</div></template>
-          </el-table-virtual>
+          </el-table-v2>
         </div>
       `,
         data() {
@@ -283,7 +283,7 @@ describe('TableVirtual', () => {
       }, true);
 
       await wait(50);
-      expect(vm.$refs.empty.$el.querySelector('.el-table-virtual__header-wrapper')).to.not.exist;
+      expect(vm.$refs.empty.$el.querySelector('.el-table-v2__header-wrapper')).to.not.exist;
       expect(vm.$refs.empty.$el.textContent).to.contain('Custom empty');
       expect(vm.$refs.append.$el.querySelector('.append-api-slot').textContent).to.equal('Append slot');
     });
@@ -291,10 +291,10 @@ describe('TableVirtual', () => {
     it('updates visible range when scrollTo is called', async() => {
       vm = createVue({
         template: `
-        <el-table-virtual ref="table" :data="tableData" height="240" row-key="id" :row-height="40">
+        <el-table-v2 ref="table" :data="tableData" height="240" row-key="id" :row-height="40">
           <el-table-column prop="id" label="ID" width="80" />
           <el-table-column prop="name" label="Name" width="160" />
-        </el-table-virtual>
+        </el-table-v2>
       `,
         data() {
           return {
@@ -313,11 +313,11 @@ describe('TableVirtual', () => {
     it('updates layout when doLayout is called', async() => {
       vm = createVue({
         template: `
-        <el-table-virtual ref="table" :data="tableData" height="240" row-key="id" :row-height="40">
+        <el-table-v2 ref="table" :data="tableData" height="240" row-key="id" :row-height="40">
           <el-table-column prop="id" label="ID" width="100" />
           <el-table-column prop="name" label="Name" width="100" />
           <el-table-column prop="address" label="Address" />
-        </el-table-virtual>
+        </el-table-v2>
       `,
         data() {
           return {
@@ -340,10 +340,10 @@ describe('TableVirtual', () => {
     it('coalesces scheduled layout reads through dom scheduler', async() => {
       vm = createVue({
         template: `
-        <el-table-virtual ref="table" :data="tableData" height="240" row-key="id" :row-height="40">
+        <el-table-v2 ref="table" :data="tableData" height="240" row-key="id" :row-height="40">
           <el-table-column prop="id" label="ID" width="100" />
           <el-table-column prop="name" label="Name" width="160" />
-        </el-table-virtual>
+        </el-table-v2>
       `,
         data() {
           return {
@@ -372,9 +372,9 @@ describe('TableVirtual', () => {
     it('keeps auto-height resize-only layout optimization', async() => {
       vm = createVue({
         template: `
-        <el-table-virtual ref="table" :data="tableData" row-key="id" :row-height="40">
+        <el-table-v2 ref="table" :data="tableData" row-key="id" :row-height="40">
           <el-table-column prop="id" label="ID" width="100" />
-        </el-table-virtual>
+        </el-table-v2>
       `,
         data() {
           return {
@@ -410,7 +410,7 @@ describe('TableVirtual', () => {
       const currentChange = sinon.spy();
       vm = createVue({
         template: `
-        <el-table-virtual
+        <el-table-v2
           ref="table"
           :data="tableData"
           height="240"
@@ -419,7 +419,7 @@ describe('TableVirtual', () => {
           highlight-current-row
           @current-change="currentChange">
           <el-table-column prop="name" label="Name" width="160" />
-        </el-table-virtual>
+        </el-table-v2>
       `,
         data() {
           return {
@@ -450,11 +450,11 @@ describe('TableVirtual', () => {
     it('renders fixed columns in separated layers', async() => {
       vm = createVue({
         template: `
-        <el-table-virtual ref="table" :data="tableData" height="240" row-key="id" :row-height="40" border>
+        <el-table-v2 ref="table" :data="tableData" height="240" row-key="id" :row-height="40" border>
           <el-table-column fixed prop="id" label="ID" width="80" />
           <el-table-column prop="name" label="Name" width="160" />
           <el-table-column fixed="right" prop="score" label="Score" width="100" />
-        </el-table-virtual>
+        </el-table-v2>
       `,
         data() {
           return {
@@ -464,22 +464,22 @@ describe('TableVirtual', () => {
       }, true);
 
       await wait(50);
-      expect(vm.$el.querySelector('.el-table-virtual__fixed-left')).to.exist;
-      expect(vm.$el.querySelector('.el-table-virtual__fixed-right')).to.exist;
-      expect(window.getComputedStyle(vm.$el.querySelector('.el-table-virtual__fixed-body.el-table-virtual__fixed-left')).borderLeftWidth).to.equal('1px');
+      expect(vm.$el.querySelector('.el-table-v2__fixed-left')).to.exist;
+      expect(vm.$el.querySelector('.el-table-v2__fixed-right')).to.exist;
+      expect(window.getComputedStyle(vm.$el.querySelector('.el-table-v2__fixed-body.el-table-v2__fixed-left')).borderLeftWidth).to.equal('1px');
       vm.$refs.table.scrollTo(400);
       await wait(50);
-      expect(vm.$el.querySelector('.el-table-virtual__fixed-body .el-table-virtual__rows').style.transform).to.contain('translate');
+      expect(vm.$el.querySelector('.el-table-v2__fixed-body .el-table-v2__rows').style.transform).to.contain('translate');
     });
 
     it('keeps vertical scrollbar outside right fixed columns', async() => {
       vm = createVue({
         template: `
-        <el-table-virtual ref="table" :data="tableData" height="240" row-key="id" :row-height="40" border>
+        <el-table-v2 ref="table" :data="tableData" height="240" row-key="id" :row-height="40" border>
           <el-table-column prop="id" label="ID" width="80" />
           <el-table-column prop="name" label="Name" width="160" />
           <el-table-column fixed="right" prop="score" label="Score" width="100" />
-        </el-table-virtual>
+        </el-table-v2>
       `,
         data() {
           return {
@@ -489,8 +489,8 @@ describe('TableVirtual', () => {
       }, true);
 
       await wait(50);
-      const body = vm.$el.querySelector('.el-table-virtual__body-wrapper');
-      const fixedRight = vm.$el.querySelector('.el-table-virtual__fixed-body.el-table-virtual__fixed-right');
+      const body = vm.$el.querySelector('.el-table-v2__body-wrapper');
+      const fixedRight = vm.$el.querySelector('.el-table-v2__fixed-body.el-table-v2__fixed-right');
       expect(body.style.right).to.equal('');
       expect(fixedRight.style.right).to.equal(vm.$refs.table.scrollbarWidth + 'px');
     });
@@ -499,12 +499,12 @@ describe('TableVirtual', () => {
       vm = createVue({
         template: `
         <div style="width: 500px;">
-          <el-table-virtual ref="table" :data="tableData" height="240" row-key="id" :row-height="40" border>
+          <el-table-v2 ref="table" :data="tableData" height="240" row-key="id" :row-height="40" border>
             <el-table-column prop="id" label="ID" width="100" />
             <el-table-column prop="name" label="Name" width="120" />
             <el-table-column prop="address" label="Address" />
             <el-table-column fixed="right" prop="score" label="Score" width="100" />
-          </el-table-virtual>
+          </el-table-v2>
         </div>
       `,
         data() {
@@ -516,7 +516,7 @@ describe('TableVirtual', () => {
 
       await wait(50);
       const table = vm.$refs.table;
-      const phantom = vm.$el.querySelector('.el-table-virtual__phantom');
+      const phantom = vm.$el.querySelector('.el-table-v2__phantom');
       expect(table.hasHorizontalScroll).to.true;
       expect(phantom.style.width).to.equal(table.mainWidth + table.fixedRightWidth + 'px');
     });
@@ -524,11 +524,11 @@ describe('TableVirtual', () => {
     it('covers right fixed header gutter when vertical scrollbar is visible', async() => {
       vm = createVue({
         template: `
-        <el-table-virtual ref="table" :data="tableData" height="240" row-key="id" :row-height="40" border>
+        <el-table-v2 ref="table" :data="tableData" height="240" row-key="id" :row-height="40" border>
           <el-table-column prop="id" label="ID" width="80" />
           <el-table-column prop="name" label="Name" width="160" />
           <el-table-column fixed="right" prop="score" label="Score" width="100" />
-        </el-table-virtual>
+        </el-table-v2>
       `,
         data() {
           return {
@@ -538,7 +538,7 @@ describe('TableVirtual', () => {
       }, true);
 
       await wait(50);
-      const gutter = vm.$el.querySelector('.el-table-virtual__fixed-right-gutter');
+      const gutter = vm.$el.querySelector('.el-table-v2__fixed-right-gutter');
       if (vm.$refs.table.scrollbarWidth) {
         expect(gutter).to.exist;
         expect(gutter.style.width).to.equal(vm.$refs.table.scrollbarWidth + 'px');
@@ -551,11 +551,11 @@ describe('TableVirtual', () => {
       vm = createVue({
         template: `
         <div style="width: 500px;">
-          <el-table-virtual ref="table" :data="tableData" height="240" row-key="id" :row-height="40">
+          <el-table-v2 ref="table" :data="tableData" height="240" row-key="id" :row-height="40">
             <el-table-column prop="id" label="ID" width="100" />
             <el-table-column prop="name" label="Name" width="100" />
             <el-table-column prop="address" label="Address" />
-          </el-table-virtual>
+          </el-table-v2>
         </div>
       `,
         data() {
@@ -573,11 +573,11 @@ describe('TableVirtual', () => {
     it('updates flex column width when table element resizes', async() => {
       vm = createVue({
         template: `
-        <el-table-virtual ref="table" :data="tableData" height="240" row-key="id" :row-height="40">
+        <el-table-v2 ref="table" :data="tableData" height="240" row-key="id" :row-height="40">
           <el-table-column prop="id" label="ID" width="100" />
           <el-table-column prop="name" label="Name" width="100" />
           <el-table-column prop="address" label="Address" />
-        </el-table-virtual>
+        </el-table-v2>
       `,
         data() {
           return {
@@ -614,11 +614,11 @@ describe('TableVirtual', () => {
       const rowClick = sinon.spy();
       vm = createVue({
         template: `
-        <el-table-virtual :data="tableData" height="240" row-key="id" :row-height="40" @row-click="rowClick">
+        <el-table-v2 :data="tableData" height="240" row-key="id" :row-height="40" @row-click="rowClick">
           <el-table-column prop="name" label="Name" width="160">
             <template slot-scope="scope">Custom {{ scope.row.name }}</template>
           </el-table-column>
-        </el-table-virtual>
+        </el-table-v2>
       `,
         data() {
           return {
@@ -632,7 +632,7 @@ describe('TableVirtual', () => {
 
       await wait(50);
       expect(vm.$el.textContent).to.contain('Custom Name 0');
-      triggerEvent(vm.$el.querySelector('.el-table-virtual__body-wrapper .el-table-virtual__cell'), 'click', true, false);
+      triggerEvent(vm.$el.querySelector('.el-table-v2__body-wrapper .el-table-v2__cell'), 'click', true, false);
       expect(rowClick.calledOnce).to.true;
       expect(rowClick.args[0][0].name).to.equal('Name 0');
     });
@@ -640,12 +640,12 @@ describe('TableVirtual', () => {
     it('passes visible zero-based $index to column scoped slot', async() => {
       vm = createVue({
         template: `
-        <el-table-virtual ref="table" :data="tableData" height="120" row-key="id" :row-height="40" :overscan="0">
+        <el-table-v2 ref="table" :data="tableData" height="120" row-key="id" :row-height="40" :overscan="0">
           <el-table-column prop="name" label="Name" width="160">
             <template slot-scope="scope">{{ scope.$index }}:{{ scope.row.name }}</template>
           </el-table-column>
           <el-table-column type="index" label="#" width="80" />
-        </el-table-virtual>
+        </el-table-v2>
       `,
         data() {
           return {
@@ -655,11 +655,11 @@ describe('TableVirtual', () => {
       }, true);
 
       await wait(50);
-      expect(vm.$el.querySelector('.el-table-virtual__body-wrapper .el-table-virtual__cell').textContent).to.contain('0:Name 0');
+      expect(vm.$el.querySelector('.el-table-v2__body-wrapper .el-table-v2__cell').textContent).to.contain('0:Name 0');
 
       vm.$refs.table.scrollTo(120);
       await waitImmediate();
-      const cells = vm.$el.querySelectorAll('.el-table-virtual__body-wrapper .el-table-virtual__cell');
+      const cells = vm.$el.querySelectorAll('.el-table-v2__body-wrapper .el-table-v2__cell');
       expect(cells[0].textContent).to.contain('0:Name 3');
       expect(cells[1].textContent).to.contain('4');
     });
@@ -668,7 +668,7 @@ describe('TableVirtual', () => {
       const warnStub = sinon.stub(console, 'warn');
       vm = createVue({
         template: `
-        <el-table-virtual :data="tableData" height="240" row-key="id" :row-height="40" :render-header="renderHeader">
+        <el-table-v2 :data="tableData" height="240" row-key="id" :row-height="40" :render-header="renderHeader">
           <el-table-column
             prop="score"
             label="Score"
@@ -680,7 +680,7 @@ describe('TableVirtual', () => {
             :formatter="formatter"
             :render-header="renderHeader" />
           <el-table-column prop="address" label="Address" min-width="180" />
-        </el-table-virtual>
+        </el-table-v2>
       `,
         data() {
           return {
@@ -698,8 +698,8 @@ describe('TableVirtual', () => {
       }, true);
 
       await wait(50);
-      const headerCell = vm.$el.querySelector('.el-table-virtual__header-wrapper .el-table-virtual__cell');
-      const bodyCell = vm.$el.querySelector('.el-table-virtual__body-wrapper .el-table-virtual__cell');
+      const headerCell = vm.$el.querySelector('.el-table-v2__header-wrapper .el-table-v2__cell');
+      const bodyCell = vm.$el.querySelector('.el-table-v2__body-wrapper .el-table-v2__cell');
       expect(headerCell.classList.contains('is-center')).to.true;
       expect(headerCell.classList.contains('score-header-class')).to.true;
       expect(headerCell.textContent).to.contain('Rendered score');
@@ -720,10 +720,10 @@ describe('TableVirtual', () => {
     it('renders index column with index prop', async() => {
       vm = createVue({
         template: `
-        <el-table-virtual :data="tableData" height="240" row-key="id" :row-height="40">
+        <el-table-v2 :data="tableData" height="240" row-key="id" :row-height="40">
           <el-table-column type="index" label="#" width="80" :index="indexMethod" />
           <el-table-column prop="name" label="Name" width="160" />
-        </el-table-virtual>
+        </el-table-v2>
       `,
         data() {
           return {
@@ -738,8 +738,8 @@ describe('TableVirtual', () => {
       }, true);
 
       await wait(50);
-      const headerCell = vm.$el.querySelector('.el-table-virtual__header-wrapper .el-table-virtual__cell');
-      const firstBodyCell = vm.$el.querySelector('.el-table-virtual__body-wrapper .el-table-virtual__cell');
+      const headerCell = vm.$el.querySelector('.el-table-v2__header-wrapper .el-table-v2__cell');
+      const firstBodyCell = vm.$el.querySelector('.el-table-v2__body-wrapper .el-table-v2__cell');
       expect(headerCell.textContent).to.contain('#');
       expect(firstBodyCell.textContent).to.contain('10');
     });
@@ -763,7 +763,7 @@ describe('TableVirtual', () => {
       };
       vm = createVue({
         template: `
-        <el-table-virtual
+        <el-table-v2
           ref="table"
           :data="tableData"
           height="240"
@@ -781,7 +781,7 @@ describe('TableVirtual', () => {
           @header-contextmenu="headerContextmenu"
           @scroll="scroll">
           <el-table-column prop="name" label="Name" width="160" />
-        </el-table-virtual>
+        </el-table-v2>
       `,
         data() {
           return {
@@ -792,8 +792,8 @@ describe('TableVirtual', () => {
       }, true);
 
       await wait(50);
-      const cell = vm.$el.querySelector('.el-table-virtual__body-wrapper .el-table-virtual__cell');
-      const headerCell = vm.$el.querySelector('.el-table-virtual__header-wrapper .el-table-virtual__cell');
+      const cell = vm.$el.querySelector('.el-table-v2__body-wrapper .el-table-v2__cell');
+      const headerCell = vm.$el.querySelector('.el-table-v2__header-wrapper .el-table-v2__cell');
       const body = vm.$refs.table.$refs.body;
 
       triggerEvent(cell, 'mouseenter', true, false);
@@ -826,11 +826,11 @@ describe('TableVirtual', () => {
     it('clears hover row classes when body scrolls', async() => {
       vm = createVue({
         template: `
-        <el-table-virtual ref="table" :data="tableData" height="240" row-key="id" :row-height="40">
+        <el-table-v2 ref="table" :data="tableData" height="240" row-key="id" :row-height="40">
           <el-table-column fixed prop="id" label="ID" width="80" />
           <el-table-column prop="name" label="Name" width="160" />
           <el-table-column fixed="right" prop="score" label="Score" width="100" />
-        </el-table-virtual>
+        </el-table-v2>
       `,
         data() {
           return {
@@ -842,11 +842,11 @@ describe('TableVirtual', () => {
       await wait(50);
       const table = vm.$refs.table;
       const body = table.$refs.body;
-      const cell = vm.$el.querySelector('.el-table-virtual__body-wrapper .el-table-virtual__cell');
+      const cell = vm.$el.querySelector('.el-table-v2__body-wrapper .el-table-v2__cell');
 
       triggerEvent(cell, 'mouseenter', true, false);
       await waitImmediate();
-      expect(vm.$el.querySelectorAll('.el-table-virtual__row.hover-row').length).to.equal(3);
+      expect(vm.$el.querySelectorAll('.el-table-v2__row.hover-row').length).to.equal(3);
 
       table.lastMouseClientX = null;
       table.lastMouseClientY = null;
@@ -856,7 +856,7 @@ describe('TableVirtual', () => {
 
       expect(table.hoverRow).to.equal(null);
       expect(table.hoverRowVisibleIndex).to.equal(null);
-      expect(vm.$el.querySelectorAll('.el-table-virtual__row.hover-row').length).to.equal(0);
+      expect(vm.$el.querySelectorAll('.el-table-v2__row.hover-row').length).to.equal(0);
     });
 
     it('syncs fixed rows immediately and settles hover when scroll frame is pending', async() => {
@@ -867,11 +867,11 @@ describe('TableVirtual', () => {
 
       vm = createVue({
         template: `
-        <el-table-virtual ref="table" :data="tableData" height="240" row-key="id" :row-height="40">
+        <el-table-v2 ref="table" :data="tableData" height="240" row-key="id" :row-height="40">
           <el-table-column fixed prop="id" label="ID" width="80" />
           <el-table-column prop="name" label="Name" width="160" />
           <el-table-column fixed="right" prop="score" label="Score" width="100" />
-        </el-table-virtual>
+        </el-table-v2>
       `,
         data() {
           return {
@@ -883,8 +883,8 @@ describe('TableVirtual', () => {
       await wait(50);
       const table = vm.$refs.table;
       const body = table.$refs.body;
-      const cell = vm.$el.querySelector('.el-table-virtual__body-wrapper .el-table-virtual__cell');
-      const fixedRows = vm.$el.querySelectorAll('.el-table-virtual__fixed-body .el-table-virtual__rows');
+      const cell = vm.$el.querySelector('.el-table-v2__body-wrapper .el-table-v2__cell');
+      const fixedRows = vm.$el.querySelectorAll('.el-table-v2__fixed-body .el-table-v2__rows');
       Object.defineProperty(body, 'getBoundingClientRect', {
         configurable: true,
         value() {
@@ -894,7 +894,7 @@ describe('TableVirtual', () => {
 
       triggerEvent(cell, 'mouseenter', true, false);
       await waitImmediate();
-      expect(vm.$el.querySelectorAll('.el-table-virtual__row.hover-row').length).to.equal(3);
+      expect(vm.$el.querySelectorAll('.el-table-v2__row.hover-row').length).to.equal(3);
 
       table.handleBodyMouseMove({ clientX: 120, clientY: 20 });
       expect(table.hoverRow.id).to.equal(0);
@@ -906,23 +906,23 @@ describe('TableVirtual', () => {
       expect(table.hoverRowVisibleIndex).to.equal(null);
       expect(fixedRows[0].style.transform).to.contain('-160px');
       expect(fixedRows[1].style.transform).to.contain('-160px');
-      expect(vm.$el.querySelectorAll('.el-table-virtual__row.hover-row').length).to.equal(0);
+      expect(vm.$el.querySelectorAll('.el-table-v2__row.hover-row').length).to.equal(0);
 
       await wait(160);
 
       expect(table.hoverRow.id).to.equal(4);
       expect(table.hoverRowVisibleIndex).to.equal(4);
-      expect(vm.$el.querySelectorAll('.el-table-virtual__row.hover-row').length).to.equal(3);
+      expect(vm.$el.querySelectorAll('.el-table-v2__row.hover-row').length).to.equal(3);
     });
 
     it('tracks fixed row position on wheel after native scroll updates', async() => {
       vm = createVue({
         template: `
-        <el-table-virtual ref="table" :data="tableData" height="240" row-key="id" :row-height="40">
+        <el-table-v2 ref="table" :data="tableData" height="240" row-key="id" :row-height="40">
           <el-table-column fixed prop="id" label="ID" width="80" />
           <el-table-column prop="name" label="Name" width="160" />
           <el-table-column fixed="right" prop="score" label="Score" width="100" />
-        </el-table-virtual>
+        </el-table-v2>
       `,
         data() {
           return {
@@ -934,7 +934,7 @@ describe('TableVirtual', () => {
       await wait(50);
       const table = vm.$refs.table;
       const body = table.$refs.body;
-      const fixedRows = vm.$el.querySelectorAll('.el-table-virtual__fixed-body .el-table-virtual__rows');
+      const fixedRows = vm.$el.querySelectorAll('.el-table-v2__fixed-body .el-table-v2__rows');
       Object.defineProperty(body, 'scrollHeight', { configurable: true, value: 4000 });
       Object.defineProperty(body, 'clientHeight', { configurable: true, value: 240 });
       body.scrollTop = 40;
@@ -950,11 +950,11 @@ describe('TableVirtual', () => {
     it('does not start fixed scroll sync outside the visible body area', async() => {
       vm = createVue({
         template: `
-        <el-table-virtual ref="table" :data="tableData" height="240" row-key="id" :row-height="40">
+        <el-table-v2 ref="table" :data="tableData" height="240" row-key="id" :row-height="40">
           <el-table-column fixed prop="id" label="ID" width="80" />
           <el-table-column prop="name" label="Name" width="160" />
           <el-table-column fixed="right" prop="score" label="Score" width="100" />
-        </el-table-virtual>
+        </el-table-v2>
       `,
         data() {
           return {
@@ -966,7 +966,7 @@ describe('TableVirtual', () => {
       await wait(50);
       const table = vm.$refs.table;
       const body = table.$refs.body;
-      const fixedRows = vm.$el.querySelectorAll('.el-table-virtual__fixed-body .el-table-virtual__rows');
+      const fixedRows = vm.$el.querySelectorAll('.el-table-v2__fixed-body .el-table-v2__rows');
       Object.defineProperty(body, 'getBoundingClientRect', {
         configurable: true,
         value() {
@@ -993,11 +993,11 @@ describe('TableVirtual', () => {
     it('syncs fixed hover classes while body scrolls under pointer', async() => {
       vm = createVue({
         template: `
-        <el-table-virtual ref="table" :data="tableData" height="240" row-key="id" :row-height="40">
+        <el-table-v2 ref="table" :data="tableData" height="240" row-key="id" :row-height="40">
           <el-table-column fixed prop="id" label="ID" width="80" />
           <el-table-column prop="name" label="Name" width="160" />
           <el-table-column fixed="right" prop="score" label="Score" width="100" />
-        </el-table-virtual>
+        </el-table-v2>
       `,
         data() {
           return {
@@ -1022,17 +1022,17 @@ describe('TableVirtual', () => {
       await wait(160);
 
       expect(table.hoverRow.id).to.equal(4);
-      expect(vm.$el.querySelectorAll('.el-table-virtual__row.hover-row').length).to.equal(3);
+      expect(vm.$el.querySelectorAll('.el-table-v2__row.hover-row').length).to.equal(3);
     });
 
     it('syncs hover classes after scrolling while pointer stays over fixed columns', async() => {
       vm = createVue({
         template: `
-        <el-table-virtual ref="table" :data="tableData" height="240" row-key="id" :row-height="40">
+        <el-table-v2 ref="table" :data="tableData" height="240" row-key="id" :row-height="40">
           <el-table-column fixed prop="id" label="ID" width="80" />
           <el-table-column prop="name" label="Name" width="160" />
           <el-table-column fixed="right" prop="score" label="Score" width="100" />
-        </el-table-virtual>
+        </el-table-v2>
       `,
         data() {
           return {
@@ -1044,7 +1044,7 @@ describe('TableVirtual', () => {
       await wait(50);
       const table = vm.$refs.table;
       const body = table.$refs.body;
-      const fixedLeft = vm.$el.querySelector('.el-table-virtual__fixed-body.el-table-virtual__fixed-left');
+      const fixedLeft = vm.$el.querySelector('.el-table-v2__fixed-body.el-table-v2__fixed-left');
       Object.defineProperty(body, 'getBoundingClientRect', {
         configurable: true,
         value() {
@@ -1065,7 +1065,7 @@ describe('TableVirtual', () => {
 
       expect(table.hoverRow.id).to.equal(4);
       expect(table.hoverRowVisibleIndex).to.equal(4);
-      expect(vm.$el.querySelectorAll('.el-table-virtual__row.hover-row').length).to.equal(3);
+      expect(vm.$el.querySelectorAll('.el-table-v2__row.hover-row').length).to.equal(3);
     });
 
   });
@@ -1075,7 +1075,7 @@ describe('TableVirtual', () => {
       const sortChange = sinon.spy();
       vm = createVue({
         template: `
-        <el-table-virtual
+        <el-table-v2
           ref="table"
           :data="tableData"
           height="240"
@@ -1090,7 +1090,7 @@ describe('TableVirtual', () => {
             :sort-method="sortMethod"
             :sort-orders="['descending', null]" />
           <el-table-column prop="name" label="Name" width="160" />
-        </el-table-virtual>
+        </el-table-v2>
       `,
         data() {
           return {
@@ -1124,10 +1124,10 @@ describe('TableVirtual', () => {
       const sortChange = sinon.spy();
       vm = createVue({
         template: `
-        <el-table-virtual ref="table" :data="tableData" height="240" row-key="id" @sort-change="sortChange">
+        <el-table-v2 ref="table" :data="tableData" height="240" row-key="id" @sort-change="sortChange">
           <el-table-column prop="score" label="Score" width="120" sortable="custom" />
           <el-table-column prop="name" label="Name" width="160" />
-        </el-table-virtual>
+        </el-table-v2>
       `,
         data() {
           return {
@@ -1151,10 +1151,10 @@ describe('TableVirtual', () => {
       const sortMethod = sinon.spy((a, b) => a.score - b.score);
       vm = createVue({
         template: `
-        <el-table-virtual ref="table" :data="tableData" height="240" row-key="id" :row-height="40" :default-sort="{ prop: 'score', order: 'ascending' }">
+        <el-table-v2 ref="table" :data="tableData" height="240" row-key="id" :row-height="40" :default-sort="{ prop: 'score', order: 'ascending' }">
           <el-table-column prop="score" label="Score" width="120" sortable :sort-method="sortMethod" />
           <el-table-column prop="name" label="Name" width="160" />
-        </el-table-virtual>
+        </el-table-v2>
       `,
         data() {
           return {
@@ -1182,7 +1182,7 @@ describe('TableVirtual', () => {
       const selectionChange = sinon.spy();
       vm = createVue({
         template: `
-        <el-table-virtual
+        <el-table-v2
           ref="table"
           :data="tableData"
           height="240"
@@ -1192,7 +1192,7 @@ describe('TableVirtual', () => {
           @selection-change="selectionChange">
           <el-table-column type="selection" width="48" :selectable="selectable" />
           <el-table-column prop="name" label="Name" width="160" />
-        </el-table-virtual>
+        </el-table-v2>
       `,
         data() {
           return {
@@ -1221,7 +1221,7 @@ describe('TableVirtual', () => {
       expect(select.calledOnce).to.true;
       expect(selectionChange.calledOnce).to.true;
       expect(vm.$refs.table.selection.map(row => row.id)).to.eql([0]);
-      expect(vm.$el.querySelector('.el-table-virtual__body-wrapper .el-table-column--selection .el-checkbox__input').className).to.contain('is-checked');
+      expect(vm.$el.querySelector('.el-table-v2__body-wrapper .el-table-column--selection .el-checkbox__input').className).to.contain('is-checked');
 
       vm.$refs.table.toggleAllSelection();
       await waitImmediate();
@@ -1233,7 +1233,7 @@ describe('TableVirtual', () => {
       await waitImmediate();
       expect(vm.$refs.table.selection.length).to.equal(0);
       expect(vm.$refs.table.isAllSelected).to.false;
-      expect(vm.$el.querySelector('.el-table-virtual__body-wrapper .el-table-column--selection .el-checkbox__input').className).to.not.contain('is-checked');
+      expect(vm.$el.querySelector('.el-table-v2__body-wrapper .el-table-column--selection .el-checkbox__input').className).to.not.contain('is-checked');
 
       vm.$refs.table.toggleRowSelection(vm.tableData[0], true);
       await waitImmediate();
@@ -1245,10 +1245,10 @@ describe('TableVirtual', () => {
     it('keeps selection storage non-reactive after select all', async() => {
       vm = createVue({
         template: `
-        <el-table-virtual ref="table" :data="tableData" height="240" row-key="id">
+        <el-table-v2 ref="table" :data="tableData" height="240" row-key="id">
           <el-table-column type="selection" width="48" />
           <el-table-column prop="name" label="Name" width="160" />
-        </el-table-virtual>
+        </el-table-v2>
       `,
         data() {
           return {
@@ -1270,10 +1270,10 @@ describe('TableVirtual', () => {
     it('reserves selection by row key when data changes', async() => {
       vm = createVue({
         template: `
-        <el-table-virtual ref="table" :data="tableData" height="240" row-key="id">
+        <el-table-v2 ref="table" :data="tableData" height="240" row-key="id">
           <el-table-column type="selection" reserve-selection width="48" />
           <el-table-column prop="name" label="Name" width="160" />
-        </el-table-virtual>
+        </el-table-v2>
       `,
         data() {
           return {
@@ -1302,7 +1302,7 @@ describe('TableVirtual', () => {
       const filterChange = sinon.spy();
       vm = createVue({
         template: `
-        <el-table-virtual ref="table" :data="tableData" height="240" row-key="id" @filter-change="filterChange">
+        <el-table-v2 ref="table" :data="tableData" height="240" row-key="id" @filter-change="filterChange">
           <el-table-column
             column-key="score"
             prop="score"
@@ -1311,7 +1311,7 @@ describe('TableVirtual', () => {
             :filters="[{ text: 'High', value: 'high' }]"
             :filter-method="filterMethod" />
           <el-table-column prop="name" label="Name" width="160" />
-        </el-table-virtual>
+        </el-table-v2>
       `,
         data() {
           return {
@@ -1352,7 +1352,7 @@ describe('TableVirtual', () => {
       const filterMethod = sinon.spy((value, row) => row.score >= value);
       vm = createVue({
         template: `
-        <el-table-virtual ref="table" :data="tableData" height="240" row-key="id" :row-height="40">
+        <el-table-v2 ref="table" :data="tableData" height="240" row-key="id" :row-height="40">
           <el-table-column
             column-key="score"
             prop="score"
@@ -1361,7 +1361,7 @@ describe('TableVirtual', () => {
             :filters="[{ text: 'High', value: 50 }]"
             :filter-method="filterMethod" />
           <el-table-column prop="name" label="Name" width="160" />
-        </el-table-virtual>
+        </el-table-v2>
       `,
         data() {
           return {
@@ -1388,7 +1388,7 @@ describe('TableVirtual', () => {
     it('reports named array state when array state is invalid', async() => {
       vm = createVue({
         template: `
-        <el-table-virtual ref="table" :data="tableData" height="240" row-key="id">
+        <el-table-v2 ref="table" :data="tableData" height="240" row-key="id">
           <el-table-column type="selection" width="48" />
           <el-table-column
             column-key="score"
@@ -1397,7 +1397,7 @@ describe('TableVirtual', () => {
             width="120"
             :filters="[{ text: 'High', value: 'high' }]"
             :filter-method="filterMethod" />
-        </el-table-virtual>
+        </el-table-v2>
       `,
         data() {
           return {
@@ -1435,11 +1435,11 @@ describe('TableVirtual', () => {
     it('renders column header slot', async() => {
       vm = createVue({
         template: `
-        <el-table-virtual :data="tableData" height="240" row-key="id" :row-height="40">
+        <el-table-v2 :data="tableData" height="240" row-key="id" :row-height="40">
           <el-table-column prop="name" width="160">
             <template slot="header" slot-scope="scope">Custom {{ scope.column.property }}</template>
           </el-table-column>
-        </el-table-virtual>
+        </el-table-v2>
       `,
         data() {
           return {
@@ -1449,17 +1449,17 @@ describe('TableVirtual', () => {
       }, true);
 
       await wait(50);
-      expect(vm.$el.querySelector('.el-table-virtual__header-wrapper').textContent).to.contain('Custom name');
+      expect(vm.$el.querySelector('.el-table-v2__header-wrapper').textContent).to.contain('Custom name');
     });
 
     it('renders column header slot without scope', async() => {
       vm = createVue({
         template: `
-        <el-table-virtual :data="tableData" height="240" row-key="id" :row-height="40">
+        <el-table-v2 :data="tableData" height="240" row-key="id" :row-height="40">
           <el-table-column prop="name" width="160">
             <template slot="header">Plain Header</template>
           </el-table-column>
-        </el-table-virtual>
+        </el-table-v2>
       `,
         data() {
           return {
@@ -1469,7 +1469,7 @@ describe('TableVirtual', () => {
       }, true);
 
       await wait(50);
-      expect(vm.$el.querySelector('.el-table-virtual__header-wrapper').textContent).to.contain('Plain Header');
+      expect(vm.$el.querySelector('.el-table-v2__header-wrapper').textContent).to.contain('Plain Header');
     });
 
   });
@@ -1478,9 +1478,9 @@ describe('TableVirtual', () => {
     it('shows tooltip when overflow cell is hovered', async() => {
       vm = createVue({
         template: `
-        <el-table-virtual ref="table" :data="tableData" height="240" row-key="id" :row-height="40">
+        <el-table-v2 ref="table" :data="tableData" height="240" row-key="id" :row-height="40">
           <el-table-column prop="address" label="Address" width="120" show-overflow-tooltip />
-        </el-table-virtual>
+        </el-table-v2>
       `,
         data() {
           return {
@@ -1492,7 +1492,7 @@ describe('TableVirtual', () => {
       await wait(50);
       const tooltip = vm.$refs.table.$refs.tooltip;
       const showSpy = sinon.spy(tooltip, 'handleShowPopper');
-      const cell = vm.$el.querySelector('.el-table-virtual__body-wrapper .el-table-virtual__cell');
+      const cell = vm.$el.querySelector('.el-table-v2__body-wrapper .el-table-v2__cell');
       const cellContent = cell.querySelector('.cell');
       Object.defineProperty(cellContent, 'scrollWidth', { configurable: true, value: 200 });
       Object.defineProperty(cellContent, 'clientWidth', { configurable: true, value: 80 });
@@ -1507,9 +1507,9 @@ describe('TableVirtual', () => {
     it('only adds native title when cell content is ellipsized', async() => {
       vm = createVue({
         template: `
-        <el-table-virtual :data="tableData" height="240" row-key="id" :row-height="40">
+        <el-table-v2 :data="tableData" height="240" row-key="id" :row-height="40">
           <el-table-column prop="address" label="Address" width="120" />
-        </el-table-virtual>
+        </el-table-v2>
       `,
         data() {
           return {
@@ -1519,7 +1519,7 @@ describe('TableVirtual', () => {
       }, true);
 
       await wait(50);
-      const cell = vm.$el.querySelector('.el-table-virtual__body-wrapper .el-table-virtual__cell');
+      const cell = vm.$el.querySelector('.el-table-v2__body-wrapper .el-table-v2__cell');
       const cellContent = cell.querySelector('.cell');
       Object.defineProperty(cellContent, 'scrollWidth', { configurable: true, value: 80 });
       Object.defineProperty(cellContent, 'clientWidth', { configurable: true, value: 120 });
@@ -1536,12 +1536,12 @@ describe('TableVirtual', () => {
     });
 
     it('does not rerender when overflow tooltip cell is hovered', async() => {
-      const renderSpy = sinon.spy(TableVirtual, 'render');
+      const renderSpy = sinon.spy(TableV2, 'render');
       vm = createVue({
         template: `
-        <el-table-virtual ref="table" :data="tableData" height="240" row-key="id" :row-height="40">
+        <el-table-v2 ref="table" :data="tableData" height="240" row-key="id" :row-height="40">
           <el-table-column prop="address" label="Address" width="120" show-overflow-tooltip />
-        </el-table-virtual>
+        </el-table-v2>
       `,
         data() {
           return {
@@ -1553,7 +1553,7 @@ describe('TableVirtual', () => {
       try {
         await wait(50);
         const table = vm.$refs.table;
-        const cell = vm.$el.querySelector('.el-table-virtual__body-wrapper .el-table-virtual__cell');
+        const cell = vm.$el.querySelector('.el-table-v2__body-wrapper .el-table-v2__cell');
         const cellContent = cell.querySelector('.cell');
         Object.defineProperty(cellContent, 'scrollWidth', { configurable: true, value: 200 });
         Object.defineProperty(cellContent, 'clientWidth', { configurable: true, value: 80 });
@@ -1563,7 +1563,7 @@ describe('TableVirtual', () => {
         await waitImmediate();
         expect(renderSpy.callCount).to.equal(0);
         expect(table.hoverRow).to.equal(table.visibleRows[0]);
-        expect(vm.$el.querySelectorAll('.el-table-virtual__row.hover-row').length).to.be.above(0);
+        expect(vm.$el.querySelectorAll('.el-table-v2__row.hover-row').length).to.be.above(0);
       } finally {
         renderSpy.restore();
       }
@@ -1571,7 +1571,7 @@ describe('TableVirtual', () => {
 
   });
 
-  describe('TableVirtual robustness and cleanup', () => {
+  describe('TableV2 robustness and cleanup', () => {
     it('cleans pending frames, tooltip and retained references on destroy', async() => {
       oldRequestAnimationFrame = window.requestAnimationFrame;
       oldCancelAnimationFrame = window.cancelAnimationFrame;
@@ -1583,11 +1583,11 @@ describe('TableVirtual', () => {
 
       vm = createVue({
         template: `
-        <el-table-virtual ref="table" :data="tableData" height="240" row-key="id" :row-height="40" :default-sort="{ prop: 'score', order: 'ascending' }">
+        <el-table-v2 ref="table" :data="tableData" height="240" row-key="id" :row-height="40" :default-sort="{ prop: 'score', order: 'ascending' }">
           <el-table-column prop="name" label="Name" width="160" />
           <el-table-column prop="address" label="Address" width="120" show-overflow-tooltip />
           <el-table-column prop="score" label="Score" width="120" sortable />
-        </el-table-virtual>
+        </el-table-v2>
       `,
         data() {
           return {
@@ -1600,7 +1600,7 @@ describe('TableVirtual', () => {
       const table = vm.$refs.table;
       const body = table.$refs.body;
       const tooltip = table.$refs.tooltip;
-      const cell = vm.$el.querySelectorAll('.el-table-virtual__body-wrapper .el-table-virtual__cell')[1];
+      const cell = vm.$el.querySelectorAll('.el-table-v2__body-wrapper .el-table-v2__cell')[1];
       const cellContent = cell.querySelector('.cell');
       Object.defineProperty(body, 'getBoundingClientRect', {
         configurable: true,

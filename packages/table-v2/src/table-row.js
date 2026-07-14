@@ -1,7 +1,7 @@
 import { getRowKey } from './util';
 
 export default {
-  name: 'ElTableVirtualRow',
+  name: 'ElTableV2Row',
 
   functional: true,
 

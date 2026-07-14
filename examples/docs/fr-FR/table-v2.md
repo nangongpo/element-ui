@@ -1,6 +1,6 @@
-## TableVirtual
+## TableV2
 
-Table virtuelle pour les grands ensembles de données. `TableVirtual` réutilise la déclaration des colonnes avec `el-table-column`, mais ne rend pas d'éléments liés à `table` et ne dépend pas de `position: sticky`. Les colonnes fixes sont rendues par des couches synchronisées séparées. Lorsque les données sont nombreuses, définissez `height` pour activer un rendu virtuel stable.
+Table virtuelle pour les grands ensembles de données. `TableV2` réutilise la déclaration des colonnes avec `el-table-column`, mais ne rend pas d'éléments liés à `table` et ne dépend pas de `position: sticky`. Les colonnes fixes sont rendues par des couches synchronisées séparées. Lorsque les données sont nombreuses, définissez `height` pour activer un rendu virtuel stable.
 
 ### Utilisation de base
 
@@ -9,13 +9,13 @@ La table virtuelle de base sert à afficher des données structurées. Utilisez 
 :::demo
 ```html
 <template>
-  <el-table-virtual
+  <el-table-v2
     :data="tableData"
     style="width: 100%">
     <el-table-column prop="date" label="Date" width="180"></el-table-column>
     <el-table-column prop="name" label="Nom" width="180"></el-table-column>
     <el-table-column prop="address" label="Adresse"></el-table-column>
-  </el-table-virtual>
+  </el-table-v2>
 </template>
 
 <script>
@@ -65,11 +65,11 @@ La table virtuelle de base sert à afficher des données structurées. Utilisez 
 :::demo
 ```html
 <template>
-  <el-table-virtual :data="tableData" stripe style="width: 100%">
+  <el-table-v2 :data="tableData" stripe style="width: 100%">
     <el-table-column prop="date" label="Date" width="180"></el-table-column>
     <el-table-column prop="name" label="Nom" width="180"></el-table-column>
     <el-table-column prop="address" label="Adresse"></el-table-column>
-  </el-table-virtual>
+  </el-table-v2>
 </template>
 
 <script>
@@ -113,11 +113,11 @@ La table virtuelle de base sert à afficher des données structurées. Utilisez 
 :::demo
 ```html
 <template>
-  <el-table-virtual :data="tableData" border style="width: 100%">
+  <el-table-v2 :data="tableData" border style="width: 100%">
     <el-table-column prop="date" label="Date" width="180"></el-table-column>
     <el-table-column prop="name" label="Nom" width="180"></el-table-column>
     <el-table-column prop="address" label="Adresse"></el-table-column>
-  </el-table-virtual>
+  </el-table-v2>
 </template>
 
 <script>
@@ -161,11 +161,11 @@ Utilisez `row-class-name` pour ajouter des classes de statut aux lignes.
 :::demo
 ```html
 <template>
-  <el-table-virtual :data="tableData" :row-class-name="tableRowClassName" style="width: 100%">
+  <el-table-v2 :data="tableData" :row-class-name="tableRowClassName" style="width: 100%">
     <el-table-column prop="date" label="Date" width="180"></el-table-column>
     <el-table-column prop="name" label="Nom" width="180"></el-table-column>
     <el-table-column prop="address" label="Adresse"></el-table-column>
-  </el-table-virtual>
+  </el-table-v2>
 </template>
 
 <script>
@@ -218,11 +218,11 @@ Définissez `height` pour fixer l'en-tête et activer le scroll virtuel.
 :::demo
 ```html
 <template>
-  <el-table-virtual :data="tableData" height="250" row-key="id" style="width: 100%">
+  <el-table-v2 :data="tableData" height="250" row-key="id" style="width: 100%">
     <el-table-column prop="date" label="Date" width="180"></el-table-column>
     <el-table-column prop="name" label="Nom" width="180"></el-table-column>
     <el-table-column prop="address" label="Adresse"></el-table-column>
-  </el-table-virtual>
+  </el-table-v2>
 </template>
 
 <script>
@@ -246,14 +246,14 @@ Utilisez `fixed` ou `fixed="right"` pour fixer des colonnes.
 :::demo
 ```html
 <template>
-  <el-table-virtual :data="tableData" height="250" row-key="id" border style="width: 100%">
+  <el-table-v2 :data="tableData" height="250" row-key="id" border style="width: 100%">
     <el-table-column fixed prop="date" label="Date" width="150"></el-table-column>
     <el-table-column prop="name" label="Nom" width="120"></el-table-column>
     <el-table-column prop="province" label="Province" width="120"></el-table-column>
     <el-table-column prop="city" label="Ville" width="120"></el-table-column>
     <el-table-column prop="address" label="Adresse" width="300"></el-table-column>
     <el-table-column fixed="right" prop="zip" label="Code postal" width="120"></el-table-column>
-  </el-table-virtual>
+  </el-table-v2>
 </template>
 
 <script>
@@ -297,14 +297,14 @@ Les colonnes fixes et l'en-tête fixe peuvent être utilisés ensemble.
 :::demo
 ```html
 <template>
-  <el-table-virtual :data="tableData" height="250" row-key="id" border style="width: 100%">
+  <el-table-v2 :data="tableData" height="250" row-key="id" border style="width: 100%">
     <el-table-column fixed prop="date" label="Date" width="150"></el-table-column>
     <el-table-column prop="name" label="Nom" width="120"></el-table-column>
     <el-table-column prop="province" label="Province" width="120"></el-table-column>
     <el-table-column prop="city" label="Ville" width="120"></el-table-column>
     <el-table-column prop="address" label="Adresse" width="300"></el-table-column>
     <el-table-column prop="zip" label="Code postal" width="120"></el-table-column>
-  </el-table-virtual>
+  </el-table-v2>
 </template>
 
 <script>
@@ -349,12 +349,12 @@ Utilisez `highlight-current-row` pour mettre en valeur la ligne courante. Utilis
 ```html
 <template>
   <div>
-    <el-table-virtual ref="singleTable" :data="tableData" height="250" row-key="id" highlight-current-row style="width: 100%" @current-change="handleCurrentChange">
+    <el-table-v2 ref="singleTable" :data="tableData" height="250" row-key="id" highlight-current-row style="width: 100%" @current-change="handleCurrentChange">
       <el-table-column type="index" width="50"></el-table-column>
       <el-table-column property="date" label="Date" width="120"></el-table-column>
       <el-table-column property="name" label="Nom" width="120"></el-table-column>
       <el-table-column property="address" label="Adresse"></el-table-column>
-    </el-table-virtual>
+    </el-table-v2>
     <div style="margin-top: 20px">
       <el-button @click="setCurrent(tableData[1])">Définir la deuxième ligne</el-button>
       <el-button @click="setCurrent()">Effacer la ligne courante</el-button>
@@ -404,12 +404,12 @@ Ajoutez une colonne avec `type="selection"` pour activer la sélection multiple.
 ```html
 <template>
   <div>
-    <el-table-virtual ref="multipleTable" :data="tableData" height="250" row-key="id" tooltip-effect="dark" style="width: 100%" @selection-change="handleSelectionChange">
+    <el-table-v2 ref="multipleTable" :data="tableData" height="250" row-key="id" tooltip-effect="dark" style="width: 100%" @selection-change="handleSelectionChange">
       <el-table-column type="selection" width="55"></el-table-column>
       <el-table-column label="Date" width="120"><template slot-scope="scope">{{ scope.row.date }}</template></el-table-column>
       <el-table-column prop="name" label="Nom" width="120"></el-table-column>
       <el-table-column prop="address" label="Adresse" show-overflow-tooltip></el-table-column>
-    </el-table-virtual>
+    </el-table-v2>
     <div style="margin-top: 20px">
       <el-button @click="toggleSelection([tableData[1], tableData[2]])">Basculer la sélection des deuxième et troisième lignes</el-button>
       <el-button @click="toggleSelection()">Effacer la sélection</el-button>
@@ -440,12 +440,12 @@ Définissez `sortable` sur une colonne pour trier selon celle-ci. Utilisez `defa
 :::demo
 ```html
 <template>
-  <el-table-virtual :data="tableData" height="250" row-key="id" :default-sort="{ prop: 'date', order: 'descending' }" style="width: 100%">
+  <el-table-v2 :data="tableData" height="250" row-key="id" :default-sort="{ prop: 'date', order: 'descending' }" style="width: 100%">
     <el-table-column prop="date" label="Date" sortable width="180"></el-table-column>
     <el-table-column prop="name" label="Nom" width="180"></el-table-column>
     <el-table-column prop="score" label="Score" sortable width="120"></el-table-column>
     <el-table-column prop="address" label="Adresse"></el-table-column>
-  </el-table-virtual>
+  </el-table-v2>
 </template>
 
 <script>
@@ -464,14 +464,14 @@ Définissez `filters` et `filter-method` sur une colonne pour activer le filtrag
   <div>
     <el-button @click="resetDateFilter">Effacer le filtre de date</el-button>
     <el-button @click="clearFilter">Effacer tous les filtres</el-button>
-    <el-table-virtual ref="filterTable" :data="tableData" height="250" row-key="id" style="width: 100%">
+    <el-table-v2 ref="filterTable" :data="tableData" height="250" row-key="id" style="width: 100%">
       <el-table-column prop="date" label="Date" sortable width="180" column-key="date" :filters="dateFilters" :filter-method="filterHandler"></el-table-column>
       <el-table-column prop="name" label="Nom" width="180"></el-table-column>
       <el-table-column prop="address" label="Adresse" :formatter="formatter"></el-table-column>
       <el-table-column prop="tag" label="Tag" width="100" :filters="[{ text: 'Maison', value: 'Maison' }, { text: 'Bureau', value: 'Bureau' }]" :filter-method="filterTag" filter-placement="bottom-end">
         <template slot-scope="scope"><el-tag :type="scope.row.tag === 'Maison' ? 'primary' : 'success'" disable-transitions>{{ scope.row.tag }}</el-tag></template>
       </el-table-column>
-    </el-table-virtual>
+    </el-table-v2>
   </div>
 </template>
 
@@ -495,11 +495,11 @@ Utilisez les scoped slots pour accéder à `row`, `column`, `$index` et `store`.
 :::demo
 ```html
 <template>
-  <el-table-virtual :data="tableData" height="250" row-key="id" style="width: 100%">
+  <el-table-v2 :data="tableData" height="250" row-key="id" style="width: 100%">
     <el-table-column label="Date" width="180"><template slot-scope="scope"><i class="el-icon-time"></i><span style="margin-left: 10px">{{ scope.row.date }}</span></template></el-table-column>
     <el-table-column label="Nom" width="180"><template slot-scope="scope"><el-popover trigger="hover" placement="top"><p>Nom: {{ scope.row.name }}</p><p>Adresse: {{ scope.row.address }}</p><div slot="reference" class="name-wrapper" style="display: inline-block"><el-tag size="medium">{{ scope.row.name }}</el-tag></div></el-popover></template></el-table-column>
     <el-table-column label="Opérations"><template slot-scope="scope"><el-button size="mini" @click="handleEdit(scope.$index, scope.row)">Modifier</el-button><el-button size="mini" type="danger" @click="handleDelete(scope.$index, scope.row)">Supprimer</el-button></template></el-table-column>
-  </el-table-virtual>
+  </el-table-v2>
 </template>
 
 <script>
@@ -515,11 +515,11 @@ Utilisez le scoped slot `header` pour personnaliser l'en-tête.
 :::demo
 ```html
 <template>
-  <el-table-virtual :data="filteredTableData" height="250" row-key="id" style="width: 100%">
+  <el-table-v2 :data="filteredTableData" height="250" row-key="id" style="width: 100%">
     <el-table-column label="Date" prop="date"></el-table-column>
     <el-table-column label="Nom" prop="name"></el-table-column>
     <el-table-column align="right"><template slot="header" slot-scope="scope"><el-input v-model="search" size="mini" placeholder="Saisissez un mot-clé du nom pour rechercher"/></template><template slot-scope="scope"><el-button size="mini" @click="handleEdit(scope.$index, scope.row)">Modifier</el-button><el-button size="mini" type="danger" @click="handleDelete(scope.$index, scope.row)">Supprimer</el-button></template></el-table-column>
-  </el-table-virtual>
+  </el-table-v2>
 </template>
 
 <script>
@@ -535,12 +535,12 @@ Passez la prop `index` à une colonne `type="index"` pour personnaliser l'index.
 :::demo
 ```html
 <template>
-  <el-table-virtual :data="tableData" height="250" row-key="id" style="width: 100%">
+  <el-table-v2 :data="tableData" height="250" row-key="id" style="width: 100%">
     <el-table-column type="index" :index="indexMethod"></el-table-column>
     <el-table-column prop="date" label="Date" width="180"></el-table-column>
     <el-table-column prop="name" label="Nom" width="180"></el-table-column>
     <el-table-column prop="address" label="Adresse"></el-table-column>
-  </el-table-virtual>
+  </el-table-v2>
 </template>
 
 <script>
@@ -551,27 +551,27 @@ Passez la prop `index` à une colonne `type="index"` pour personnaliser l'index.
 
 ### Hauteur fluide
 
-L'exemple sera ajouté lorsque TableVirtual supportera cette fonctionnalité.
+L'exemple sera ajouté lorsque TableV2 supportera cette fonctionnalité.
 
 ### En-tête groupé
 
-L'exemple sera ajouté lorsque TableVirtual supportera cette fonctionnalité.
+L'exemple sera ajouté lorsque TableV2 supportera cette fonctionnalité.
 
 ### Ligne extensible
 
-L'exemple sera ajouté lorsque TableVirtual supportera cette fonctionnalité.
+L'exemple sera ajouté lorsque TableV2 supportera cette fonctionnalité.
 
 ### Données arborescentes et chargement paresseux
 
-L'exemple sera ajouté lorsque TableVirtual supportera cette fonctionnalité.
+L'exemple sera ajouté lorsque TableV2 supportera cette fonctionnalité.
 
 ### Ligne de résumé
 
-L'exemple sera ajouté lorsque TableVirtual supportera cette fonctionnalité.
+L'exemple sera ajouté lorsque TableV2 supportera cette fonctionnalité.
 
 ### Fusion de lignes ou colonnes
 
-L'exemple sera ajouté lorsque TableVirtual supportera cette fonctionnalité.
+L'exemple sera ajouté lorsque TableV2 supportera cette fonctionnalité.
 
 ### Rendu de grands volumes de données
 
@@ -608,7 +608,7 @@ Lorsque le volume de données est très important, utilisez `reloadData` pour ch
       </span>
     </div>
     <div style="margin-bottom: 12px">{{ selectedCount }} lignes sélectionnées</div>
-    <el-table-virtual
+    <el-table-v2
       ref="largeTable"
       height="250"
       row-key="id"
@@ -633,7 +633,7 @@ Lorsque le volume de données est très important, utilisez `reloadData` pour ch
         </template>
       </el-table-column>
       <el-table-column prop="address" label="Adresse" min-width="300" show-overflow-tooltip></el-table-column>
-    </el-table-virtual>
+    </el-table-v2>
   </div>
 </template>
 
@@ -695,7 +695,7 @@ Lorsque le volume de données est très important, utilisez `reloadData` pour ch
 ```
 :::
 
-### Attributs de TableVirtual
+### Attributs de TableV2
 
 | Attribut | Description | Type | Valeurs acceptées | Défaut |
 |---|---|---|---|---|
@@ -755,7 +755,7 @@ Lorsque le volume de données est très important, utilisez `reloadData` pour ch
 | filtered-value | Valeurs de filtre sélectionnées | array | — | — |
 | filter-placement | Placement du panneau de filtre | string | identique à Tooltip placement | — |
 
-### Évènements de TableVirtual
+### Évènements de TableV2
 
 | Nom | Description | Paramètres |
 |---|---|---|
@@ -777,7 +777,7 @@ Lorsque le volume de données est très important, utilisez `reloadData` pour ch
 | filter-change | Se déclenche lorsque les filtres changent | filters |
 | scroll | Se déclenche lors du scroll du corps de la table | { scrollTop, scrollLeft } |
 
-### Méthodes de TableVirtual
+### Méthodes de TableV2
 
 | Méthode | Description | Paramètres |
 |---|---|---|
@@ -793,7 +793,7 @@ Lorsque le volume de données est très important, utilisez `reloadData` pour ch
 | filter | Définit les valeurs de filtre pour une colonne | columnKey, values |
 | clearFilter | Efface les filtres | columnKeys |
 
-### Slots de TableVirtual
+### Slots de TableV2
 
 | Nom | Description |
 |---|---|
