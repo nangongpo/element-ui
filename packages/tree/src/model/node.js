@@ -1,6 +1,5 @@
 import objectAssign from 'element-ui/src/utils/merge';
 import { markNodeData, NODE_KEY } from './util';
-import { arrayFindIndex } from 'element-ui/src/utils/util';
 
 export const getChildState = node => {
   let all = true;
@@ -8,13 +7,16 @@ export const getChildState = node => {
   let allWithoutDisable = true;
   for (let i = 0, j = node.length; i < j; i++) {
     const n = node[i];
-    if (n.checked !== true || n.indeterminate) {
+    const checked = n.checked;
+    const indeterminate = n.indeterminate;
+    const disabled = n.disabled;
+    if (checked !== true || indeterminate) {
       all = false;
-      if (!n.disabled) {
+      if (!disabled) {
         allWithoutDisable = false;
       }
     }
-    if (n.checked !== false || n.indeterminate) {
+    if (checked !== false || indeterminate) {
       none = false;
     }
   }
@@ -172,9 +174,10 @@ export default class Node {
   get nextSibling() {
     const parent = this.parent;
     if (parent) {
-      const index = parent.childNodes.indexOf(this);
+      const childNodes = parent.childNodes;
+      const index = childNodes.indexOf(this);
       if (index > -1) {
-        return parent.childNodes[index + 1];
+        return childNodes[index + 1];
       }
     }
     return null;
@@ -183,9 +186,10 @@ export default class Node {
   get previousSibling() {
     const parent = this.parent;
     if (parent) {
-      const index = parent.childNodes.indexOf(this);
+      const childNodes = parent.childNodes;
+      const index = childNodes.indexOf(this);
       if (index > -1) {
-        return index > 0 ? parent.childNodes[index - 1] : null;
+        return index > 0 ? childNodes[index - 1] : null;
       }
     }
     return null;
@@ -354,13 +358,15 @@ export default class Node {
   }
 
   setChecked(value, deep, recursion, passValue) {
+    const shouldLoadData = this.shouldLoadData();
     this.indeterminate = value === 'half';
     this.checked = value === true;
 
     if (this.store.checkStrictly) return;
 
-    if (!(this.shouldLoadData() && !this.store.checkDescendants)) {
-      let { all, allWithoutDisable } = getChildState(this.childNodes);
+    if (!(shouldLoadData && !this.store.checkDescendants)) {
+      const childNodes = this.childNodes;
+      let { all, allWithoutDisable } = getChildState(childNodes);
 
       if (!this.isLeaf && (!all && allWithoutDisable)) {
         this.checked = false;
@@ -368,23 +374,24 @@ export default class Node {
       }
 
       const handleDescendants = () => {
-        if (deep) {
-          const childNodes = this.childNodes;
-          for (let i = 0, j = childNodes.length; i < j; i++) {
-            const child = childNodes[i];
-            passValue = passValue || value !== false;
-            const isCheck = child.disabled ? child.checked : passValue;
-            child.setChecked(isCheck, deep, true, passValue);
-          }
-          const { half, all } = getChildState(childNodes);
-          if (!all) {
-            this.checked = all;
-            this.indeterminate = half;
-          }
+        const childNodes = this.childNodes;
+        if (!deep || childNodes.length === 0) return;
+
+        const childPassValue = passValue || value !== false;
+        for (let i = 0, j = childNodes.length; i < j; i++) {
+          const child = childNodes[i];
+          const childChecked = child.checked;
+          const isCheck = child.disabled ? childChecked : childPassValue;
+          child.setChecked(isCheck, deep, true, childPassValue);
+        }
+        const { half, all } = getChildState(childNodes);
+        if (!all) {
+          this.checked = all;
+          this.indeterminate = half;
         }
       };
 
-      if (this.shouldLoadData()) {
+      if (shouldLoadData) {
         // Only work on lazy load data.
         this.loadData(() => {
           handleDescendants();
@@ -430,30 +437,50 @@ export default class Node {
 
   updateChildren() {
     const newData = this.getChildren() || [];
-    const oldData = this.childNodes.map((node) => node.data);
-
-    const newDataMap = {};
+    const childNodes = this.childNodes;
+    const oldDataMap = Object.create(null);
+    const newDataMap = Object.create(null);
+    const oldChildNodes = childNodes.slice();
     const newNodes = [];
+    const store = this.store;
+    const lazy = store.lazy;
 
-    newData.forEach((item, index) => {
-      const key = item[NODE_KEY];
-      const isNodeExists = !!key && arrayFindIndex(oldData, data => data[NODE_KEY] === key) >= 0;
-      if (isNodeExists) {
-        newDataMap[key] = { index, data: item };
-      } else {
-        newNodes.push({ index, data: item });
+    for (let i = 0, j = childNodes.length; i < j; i++) {
+      const child = childNodes[i];
+      const data = child.data;
+      const key = data && data[NODE_KEY];
+      if (key !== undefined) {
+        oldDataMap[key] = true;
       }
-    });
-
-    if (!this.store.lazy) {
-      oldData.forEach((item) => {
-        if (!newDataMap[item[NODE_KEY]]) this.removeChildByData(item);
-      });
     }
 
-    newNodes.forEach(({ index, data }) => {
-      this.insertChild({ data }, index);
-    });
+    for (let i = 0, j = newData.length; i < j; i++) {
+      const item = newData[i];
+      const key = item && item[NODE_KEY];
+      if (key !== undefined && oldDataMap[key]) {
+        newDataMap[key] = true;
+      } else {
+        newNodes.push({ index: i, data: item });
+      }
+    }
+
+    if (!lazy) {
+      for (let i = oldChildNodes.length - 1; i >= 0; i--) {
+        const child = oldChildNodes[i];
+        const data = child.data;
+        const childKey = data && data[NODE_KEY];
+        if (!newDataMap[childKey]) {
+          store && store.deregisterNode(child);
+          child.parent = null;
+          childNodes.splice(i, 1);
+        }
+      }
+    }
+
+    for (let i = 0, j = newNodes.length; i < j; i++) {
+      const { index, data } = newNodes[i];
+      this.insertChild({ data }, index, true);
+    }
 
     this.updateLeafState();
   }

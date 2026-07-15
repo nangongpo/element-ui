@@ -162,7 +162,12 @@
       },
 
       data(newVal) {
+        this.resetDragState();
         this.store.setData(newVal);
+      },
+
+      currentNodeKey(newVal) {
+        this.store.setCurrentNodeKey(newVal);
       },
 
       checkboxItems(val) {
@@ -180,6 +185,19 @@
       filter(value) {
         if (!this.filterNodeMethod) throw new Error('[Tree] filterNodeMethod is required when filter');
         this.store.filter(value);
+      },
+
+      resetDragState() {
+        const dragState = this.dragState;
+        const oldDropNode = dragState.dropNode;
+        if (oldDropNode) {
+          removeClass(oldDropNode.$el, 'is-drop-inner');
+        }
+        dragState.showDropIndicator = false;
+        dragState.draggingNode = null;
+        dragState.dropNode = null;
+        dragState.allowDrop = true;
+        dragState.dropType = null;
       },
 
       getNodeKey(node) {
@@ -296,16 +314,17 @@
         if (currentItem.className.indexOf('el-tree-node') === -1) return;
         const keyCode = ev.keyCode;
         this.treeItems = this.$el.querySelectorAll('.is-focusable[role=treeitem]');
-        const currentIndex = this.treeItemArray.indexOf(currentItem);
+        const treeItems = this.treeItemArray;
+        const currentIndex = treeItems.indexOf(currentItem);
         let nextIndex;
         if ([38, 40].indexOf(keyCode) > -1) { // up、down
           ev.preventDefault();
           if (keyCode === 38) { // up
             nextIndex = currentIndex !== 0 ? currentIndex - 1 : 0;
           } else {
-            nextIndex = (currentIndex < this.treeItemArray.length - 1) ? currentIndex + 1 : 0;
+            nextIndex = (currentIndex < treeItems.length - 1) ? currentIndex + 1 : 0;
           }
-          this.treeItemArray[nextIndex].focus(); // 选中
+          treeItems[nextIndex].focus(); // 选中
         }
         if ([37, 39].indexOf(keyCode) > -1) { // left、right 展开
           ev.preventDefault();
@@ -366,38 +385,40 @@
         }
         const draggingNode = dragState.draggingNode;
         if (!draggingNode || !dropNode) return;
+        const draggingTreeNode = draggingNode.node;
+        const dropTreeNode = dropNode.node;
 
         let dropPrev = true;
         let dropInner = true;
         let dropNext = true;
         let userAllowDropInner = true;
         if (typeof this.allowDrop === 'function') {
-          dropPrev = this.allowDrop(draggingNode.node, dropNode.node, 'prev');
-          userAllowDropInner = dropInner = this.allowDrop(draggingNode.node, dropNode.node, 'inner');
-          dropNext = this.allowDrop(draggingNode.node, dropNode.node, 'next');
+          dropPrev = this.allowDrop(draggingTreeNode, dropTreeNode, 'prev');
+          userAllowDropInner = dropInner = this.allowDrop(draggingTreeNode, dropTreeNode, 'inner');
+          dropNext = this.allowDrop(draggingTreeNode, dropTreeNode, 'next');
         }
         event.dataTransfer.dropEffect = dropInner ? 'move' : 'none';
         if ((dropPrev || dropInner || dropNext) && oldDropNode !== dropNode) {
           if (oldDropNode) {
-            this.$emit('node-drag-leave', draggingNode.node, oldDropNode.node, event);
+            this.$emit('node-drag-leave', draggingTreeNode, oldDropNode.node, event);
           }
-          this.$emit('node-drag-enter', draggingNode.node, dropNode.node, event);
+          this.$emit('node-drag-enter', draggingTreeNode, dropTreeNode, event);
         }
 
         if (dropPrev || dropInner || dropNext) {
           dragState.dropNode = dropNode;
         }
 
-        if (dropNode.node.nextSibling === draggingNode.node) {
+        if (dropTreeNode.nextSibling === draggingTreeNode) {
           dropNext = false;
         }
-        if (dropNode.node.previousSibling === draggingNode.node) {
+        if (dropTreeNode.previousSibling === draggingTreeNode) {
           dropPrev = false;
         }
-        if (dropNode.node.contains(draggingNode.node, false)) {
+        if (dropTreeNode.contains(draggingTreeNode, false)) {
           dropInner = false;
         }
-        if (draggingNode.node === dropNode.node || draggingNode.node.contains(dropNode.node)) {
+        if (draggingTreeNode === dropTreeNode || draggingTreeNode.contains(dropTreeNode)) {
           dropPrev = false;
           dropInner = false;
           dropNext = false;
@@ -422,7 +443,8 @@
           dropType = 'none';
         }
 
-        const iconPosition = dropNode.$el.querySelector('.el-tree-node__expand-icon').getBoundingClientRect();
+        const dropNodeEl = dropNode.$el;
+        const iconPosition = dropNodeEl.querySelector('.el-tree-node__expand-icon').getBoundingClientRect();
         const dropIndicator = this.$refs.dropIndicator;
         if (dropType === 'before') {
           indicatorTop = iconPosition.top - treePosition.top;
@@ -433,15 +455,15 @@
         dropIndicator.style.left = (iconPosition.right - treePosition.left) + 'px';
 
         if (dropType === 'inner') {
-          addClass(dropNode.$el, 'is-drop-inner');
+          addClass(dropNodeEl, 'is-drop-inner');
         } else {
-          removeClass(dropNode.$el, 'is-drop-inner');
+          removeClass(dropNodeEl, 'is-drop-inner');
         }
 
         dragState.showDropIndicator = dropType === 'before' || dropType === 'after';
         dragState.allowDrop = dragState.showDropIndicator || userAllowDropInner;
         dragState.dropType = dropType;
-        this.$emit('node-drag-over', draggingNode.node, dropNode.node, event);
+        this.$emit('node-drag-over', draggingTreeNode, dropTreeNode, event);
       });
 
       this.$on('tree-node-drag-end', (event) => {
@@ -476,10 +498,7 @@
           this.$emit('node-drag-end', draggingNode.node, null, dropType, event);
         }
 
-        dragState.showDropIndicator = false;
-        dragState.draggingNode = null;
-        dragState.dropNode = null;
-        dragState.allowDrop = true;
+        this.resetDragState();
       });
     },
 

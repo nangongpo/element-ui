@@ -2,20 +2,20 @@
   <div
     class="el-tree-node"
     @click.stop="handleClick"
-    @contextmenu="($event) => this.handleContextMenu($event)"
-    v-show="node.visible"
+    @contextmenu="handleContextMenu"
+    v-show="nodeVisible"
     :class="{
       'is-expanded': expanded,
-      'is-current': node.isCurrent,
-      'is-hidden': !node.visible,
-      'is-focusable': !node.disabled,
-      'is-checked': !node.disabled && node.checked
+      'is-current': nodeIsCurrent,
+      'is-hidden': !nodeVisible,
+      'is-focusable': !nodeDisabled,
+      'is-checked': !nodeDisabled && nodeChecked
     }"
     role="treeitem"
     tabindex="-1"
     :aria-expanded="expanded"
-    :aria-disabled="node.disabled"
-    :aria-checked="node.checked"
+    :aria-disabled="nodeDisabled"
+    :aria-checked="nodeChecked"
     :draggable="tree.draggable"
     @dragstart.stop="handleDragStart"
     @dragover.stop="handleDragOver"
@@ -24,27 +24,27 @@
     ref="node"
   >
     <div class="el-tree-node__content"
-      :style="{ 'padding-left': (node.level - 1) * tree.indent + 'px' }">
+      :style="{ 'padding-left': contentPaddingLeft }">
       <span
         @click.stop="handleExpandIconClick"
         :class="[
-          { 'is-leaf': node.isLeaf, expanded: !node.isLeaf && expanded },
+          { 'is-leaf': nodeIsLeaf, expanded: !nodeIsLeaf && expanded },
           'el-tree-node__expand-icon',
-          tree.iconClass ? tree.iconClass : 'el-icon-caret-right'
+          expandIconClass
         ]"
       >
       </span>
       <el-checkbox
         v-if="showCheckbox"
         v-model="node.checked"
-        :indeterminate="node.indeterminate"
-        :disabled="!!node.disabled"
+        :indeterminate="nodeIndeterminate"
+        :disabled="!!nodeDisabled"
         @click.native.stop
         @change="handleCheckChange"
       >
       </el-checkbox>
       <span
-        v-if="node.loading"
+        v-if="nodeLoading"
         class="el-tree-node__loading-icon el-icon-loading">
       </span>
       <node-content :node="node"></node-content>
@@ -116,11 +116,13 @@
           const tree = parent.tree;
           const node = this.node;
           const { data, store } = node;
+          const renderContent = parent.renderContent;
+          const defaultSlot = tree.$scopedSlots.default;
           return (
-            parent.renderContent
-              ? parent.renderContent.call(parent._renderProxy, h, { _self: tree.$vnode.context, node, data, store })
-              : tree.$scopedSlots.default
-                ? tree.$scopedSlots.default({ node, data })
+            renderContent
+              ? renderContent.call(parent._renderProxy, h, { _self: tree.$vnode.context, node, data, store })
+              : defaultSlot
+                ? defaultSlot({ node, data })
                 : <span class="el-tree-node__label">{ node.label }</span>
           );
         }
@@ -137,13 +139,55 @@
       };
     },
 
-    watch: {
-      'node.indeterminate'(val) {
-        this.handleSelectChange(this.node.checked, val);
+    computed: {
+      nodeVisible() {
+        return this.node.visible;
       },
 
-      'node.checked'(val) {
-        this.handleSelectChange(val, this.node.indeterminate);
+      nodeDisabled() {
+        return this.node.disabled;
+      },
+
+      nodeChecked() {
+        return this.node.checked;
+      },
+
+      nodeIndeterminate() {
+        return this.node.indeterminate;
+      },
+
+      nodeIsLeaf() {
+        return this.node.isLeaf;
+      },
+
+      nodeIsCurrent() {
+        return this.node.isCurrent;
+      },
+
+      nodeLoading() {
+        return this.node.loading;
+      },
+
+      nodeSelectionState() {
+        return `${this.node.checked}:${this.node.indeterminate}`;
+      },
+
+      contentPaddingLeft() {
+        return (this.node.level - 1) * this.tree.indent + 'px';
+      },
+
+      expandIconClass() {
+        return this.tree.iconClass || 'el-icon-caret-right';
+      }
+    },
+
+    watch: {
+      nodeSelectionState() {
+        this.syncSelectChange();
+      },
+
+      'node.key'() {
+        this.resetSelectStateCache();
       },
 
       'node.expanded'(val) {
@@ -159,6 +203,15 @@
         return getNodeKey(this.tree.nodeKey, node.data);
       },
 
+      syncSelectChange() {
+        this.handleSelectChange(this.node.checked, this.node.indeterminate);
+      },
+
+      resetSelectStateCache() {
+        this.oldChecked = null;
+        this.oldIndeterminate = null;
+      },
+
       handleSelectChange(checked, indeterminate) {
         if (this.oldChecked !== checked && this.oldIndeterminate !== indeterminate) {
           this.tree.$emit('check-change', this.node.data, checked, indeterminate);
@@ -168,49 +221,58 @@
       },
 
       handleClick() {
-        const store = this.tree.store;
-        store.setCurrentNode(this.node);
-        this.tree.$emit('current-change', store.currentNode ? store.currentNode.data : null, store.currentNode);
-        this.tree.currentNode = this;
-        if (this.tree.expandOnClickNode) {
+        const tree = this.tree;
+        const node = this.node;
+        const store = tree.store;
+        store.setCurrentNode(node);
+        tree.$emit('current-change', store.currentNode ? store.currentNode.data : null, store.currentNode);
+        tree.currentNode = this;
+        if (tree.expandOnClickNode) {
           this.handleExpandIconClick();
         }
-        if (this.tree.checkOnClickNode && !this.node.disabled) {
+        if (tree.checkOnClickNode && !node.disabled) {
           this.handleCheckChange(null, {
-            target: { checked: !this.node.checked }
+            target: { checked: !node.checked }
           });
         }
-        this.tree.$emit('node-click', this.node.data, this.node, this);
+        tree.$emit('node-click', node.data, node, this);
       },
 
       handleContextMenu(event) {
-        if (this.tree._events['node-contextmenu'] && this.tree._events['node-contextmenu'].length > 0) {
+        const tree = this.tree;
+        const node = this.node;
+        if (tree._events['node-contextmenu'] && tree._events['node-contextmenu'].length > 0) {
           event.stopPropagation();
           event.preventDefault();
         }
-        this.tree.$emit('node-contextmenu', event, this.node.data, this.node, this);
+        tree.$emit('node-contextmenu', event, node.data, node, this);
       },
 
       handleExpandIconClick() {
-        if (this.node.isLeaf) return;
+        const tree = this.tree;
+        const node = this.node;
+        if (node.isLeaf) return;
         if (this.expanded) {
-          this.tree.$emit('node-collapse', this.node.data, this.node, this);
-          this.node.collapse();
+          tree.$emit('node-collapse', node.data, node, this);
+          node.collapse();
         } else {
-          this.node.expand();
-          this.$emit('node-expand', this.node.data, this.node, this);
+          node.expand();
+          this.$emit('node-expand', node.data, node, this);
         }
       },
 
       handleCheckChange(value, ev) {
-        this.node.setChecked(ev.target.checked, !this.tree.checkStrictly);
+        const tree = this.tree;
+        const node = this.node;
+        node.setChecked(ev.target.checked, !tree.checkStrictly);
         this.$nextTick(() => {
-          const store = this.tree.store;
-          this.tree.$emit('check', this.node.data, {
-            checkedNodes: store.getCheckedNodes(),
-            checkedKeys: store.getCheckedKeys(),
-            halfCheckedNodes: store.getHalfCheckedNodes(),
-            halfCheckedKeys: store.getHalfCheckedKeys(),
+          const store = tree.store;
+          const checkedState = store._collectCheckedState();
+          tree.$emit('check', node.data, {
+            checkedNodes: checkedState.checkedNodes,
+            checkedKeys: checkedState.checkedKeys,
+            halfCheckedNodes: checkedState.halfCheckedNodes,
+            halfCheckedKeys: checkedState.halfCheckedKeys,
           });
         });
       },
@@ -221,13 +283,15 @@
       },
 
       handleDragStart(event) {
-        if (!this.tree.draggable) return;
-        this.tree.$emit('tree-node-drag-start', event, this);
+        const tree = this.tree;
+        if (!tree.draggable) return;
+        tree.$emit('tree-node-drag-start', event, this);
       },
 
       handleDragOver(event) {
-        if (!this.tree.draggable) return;
-        this.tree.$emit('tree-node-drag-over', event, this);
+        const tree = this.tree;
+        if (!tree.draggable) return;
+        tree.$emit('tree-node-drag-over', event, this);
         event.preventDefault();
       },
 
@@ -236,8 +300,9 @@
       },
 
       handleDragEnd(event) {
-        if (!this.tree.draggable) return;
-        this.tree.$emit('tree-node-drag-end', event, this);
+        const tree = this.tree;
+        if (!tree.draggable) return;
+        tree.$emit('tree-node-drag-end', event, this);
       }
     },
 

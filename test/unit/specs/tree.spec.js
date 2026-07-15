@@ -253,7 +253,11 @@ describe('Tree', () => {
 
     setTimeout(() => {
       expect(tree.$el.querySelectorAll('.el-tree-node.is-hidden').length).to.equal(3);
-      done();
+      tree.filter('');
+      setTimeout(() => {
+        expect(tree.$el.querySelectorAll('.el-tree-node.is-hidden').length).to.equal(0);
+        done();
+      }, 100);
     }, 100);
   });
 

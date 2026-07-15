@@ -5,6 +5,7 @@ export default class TreeStore {
   constructor(options) {
     this.currentNode = null;
     this.currentNodeKey = null;
+    this.defaultCheckedKeysMap = Object.create(null);
 
     for (let option in options) {
       if (options.hasOwnProperty(option)) {
@@ -19,11 +20,15 @@ export default class TreeStore {
       store: this
     });
 
+    this._setDefaultCheckedKeys(this.defaultCheckedKeys || []);
+    this._syncCurrentNode();
+
     if (this.lazy && this.load) {
       const loadFn = this.load;
       loadFn(this.root, (data) => {
         this.root.doCreateChildren(data);
         this._initDefaultCheckedNodes();
+        this._syncCurrentNode();
       });
     } else {
       this._initDefaultCheckedNodes();
@@ -33,27 +38,41 @@ export default class TreeStore {
   filter(value) {
     const filterNodeMethod = this.filterNodeMethod;
     const lazy = this.lazy;
+    if (!value) {
+      const resetVisible = function(node) {
+        const childNodes = node.root ? node.root.childNodes : node.childNodes;
+        for (let i = 0, j = childNodes.length; i < j; i++) {
+          const child = childNodes[i];
+          child.visible = true;
+          resetVisible(child);
+        }
+      };
+
+      this.visible = true;
+      resetVisible(this);
+      return;
+    }
+
     const traverse = function(node) {
       const childNodes = node.root ? node.root.childNodes : node.childNodes;
+      let hasVisibleChild = false;
 
-      childNodes.forEach((child) => {
-        child.visible = filterNodeMethod.call(child, value, child.data, child);
+      for (let i = 0, j = childNodes.length; i < j; i++) {
+        const child = childNodes[i];
+        const visible = filterNodeMethod.call(child, value, child.data, child);
+        child.visible = visible;
+        if (visible) hasVisibleChild = true;
 
         traverse(child);
-      });
+      }
 
       if (!node.visible && childNodes.length) {
-        let allHidden = true;
-        allHidden = !childNodes.some(child => child.visible);
-
         if (node.root) {
-          node.root.visible = allHidden === false;
+          node.root.visible = hasVisibleChild;
         } else {
-          node.visible = allHidden === false;
+          node.visible = hasVisibleChild;
         }
       }
-      if (!value) return;
-
       if (node.visible && !node.isLeaf && !lazy) node.expand();
     };
 
@@ -68,6 +87,8 @@ export default class TreeStore {
     } else {
       this.root.updateChildren();
     }
+
+    this._syncCurrentNode();
   }
 
   getNode(data) {
@@ -119,16 +140,65 @@ export default class TreeStore {
   }
 
   _initDefaultCheckedNode(node) {
-    const defaultCheckedKeys = this.defaultCheckedKeys || [];
-
-    if (defaultCheckedKeys.indexOf(node.key) !== -1) {
+    if (this.defaultCheckedKeysMap[node.key] === true) {
       node.setChecked(true, !this.checkStrictly);
     }
   }
 
+  _setDefaultCheckedKeys(keys) {
+    this.defaultCheckedKeys = keys || [];
+    const map = Object.create(null);
+    this.defaultCheckedKeys.forEach((key) => {
+      map[key] = true;
+    });
+    this.defaultCheckedKeysMap = map;
+  }
+
+  _collectCheckedState(leafOnly = false, includeHalfChecked = false) {
+    const checkedNodes = [];
+    const checkedKeys = [];
+    const halfCheckedNodes = [];
+    const halfCheckedKeys = [];
+    const key = this.key;
+
+    const traverse = function(node) {
+      const childNodes = node.root ? node.root.childNodes : node.childNodes;
+
+      for (let i = 0, j = childNodes.length; i < j; i++) {
+        const child = childNodes[i];
+        const childData = child.data;
+        const childKey = childData ? childData[key] : undefined;
+        const checked = child.checked;
+        const indeterminate = child.indeterminate;
+        const isLeaf = child.isLeaf;
+
+        if ((checked || (includeHalfChecked && indeterminate)) && (!leafOnly || isLeaf)) {
+          checkedNodes.push(childData);
+          checkedKeys.push(childKey);
+        }
+
+        if (indeterminate) {
+          halfCheckedNodes.push(childData);
+          halfCheckedKeys.push(childKey);
+        }
+
+        traverse(child);
+      }
+    };
+
+    traverse(this);
+
+    return {
+      checkedNodes,
+      checkedKeys,
+      halfCheckedNodes,
+      halfCheckedKeys
+    };
+  }
+
   setDefaultCheckedKey(newVal) {
     if (newVal !== this.defaultCheckedKeys) {
-      this.defaultCheckedKeys = newVal;
+      this._setDefaultCheckedKeys(newVal);
       this._initDefaultCheckedNodes();
     }
   }
@@ -153,58 +223,27 @@ export default class TreeStore {
   }
 
   getCheckedNodes(leafOnly = false, includeHalfChecked = false) {
-    const checkedNodes = [];
-    const traverse = function(node) {
-      const childNodes = node.root ? node.root.childNodes : node.childNodes;
-
-      childNodes.forEach((child) => {
-        if ((child.checked || (includeHalfChecked && child.indeterminate)) && (!leafOnly || (leafOnly && child.isLeaf))) {
-          checkedNodes.push(child.data);
-        }
-
-        traverse(child);
-      });
-    };
-
-    traverse(this);
-
-    return checkedNodes;
+    return this._collectCheckedState(leafOnly, includeHalfChecked).checkedNodes;
   }
 
   getCheckedKeys(leafOnly = false) {
-    return this.getCheckedNodes(leafOnly).map((data) => (data || {})[this.key]);
+    return this._collectCheckedState(leafOnly, false).checkedKeys;
   }
 
   getHalfCheckedNodes() {
-    const nodes = [];
-    const traverse = function(node) {
-      const childNodes = node.root ? node.root.childNodes : node.childNodes;
-
-      childNodes.forEach((child) => {
-        if (child.indeterminate) {
-          nodes.push(child.data);
-        }
-
-        traverse(child);
-      });
-    };
-
-    traverse(this);
-
-    return nodes;
+    return this._collectCheckedState(false, true).halfCheckedNodes;
   }
 
   getHalfCheckedKeys() {
-    return this.getHalfCheckedNodes().map((data) => (data || {})[this.key]);
+    return this._collectCheckedState(false, true).halfCheckedKeys;
   }
 
   _getAllNodes() {
     const allNodes = [];
     const nodesMap = this.nodesMap;
-    for (let nodeKey in nodesMap) {
-      if (nodesMap.hasOwnProperty(nodeKey)) {
-        allNodes.push(nodesMap[nodeKey]);
-      }
+    const keys = Object.keys(nodesMap);
+    for (let i = 0, j = keys.length; i < j; i++) {
+      allNodes.push(nodesMap[keys[i]]);
     }
 
     return allNodes;
@@ -227,12 +266,11 @@ export default class TreeStore {
   _setCheckedKeys(key, leafOnly = false, checkedKeys) {
     const allNodes = this._getAllNodes().sort((a, b) => b.level - a.level);
     const cache = Object.create(null);
-    const keys = Object.keys(checkedKeys);
     allNodes.forEach(node => node.setChecked(false, false));
     for (let i = 0, j = allNodes.length; i < j; i++) {
       const node = allNodes[i];
-      const nodeKey = node.data[key].toString();
-      let checked = keys.indexOf(nodeKey) > -1;
+      const nodeKey = node.data[key];
+      let checked = checkedKeys[nodeKey] === true;
       if (!checked) {
         if (node.checked && !cache[nodeKey]) {
           node.setChecked(false, false);
@@ -270,7 +308,7 @@ export default class TreeStore {
 
   setCheckedNodes(array, leafOnly = false) {
     const key = this.key;
-    const checkedKeys = {};
+    const checkedKeys = Object.create(null);
     array.forEach((item) => {
       checkedKeys[(item || {})[key]] = true;
     });
@@ -279,9 +317,9 @@ export default class TreeStore {
   }
 
   setCheckedKeys(keys, leafOnly = false) {
-    this.defaultCheckedKeys = keys;
+    this._setDefaultCheckedKeys(keys);
     const key = this.key;
-    const checkedKeys = {};
+    const checkedKeys = Object.create(null);
     keys.forEach((key) => {
       checkedKeys[key] = true;
     });
@@ -317,16 +355,17 @@ export default class TreeStore {
       prevCurrentNode.isCurrent = false;
     }
     this.currentNode = currentNode;
-    this.currentNode.isCurrent = true;
+    this.currentNodeKey = currentNode ? currentNode.key : null;
+    this.currentNode && (this.currentNode.isCurrent = true);
   }
 
   setUserCurrentNode(node) {
     const key = node[this.key];
-    const currNode = this.nodesMap[key];
-    this.setCurrentNode(currNode);
+    this.setCurrentNodeKey(key);
   }
 
   setCurrentNodeKey(key) {
+    this.currentNodeKey = key;
     if (key === null || key === undefined) {
       this.currentNode && (this.currentNode.isCurrent = false);
       this.currentNode = null;
@@ -335,6 +374,27 @@ export default class TreeStore {
     const node = this.getNode(key);
     if (node) {
       this.setCurrentNode(node);
+    } else if (this.currentNode) {
+      this.currentNode.isCurrent = false;
+      this.currentNode = null;
+    }
+  }
+
+  _syncCurrentNode() {
+    if (this.currentNodeKey === null || this.currentNodeKey === undefined) {
+      if (this.currentNode) {
+        this.currentNode.isCurrent = false;
+      }
+      this.currentNode = null;
+      return;
+    }
+
+    const node = this.getNode(this.currentNodeKey);
+    if (node) {
+      this.setCurrentNode(node);
+    } else if (this.currentNode) {
+      this.currentNode.isCurrent = false;
+      this.currentNode = null;
     }
   }
 };
