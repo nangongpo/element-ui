@@ -85,18 +85,33 @@ Select V2 使用固定高度虚拟滚动。每个选项的实际高度应与 `it
 
 Select V2 只渲染可视区域及缓冲区域内的选项，适合展示万级数据。
 
-:::demo `height` 设置下拉列表最大高度，`item-height` 设置每个选项的固定高度，`overscan` 设置可视区域上下额外渲染的选项数量。
+:::demo `height` 设置下拉列表最大高度，`item-height` 设置每个选项的固定高度，`overscan` 设置可视区域上下额外渲染的选项数量。第二个选择器初始绑定第 8001 个选项，并模拟选项数据延迟加载。
 ```html
 <template>
-  <el-select-v2
-    v-model="value"
-    :options="options"
-    :height="274"
-    :item-height="34"
-    :overscan="3"
-    filterable
-    placeholder="请选择">
-  </el-select-v2>
+  <div>
+    <el-select-v2
+      v-model="value"
+      :options="options"
+      :height="274"
+      :item-height="34"
+      :overscan="3"
+      filterable
+      clearable
+      placeholder="请选择">
+    </el-select-v2>
+    <el-select-v2
+      v-model="delayedValue"
+      :options="delayedOptions"
+      :loading="loading"
+      :height="274"
+      :item-height="34"
+      :overscan="3"
+      filterable
+      clearable
+      style="margin-left: 20px;"
+      placeholder="选项延迟加载">
+    </el-select-v2>
+  </div>
 </template>
 
 <script>
@@ -112,8 +127,20 @@ Select V2 只渲染可视区域及缓冲区域内的选项，适合展示万级�
 
       return {
         options,
-        value: ''
+        delayedOptions: [],
+        value: '',
+        delayedValue: 8000,
+        loading: true
       };
+    },
+    mounted() {
+      this._optionsTimer = setTimeout(() => {
+        this.delayedOptions = this.options.slice();
+        this.loading = false;
+      }, 1000);
+    },
+    beforeDestroy() {
+      clearTimeout(this._optionsTimer);
     }
   };
 </script>
@@ -183,15 +210,25 @@ Select V2 只渲染可视区域及缓冲区域内的选项，适合展示万级�
 
 ### 可清空单选
 
-:::demo 设置 `clearable` 后，鼠标移入选择器时会显示清空按钮。
+:::demo 设置 `clearable` 后，鼠标移入选择器时会显示清空按钮。第二个选择器展示多选时的清空行为。
 ```html
 <template>
-  <el-select-v2
-    v-model="value"
-    :options="options"
-    clearable
-    placeholder="请选择">
-  </el-select-v2>
+  <div>
+    <el-select-v2
+      v-model="value1"
+      :options="options"
+      clearable
+      placeholder="请选择">
+    </el-select-v2>
+    <el-select-v2
+      v-model="value2"
+      :options="options"
+      multiple
+      clearable
+      style="margin-left: 20px;"
+      placeholder="请选择">
+    </el-select-v2>
+  </div>
 </template>
 
 <script>
@@ -201,7 +238,8 @@ Select V2 只渲染可视区域及缓冲区域内的选项，适合展示万级�
         options: [{ value: '选项1', label: '黄金糕' },
           { value: '选项2', label: '双皮奶' },
           { value: '选项3', label: '蚵仔煎' }],
-        value: '选项1'
+        value1: '选项1',
+        value2: ['选项1', '选项2']
       };
     }
   };

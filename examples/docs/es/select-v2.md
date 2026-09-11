@@ -85,18 +85,33 @@ Set `close-on-click-outside` to `false` to keep the dropdown open when an area o
 
 Select V2 renders only visible and overscan options, making it suitable for tens of thousands of items.
 
-:::demo `height` sets the maximum list height, `item-height` sets each fixed row height, and `overscan` adds buffered items above and below the viewport.
+:::demo `height` sets the maximum list height, `item-height` sets each fixed row height, and `overscan` adds buffered items above and below the viewport. The second select starts with item 8001 selected and simulates delayed option loading.
 ```html
 <template>
-  <el-select-v2
-    v-model="value"
-    :options="options"
-    :height="274"
-    :item-height="34"
-    :overscan="3"
-    filterable
-    placeholder="Select">
-  </el-select-v2>
+  <div>
+    <el-select-v2
+      v-model="value"
+      :options="options"
+      :height="274"
+      :item-height="34"
+      :overscan="3"
+      filterable
+      clearable
+      placeholder="Select">
+    </el-select-v2>
+    <el-select-v2
+      v-model="delayedValue"
+      :options="delayedOptions"
+      :loading="loading"
+      :height="274"
+      :item-height="34"
+      :overscan="3"
+      filterable
+      clearable
+      style="margin-left: 20px;"
+      placeholder="Options load after a delay">
+    </el-select-v2>
+  </div>
 </template>
 
 <script>
@@ -112,8 +127,20 @@ Select V2 renders only visible and overscan options, making it suitable for tens
 
       return {
         options,
-        value: ''
+        delayedOptions: [],
+        value: '',
+        delayedValue: 8000,
+        loading: true
       };
+    },
+    mounted() {
+      this._optionsTimer = setTimeout(() => {
+        this.delayedOptions = this.options.slice();
+        this.loading = false;
+      }, 1000);
+    },
+    beforeDestroy() {
+      clearTimeout(this._optionsTimer);
     }
   };
 </script>
@@ -183,15 +210,25 @@ Select V2 renders only visible and overscan options, making it suitable for tens
 
 ### Clearable single select
 
-:::demo Set `clearable` to show a clear button when the selector is hovered.
+:::demo Set `clearable` to show a clear button when the selector is hovered. The second select demonstrates clearing multiple selected values.
 ```html
 <template>
-  <el-select-v2
-    v-model="value"
-    :options="options"
-    clearable
-    placeholder="Select">
-  </el-select-v2>
+  <div>
+    <el-select-v2
+      v-model="value1"
+      :options="options"
+      clearable
+      placeholder="Select">
+    </el-select-v2>
+    <el-select-v2
+      v-model="value2"
+      :options="options"
+      multiple
+      clearable
+      style="margin-left: 20px;"
+      placeholder="Select">
+    </el-select-v2>
+  </div>
 </template>
 
 <script>
@@ -201,7 +238,8 @@ Select V2 renders only visible and overscan options, making it suitable for tens
         options: [{ value: 'Option 1', label: 'Golden cake' },
           { value: 'Option 2', label: 'Double-layer milk' },
           { value: 'Option 3', label: 'Oyster omelet' }],
-        value: 'Option 1'
+        value1: 'Option 1',
+        value2: ['Option 1', 'Option 2']
       };
     }
   };

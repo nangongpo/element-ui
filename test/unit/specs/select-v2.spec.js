@@ -67,6 +67,39 @@ describe('SelectV2', () => {
     expect(vm.visible).to.true;
   });
 
+  it('keeps filterable selects closed after clearing', async() => {
+    vm = createVue({
+      components: { SelectV2 },
+      template: `
+        <div>
+          <select-v2 ref="single" v-model="singleValue" :options="options" filterable clearable></select-v2>
+          <select-v2 ref="multiple" v-model="multipleValue" :options="options" multiple filterable clearable></select-v2>
+        </div>
+      `,
+      data() {
+        return {
+          options: getOptions(3),
+          singleValue: 1,
+          multipleValue: [1, 2]
+        };
+      }
+    }, true);
+
+    const single = vm.$refs.single;
+    const multiple = vm.$refs.multiple;
+    single.inputHovering = multiple.inputHovering = true;
+    await vm.$nextTick();
+
+    triggerEvent(single.$el.querySelector('.el-icon-circle-close'), 'click');
+    triggerEvent(multiple.$el.querySelector('.el-icon-circle-close'), 'click');
+    await vm.$nextTick();
+
+    expect(vm.singleValue).to.equal('');
+    expect(vm.multipleValue).to.deep.equal([]);
+    expect(single.visible).to.false;
+    expect(multiple.visible).to.false;
+  });
+
   it('renders only the virtualized option range', async() => {
     vm = createTest(SelectV2, {
       value: '',
@@ -230,6 +263,56 @@ describe('SelectV2', () => {
     const selectedRect = selected.getBoundingClientRect();
     expect(selectedRect.bottom).to.be.above(listRect.top);
     expect(selectedRect.top).to.be.below(listRect.bottom);
+  });
+
+  it('opens at a selected option loaded after the initial value', async() => {
+    vm = createVue({
+      components: { SelectV2 },
+      template: '<select-v2 ref="select" v-model="value" :options="options"></select-v2>',
+      data() {
+        return {
+          value: 8000,
+          options: []
+        };
+      }
+    }, true);
+    const select = vm.$refs.select;
+
+    vm.options = getOptions(10000);
+    await vm.$nextTick();
+    triggerEvent(select.$el, 'click');
+    await wait(50);
+
+    const list = select.$refs.popper.$refs.list;
+    const selected = select.$refs.popper.$el.querySelector('.el-select-dropdown__item.selected');
+    expect(selected).to.exist;
+    expect(selected.getAttribute('data-option-index')).to.equal('8000');
+    expect(list.$refs.window.scrollTop).to.equal(list.scrollOffset);
+  });
+
+  it('aligns an open dropdown when delayed options arrive', async() => {
+    vm = createVue({
+      components: { SelectV2 },
+      template: '<select-v2 ref="select" v-model="value" :options="options"></select-v2>',
+      data() {
+        return {
+          value: 8000,
+          options: []
+        };
+      }
+    }, true);
+    const select = vm.$refs.select;
+
+    select.visible = true;
+    await wait(50);
+    vm.options = getOptions(10000);
+    await wait(50);
+
+    const list = select.$refs.popper.$refs.list;
+    const selected = select.$refs.popper.$el.querySelector('.el-select-dropdown__item.selected');
+    expect(selected).to.exist;
+    expect(selected.getAttribute('data-option-index')).to.equal('8000');
+    expect(list.$refs.window.scrollTop).to.equal(list.scrollOffset);
   });
 
   it('resets the offset to the first option when reopening without a value', async() => {

@@ -233,16 +233,8 @@ export default {
   handleMenuEnter() {
     this.$nextTick(() => {
       if (!this.visible) return;
-      const selectedIndex = this.findSelectedDisplayIndex();
-      if (selectedIndex > -1) {
-        this.hoveringIndex = selectedIndex;
-        this.scrollToIndex(selectedIndex);
-      } else if (this.defaultFirstOption) {
-        if (this.$refs.popper) this.$refs.popper.resetScrollTop();
-        this.highlightFirstOption();
-      } else if (this.$refs.popper) {
-        this.$refs.popper.resetScrollTop();
-      }
+      this.broadcast('ElSelectDropdown', 'updatePopper');
+      this.syncDropdownScrollPosition(true);
       this.requestLayoutSync();
     });
   },
@@ -261,6 +253,18 @@ export default {
   findSelectedDisplayIndex() {
     return this.displayRows.findIndex(row =>
       row.type === 'option' && this.isOptionSelected(row.option));
+  },
+  syncDropdownScrollPosition(scrollToSelected) {
+    const popper = this.$refs.popper;
+    if (!popper) return;
+    const selectedIndex = scrollToSelected ? this.findSelectedDisplayIndex() : -1;
+    if (selectedIndex > -1) {
+      this.hoveringIndex = selectedIndex;
+      popper.scrollToIndex(selectedIndex);
+    } else {
+      popper.resetScrollTop();
+      if (this.defaultFirstOption) this.highlightFirstOption();
+    }
   },
   handleClose() {
     if (this.closeOnClickOutside) this.visible = false;
@@ -281,7 +285,6 @@ export default {
     this._allowCreate.clearAllNewOption();
     this.syncInputHeightImmediately();
     this.requestLayoutSync();
-    this.focus();
   },
   deleteTag(event, option) {
     const value = (this.value || []).slice();

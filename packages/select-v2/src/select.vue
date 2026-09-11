@@ -399,9 +399,7 @@
         this.invalidateLabelWidth();
         this.hoveringIndex = -1;
         this.$nextTick(() => {
-          const list = this.$refs.popper;
-          if (list) list.scrollTo(0);
-          if (this.defaultFirstOption) this.highlightFirstOption();
+          this.syncDropdownScrollPosition(this.visible && !this.query);
           this.requestLayoutSync();
         });
       },
