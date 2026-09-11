@@ -218,7 +218,7 @@
         initialInputHeight: 0,
         currentPlaceholder: '',
         menuVisibleOnFocus: false,
-        appliedDropdownStyle: {},
+        dropdownContentWidth: 0,
         hitOptionKey: null,
         createdOptions: [],
         cachedSelectedOptions: [],
@@ -359,11 +359,10 @@
           const width = this.fitInputWidth + 'px';
           return { width };
         }
-        if (this.fitInputWidth) {
-          const width = this.inputWidth + 'px';
-          return { width };
-        }
-        return { minWidth: this.inputWidth + 'px' };
+        const width = this.fitInputWidth
+          ? this.inputWidth
+          : Math.max(this.inputWidth, this.dropdownContentWidth);
+        return { width: width + 'px' };
       },
       multipleInputStyle() {
         return {
@@ -390,12 +389,14 @@
         }
       },
       options() {
+        this.resetLabelWidthCache();
         this.syncSelectedOptions();
         this.syncDisplayLabel();
         this.ensureHoverIndex();
         this.requestLayoutSync();
       },
       displayOptions() {
+        this.invalidateLabelWidth();
         this.hoveringIndex = -1;
         this.$nextTick(() => {
           const list = this.$refs.popper;
@@ -412,7 +413,19 @@
         }
         this.$emit('visible-change', value);
       },
-      fitInputWidth() {
+      fitInputWidth(value) {
+        if (value === false) this.invalidateLabelWidth();
+        this.requestLayoutSync();
+      },
+      selectSize() {
+        this.resetLabelWidthCache();
+        this.requestLayoutSync();
+      },
+      popperClass() {
+        this.resetLabelWidthCache();
+        this.requestLayoutSync();
+      },
+      loading() {
         this.requestLayoutSync();
       },
       height() {
@@ -428,6 +441,11 @@
 
     created() {
       this._layoutScheduled = false;
+      this._labelMeasureContext = null;
+      this._labelWidthCache = Object.create(null);
+      this._labelWidthEstimateCache = Object.create(null);
+      this._labelWidthCacheFont = '';
+      this._labelWidthDirty = true;
       this.syncSelectedOptions();
       this.currentPlaceholder = this.propPlaceholder;
       if (this.multiple && !Array.isArray(this.value)) this.$emit('input', []);
@@ -445,7 +463,10 @@
     },
 
     beforeDestroy() {
-      this._layoutScheduled = false;
+      this.cancelLayoutSync();
+      this._labelMeasureContext = null;
+      this._labelWidthCache = null;
+      this._labelWidthEstimateCache = null;
       if (this.$el) removeResizeListener(this.$el, this.requestLayoutSync);
       if (this.$refs.tags) removeResizeListener(this.$refs.tags, this.syncInputHeightImmediately);
     },

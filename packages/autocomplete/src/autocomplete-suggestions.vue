@@ -7,6 +7,7 @@
       :style="{ width: dropdownWidth }"
       role="region">
       <el-scrollbar
+        ref="scrollbar"
         tag="ul"
         wrap-class="el-autocomplete-suggestion__wrap"
         view-class="el-autocomplete-suggestion__list">
@@ -70,6 +71,15 @@
       this.$on('visible', (val, inputWidth) => {
         this.dropdownWidth = inputWidth + 'px';
         this.showPopper = val;
+        if (val) {
+          this.$nextTick(() => {
+            const scrollbar = this.$refs.scrollbar;
+            if (scrollbar && scrollbar.wrap) {
+              scrollbar.wrap.scrollTop = 0;
+              scrollbar.handleScroll();
+            }
+          });
+        }
       });
     }
   };

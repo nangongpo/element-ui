@@ -24,6 +24,9 @@ export declare class ElSelectV2 extends ElSelect {
   /** Preserve the dropdown DOM after it is closed */
   persistent: boolean
 
+  /** Whether clicking outside closes the dropdown */
+  closeOnClickOutside: boolean
+
   /** Maximum number of tags shown when tags are collapsed */
   maxCollapseTags: number
 

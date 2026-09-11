@@ -67,6 +67,19 @@ describe('Utils:VuePopper', () => {
     expect(vm.popperJS).to.not.equal(popperJS);
   });
 
+  it('does not reappend popper already in body', () => {
+    const vm = createTest(Popper);
+    const marker = document.createElement('div');
+
+    vm.createPopper();
+    document.body.appendChild(marker);
+    vm.createPopper();
+
+    expect(document.body.lastChild).to.equal(marker);
+    document.body.removeChild(marker);
+    vm.$destroy();
+  });
+
   it('updatePopper', () => {
     const vm = createTest(Popper);
     vm.updatePopper();

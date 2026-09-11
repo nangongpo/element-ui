@@ -103,6 +103,7 @@ export default function buildList(strategy) {
         stopIndex: -1,
         cacheStartIndex: 0,
         cacheStopIndex: -1,
+        updateRequested: false,
         scrollbarDragging: false
       };
     },
@@ -191,7 +192,11 @@ export default function buildList(strategy) {
 
     mounted() {
       this.updateRange(true);
-      this.scrollTo(this.scrollOffset);
+      this.syncScrollPosition(true);
+    },
+
+    updated() {
+      this.syncScrollPosition();
     },
 
     methods: Object.assign({}, strategyMethods, {
@@ -238,6 +243,7 @@ export default function buildList(strategy) {
           Math.abs(offset),
           Math.max(0, scrollSize - clientSize)
         );
+        this.updateRequested = false;
         if (nextOffset === this.scrollOffset) return;
         this.scrollDirection = nextOffset > this.scrollOffset ? FORWARD : BACKWARD;
         this.scrollOffset = nextOffset;
@@ -259,23 +265,27 @@ export default function buildList(strategy) {
         if (nextOffset === this.scrollOffset) return;
         event.preventDefault();
         if (this.$refs.scrollbar) this.$refs.scrollbar.handleMouseUp();
-        this.scrollTo(nextOffset, false);
+        this.scrollTo(nextOffset);
       },
       clampScrollOffset() {
         if (this.scrollOffset > this.maxOffset) this.scrollTo(this.maxOffset);
       },
-      scrollTo(offset, isProgrammatic = true) {
+      scrollTo(offset) {
         const nextOffset = Math.max(0, Math.min(Number(offset) || 0, this.maxOffset));
+        if (nextOffset === this.scrollOffset) return;
         this.scrollDirection = nextOffset > this.scrollOffset ? FORWARD : BACKWARD;
         this.scrollOffset = nextOffset;
-        if (this.$refs.window) {
-          const property = this.isHorizontal ? 'scrollLeft' : 'scrollTop';
-          this.$refs.window[property] = this.direction === RTL && this.isHorizontal
-            ? -nextOffset : nextOffset;
-        }
+        this.updateRequested = true;
         this.updateRange();
         this.emitEndReached();
-        this.$emit(SCROLL_EVT, this.scrollDirection, this.scrollOffset, isProgrammatic);
+        this.$emit(SCROLL_EVT, this.scrollDirection, this.scrollOffset, this.updateRequested);
+      },
+      syncScrollPosition(force) {
+        if ((!force && !this.updateRequested) || !this.$refs.window) return;
+        const property = this.isHorizontal ? 'scrollLeft' : 'scrollTop';
+        const offset = this.direction === RTL && this.isHorizontal
+          ? -this.scrollOffset : this.scrollOffset;
+        if (this.$refs.window[property] !== offset) this.$refs.window[property] = offset;
       },
       scrollToIndex(index, alignment) {
         this.scrollToItem(index, alignment);
@@ -311,7 +321,7 @@ export default function buildList(strategy) {
       },
       handleScrollbarScroll(distance, totalSteps) {
         if (!totalSteps) return;
-        this.scrollTo(distance / totalSteps * this.maxOffset, false);
+        this.scrollTo(distance / totalSteps * this.maxOffset);
       },
       getItemStyleCache() {
         if (arguments[0] === -1) this._itemStyleCache = {};

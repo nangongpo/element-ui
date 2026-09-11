@@ -48,6 +48,39 @@ Use it for a basic single selection.
 ```
 :::
 
+### Keep open when clicking outside
+
+Set `close-on-click-outside` to `false` to keep the dropdown open when an area outside the selector and dropdown is clicked.
+
+:::demo Open the dropdown, then click the button on the right. The dropdown remains open. It can still be closed by clicking the selector again, pressing Esc or Tab, or selecting an option.
+```html
+<template>
+  <div>
+    <el-select-v2
+      v-model="value"
+      :options="options"
+      :close-on-click-outside="false"
+      placeholder="Select">
+    </el-select-v2>
+    <el-button style="margin-left: 20px;">Click outside</el-button>
+  </div>
+</template>
+
+<script>
+  export default {
+    data() {
+      return {
+        options: [{ value: 'HTML', label: 'H5' },
+          { value: 'CSS', label: 'CSS' },
+          { value: 'JavaScript', label: 'JS' }],
+        value: ''
+      };
+    }
+  };
+</script>
+```
+:::
+
 ### Large data sets
 
 Select V2 renders only visible and overscan options, making it suitable for tens of thousands of items.
@@ -395,21 +428,29 @@ Create and select entries that are not present in the option list.
 
 ### Dropdown width and overflow
 
-Control dropdown width with `fit-input-width`. Overflowing visible options are ellipsized and receive a native `title`.
+Control dropdown width with `fit-input-width`. When omitted, it defaults to `true` and the dropdown matches the input width. Overflowing visible options are ellipsized and receive a native `title`.
 
-:::demo `true` matches the input width, `false` uses it as the minimum width, and a number sets a fixed pixel width.
+:::demo When `fit-input-width` is omitted, the dropdown matches the input width by default. `false` uses the input width as the minimum and expands to fit option labels, while a number sets a fixed pixel width.
 ```html
 <template>
   <div>
     <el-select-v2
       v-model="value1"
       :options="options"
-      :fit-input-width="220"
-      placeholder="Fixed 220px">
+      style="width: 180px;"
+      placeholder="Matches input width by default">
     </el-select-v2>
 
     <el-select-v2
       v-model="value2"
+      :options="options"
+      :fit-input-width="220"
+      style="margin-left: 20px;"
+      placeholder="Fixed 220px">
+    </el-select-v2>
+
+    <el-select-v2
+      v-model="value3"
       :options="options"
       :fit-input-width="false"
       style="margin-left: 20px; width: 180px;"
@@ -430,7 +471,8 @@ Control dropdown width with `fit-input-width`. Overflowing visible options are e
           label: 'Short option'
         }],
         value1: '',
-        value2: ''
+        value2: '',
+        value3: ''
       };
     }
   };
@@ -515,6 +557,7 @@ Use `label-key`, `disabled-key`, and `value-key` with custom data structures.
 | show-arrow | Whether to show the dropdown arrow | boolean | — | true |
 | remote-show-suffix | Whether to show the suffix during remote search | boolean | — | false |
 | persistent | Whether to preserve dropdown DOM when closed | boolean | — | true |
+| close-on-click-outside | Whether clicking outside closes the dropdown | boolean | — | true |
 | reserve-keyword | Whether to preserve the query after selection | boolean | — | true |
 | default-first-option | Select the first matching option on Enter; requires `filterable` or `remote` | boolean | — | false |
 | popper-append-to-body | Whether to append the dropdown to body | boolean | — | true |

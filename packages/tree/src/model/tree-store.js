@@ -214,12 +214,15 @@ export default class TreeStore {
   deregisterNode(node) {
     const key = this.key;
     if (!key || !node || !node.data) return;
-
-    node.childNodes.forEach(child => {
-      this.deregisterNode(child);
-    });
-
-    delete this.nodesMap[node.key];
+    const stack = [node];
+    while (stack.length) {
+      const current = stack.pop();
+      const childNodes = current.childNodes;
+      for (let i = 0, j = childNodes.length; i < j; i++) {
+        stack.push(childNodes[i]);
+      }
+      delete this.nodesMap[current.key];
+    }
   }
 
   getCheckedNodes(leafOnly = false, includeHalfChecked = false) {
@@ -252,15 +255,21 @@ export default class TreeStore {
   updateChildren(key, data) {
     const node = this.nodesMap[key];
     if (!node) return;
-    const childNodes = node.childNodes;
-    for (let i = childNodes.length - 1; i >= 0; i--) {
-      const child = childNodes[i];
-      this.remove(child.data);
+    const childrenKey = this.props.children || 'children';
+    const oldChildNodes = node.childNodes.slice();
+    node.data[childrenKey] = data;
+
+    for (let i = oldChildNodes.length - 1; i >= 0; i--) {
+      this.deregisterNode(oldChildNodes[i]);
     }
+
+    node.childNodes = [];
     for (let i = 0, j = data.length; i < j; i++) {
-      const child = data[i];
-      this.append(child, node.data);
+      node.insertChild({ data: data[i] }, undefined, true);
     }
+
+    node.updateLeafState();
+    this._syncCurrentNode();
   }
 
   _setCheckedKeys(key, leafOnly = false, checkedKeys) {

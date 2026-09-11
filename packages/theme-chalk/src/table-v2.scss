@@ -105,10 +105,10 @@
   &.el-table .el-table-v2__cell > .cell {
     display: inline-block;
     vertical-align: middle;
-    max-width: 100%;
+    width: 100%;
     white-space: nowrap;
     word-break: normal;
-    line-height: 1;
+    // line-height: 1;
   }
 
   @include e(fixed-left) {

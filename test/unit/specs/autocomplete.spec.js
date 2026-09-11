@@ -66,6 +66,39 @@ describe('Autocomplete', () => {
       }, 500);
     }, 500);
   });
+
+  it('resets suggestion scroll when shown again', done => {
+    vm = createVue({
+      template: `
+        <el-autocomplete
+          ref="autocomplete"
+          v-model="state"
+          :fetch-suggestions="querySearch">
+        </el-autocomplete>
+      `,
+      data() {
+        return {
+          state: ''
+        };
+      },
+      methods: {
+        querySearch(queryString, cb) {
+          cb([{ value: 'first' }, { value: 'second' }]);
+        }
+      }
+    }, true);
+
+    const suggestions = vm.$refs.autocomplete.$refs.suggestions;
+    const wrap = suggestions.$el.querySelector('.el-autocomplete-suggestion__wrap');
+    wrap.scrollTop = 100;
+    suggestions.$emit('visible', true, 200);
+
+    suggestions.$nextTick(() => {
+      expect(wrap.scrollTop).to.equal(0);
+      done();
+    });
+  });
+
   it('select', done => {
     vm = createVue({
       template: `

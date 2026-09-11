@@ -508,7 +508,18 @@
       },
 
       handleMenuEnter() {
-        this.$nextTick(() => this.scrollToOption(this.selected));
+        this.$nextTick(() => {
+          const selected = Array.isArray(this.selected) ? this.selected[0] : this.selected;
+          if (selected && selected.$el) {
+            this.scrollToOption(this.selected);
+            return;
+          }
+
+          const popper = this.$refs.popper;
+          const menu = popper && popper.$el.querySelector('.el-select-dropdown__wrap');
+          if (menu) menu.scrollTop = 0;
+          this.$refs.scrollbar && this.$refs.scrollbar.handleScroll();
+        });
       },
 
       emitChange(val) {

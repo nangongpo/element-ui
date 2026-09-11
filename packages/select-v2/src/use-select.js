@@ -1,5 +1,16 @@
 import { valueEquals } from 'element-ui/src/utils/util';
 import { isKorean } from 'element-ui/src/utils/shared';
+import domScheduler from 'element-ui/src/utils/dom-scheduler';
+
+const ASCII_WIDTH_FACTORS = [];
+const LABEL_MEASURE_CANDIDATE_COUNT = 3;
+for (let code = 0; code < 128; code++) ASCII_WIDTH_FACTORS[code] = 0.56;
+' !\'(),.:;I[]`ijl|'.split('').forEach(char => {
+  ASCII_WIDTH_FACTORS[char.charCodeAt(0)] = 0.3;
+});
+'MW@#%&QGmwy'.split('').forEach(char => {
+  ASCII_WIDTH_FACTORS[char.charCodeAt(0)] = 0.9;
+});
 
 export default {
   isEmptyValue(value) {
@@ -218,7 +229,10 @@ export default {
       this.query = '';
       this.displayLabel = '';
     }
+  },
+  handleMenuEnter() {
     this.$nextTick(() => {
+      if (!this.visible) return;
       const selectedIndex = this.findSelectedDisplayIndex();
       if (selectedIndex > -1) {
         this.hoveringIndex = selectedIndex;
@@ -248,11 +262,8 @@ export default {
     return this.displayRows.findIndex(row =>
       row.type === 'option' && this.isOptionSelected(row.option));
   },
-  handleMenuEnter() {
-    this.requestLayoutSync();
-  },
   handleClose() {
-    this.visible = false;
+    if (this.closeOnClickOutside) this.visible = false;
   },
   destroyDropdown() {
     if (this.$refs.popper) this.$refs.popper.doDestroy();
@@ -330,25 +341,21 @@ export default {
   },
   syncInputHeightImmediately() {
     if (!this.multiple) return;
-    this.$nextTick(() => {
-      const reference = this.$refs.reference;
-      const input = reference && reference.$el.querySelector('input');
-      const tags = this.$refs.tags;
-      if (!input || !tags) return;
-      const initialHeight = this.initialInputHeight || input.getBoundingClientRect().height || 40;
-      const tagsHeight = Math.round(tags.getBoundingClientRect().height);
-      input.style.height = (this.selectedOptions.length
-        ? Math.max(tagsHeight + (tagsHeight > initialHeight ? 6 : 0), initialHeight)
-        : initialHeight) + 'px';
-    });
+    this.requestLayoutSync();
   },
   requestLayoutSync() {
     if (this._layoutScheduled) return;
     this._layoutScheduled = true;
-    this.$nextTick(() => {
-      if (!this._layoutScheduled) return;
-      this.writeLayoutMetrics(this.readLayoutMetrics());
+    domScheduler.register({
+      vm: this,
+      read: this.readLayoutMetrics,
+      write: this.writeLayoutMetrics
     });
+  },
+  cancelLayoutSync() {
+    this._layoutScheduled = false;
+    domScheduler.deregister(this);
+    if (this.$refs.popper) domScheduler.deregister(this.$refs.popper);
   },
   readLayoutMetrics() {
     const reference = this.$refs.reference;
@@ -356,17 +363,120 @@ export default {
     if (!referenceEl) return null;
     const input = referenceEl.querySelector('input');
     const tags = this.$refs.tags;
-    return {
+    const metrics = {
       inputWidth: referenceEl.getBoundingClientRect().width,
       inputHeight: input ? input.getBoundingClientRect().height : 0,
       tagsHeight: tags ? Math.round(tags.getBoundingClientRect().height) : 0
     };
+    if (this.fitInputWidth === false && this._labelWidthDirty) {
+      metrics.dropdownContentWidth = this.calculateLabelMaxWidth();
+    }
+    return metrics;
+  },
+  calculateLabelMaxWidth() {
+    if (!this.displayOptions.length) return 0;
+    const popper = this.$refs.popper;
+    const dropdownItem = popper && popper.$el.querySelector('.el-select-dropdown__item');
+    const context = this.getLabelMeasureContext();
+    if (!dropdownItem || !context) return null;
+    const style = window.getComputedStyle(dropdownItem);
+    const dropdownStyle = window.getComputedStyle(popper.$el);
+    const padding = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
+    const border = (parseFloat(dropdownStyle.borderLeftWidth) || 0) +
+      (parseFloat(dropdownStyle.borderRightWidth) || 0);
+    const font = style.font
+      ? `bold ${style.font.replace(new RegExp(`\\b${style.fontWeight}\\b`), '')}`
+      : `bold ${style.fontSize} ${style.fontFamily}`;
+    if (this._labelWidthCacheFont !== font) {
+      this._labelWidthCache = Object.create(null);
+      this._labelWidthEstimateCache = Object.create(null);
+      this._labelWidthCacheFont = font;
+      context.font = font;
+    }
+    const labels = this.findWidestEstimatedLabels(LABEL_MEASURE_CANDIDATE_COUNT);
+    let maxWidth = 0;
+    labels.forEach(label => {
+      if (!Object.prototype.hasOwnProperty.call(this._labelWidthCache, label)) {
+        this._labelWidthCache[label] = context.measureText(label).width;
+      }
+      maxWidth = Math.max(maxWidth, this._labelWidthCache[label]);
+    });
+    return maxWidth + padding + border;
+  },
+  findWidestEstimatedLabels(limit) {
+    const options = this.displayOptions;
+    const candidates = [];
+    const seenLabels = Object.create(null);
+    for (let index = 0; index < options.length; index++) {
+      const label = String(this.getOptionLabel(options[index]));
+      if (seenLabels[label]) continue;
+      seenLabels[label] = true;
+      const estimate = this.estimateLabelWidth(label);
+      let insertIndex = candidates.length;
+      while (insertIndex > 0 && estimate > candidates[insertIndex - 1].estimate) insertIndex--;
+      if (insertIndex >= limit) continue;
+      candidates.splice(insertIndex, 0, { label, estimate });
+      if (candidates.length > limit) candidates.pop();
+    }
+    return candidates.map(candidate => candidate.label);
+  },
+  estimateLabelWidth(label) {
+    if (Object.prototype.hasOwnProperty.call(this._labelWidthEstimateCache, label)) {
+      return this._labelWidthEstimateCache[label];
+    }
+    let width = 0;
+    for (let index = 0; index < label.length; index++) {
+      const code = label.charCodeAt(index);
+      if (code < 128) {
+        width += ASCII_WIDTH_FACTORS[code];
+      } else if (code >= 0xD800 && code <= 0xDBFF && index + 1 < label.length) {
+        width += 1;
+        index++;
+      } else if (code >= 0x0300 && code <= 0x036F) {
+        continue;
+      } else {
+        width += code >= 0x2E80 ? 1 : 0.65;
+      }
+    }
+    this._labelWidthEstimateCache[label] = width;
+    return width;
+  },
+  getLabelMeasureContext() {
+    if (!this._labelMeasureContext) {
+      this._labelMeasureContext = document.createElement('canvas').getContext('2d');
+    }
+    return this._labelMeasureContext;
+  },
+  resetLabelWidthCache() {
+    this._labelWidthCache = Object.create(null);
+    this._labelWidthEstimateCache = Object.create(null);
+    this.invalidateLabelWidth();
+  },
+  invalidateLabelWidth() {
+    this._labelWidthDirty = true;
+  },
+  requestPopperUpdate() {
+    const popper = this.$refs.popper;
+    if (!this.visible || !popper) return;
+    domScheduler.register({
+      vm: popper,
+      read: () => true,
+      write: () => {
+        if (this.visible && this.$refs.popper === popper) {
+          this.broadcast('ElSelectDropdown', 'updatePopper');
+        }
+      }
+    });
   },
   writeLayoutMetrics(metrics) {
     this._layoutScheduled = false;
     if (!metrics) return;
     this.inputWidth = metrics.inputWidth;
-    this.appliedDropdownStyle = this.dropdownStyle;
+    if (metrics.dropdownContentWidth !== null &&
+      typeof metrics.dropdownContentWidth !== 'undefined') {
+      this.dropdownContentWidth = metrics.dropdownContentWidth;
+      this._labelWidthDirty = false;
+    }
     if (!this.initialInputHeight) this.initialInputHeight = metrics.inputHeight;
     if (this.multiple) {
       const reference = this.$refs.reference;
@@ -378,8 +488,6 @@ export default {
           : initialHeight) + 'px';
       }
     }
-    if (this.visible && this.$refs.popper) {
-      this.broadcast('ElSelectDropdown', 'updatePopper');
-    }
+    this.requestPopperUpdate();
   }
 };

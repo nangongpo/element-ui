@@ -105,6 +105,19 @@ describe('Select', () => {
     expect(result).to.true;
   });
 
+  it('resets menu scroll when opened without a selected option', done => {
+    vm = getSelectVm();
+    const select = vm.$refs.select;
+    const menu = select.$refs.popper.$el.querySelector('.el-select-dropdown__wrap');
+    menu.scrollTop = 100;
+
+    select.handleMenuEnter();
+    select.$nextTick(() => {
+      expect(menu.scrollTop).to.equal(0);
+      done();
+    });
+  });
+
   it('custom dropdown class', () => {
     vm = getSelectVm({ popperClass: 'custom-dropdown' });
     const dropdown = vm.$el.querySelector('.el-select-dropdown');

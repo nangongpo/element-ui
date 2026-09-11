@@ -25,25 +25,24 @@ export const getChildState = node => {
 };
 
 const reInitChecked = function(node) {
-  if (node.childNodes.length === 0 || node.loading) return;
+  let current = node;
+  while (current && current.level > 0) {
+    const childNodes = current.childNodes;
+    if (childNodes.length === 0 || current.loading) return;
+    const {all, none, half} = getChildState(childNodes);
+    if (all) {
+      current.checked = true;
+      current.indeterminate = false;
+    } else if (half) {
+      current.checked = false;
+      current.indeterminate = true;
+    } else if (none) {
+      current.checked = false;
+      current.indeterminate = false;
+    }
 
-  const {all, none, half} = getChildState(node.childNodes);
-  if (all) {
-    node.checked = true;
-    node.indeterminate = false;
-  } else if (half) {
-    node.checked = false;
-    node.indeterminate = true;
-  } else if (none) {
-    node.checked = false;
-    node.indeterminate = false;
-  }
-
-  const parent = node.parent;
-  if (!parent || parent.level === 0) return;
-
-  if (!node.store.checkStrictly) {
-    reInitChecked(parent);
+    if (current.store.checkStrictly) return;
+    current = current.parent;
   }
 };
 
@@ -341,17 +340,21 @@ export default class Node {
   }
 
   shouldLoadData() {
-    return this.store.lazy === true && this.store.load && !this.loaded;
+    const store = this.store;
+    return store.lazy === true && store.load && !this.loaded;
   }
 
   updateLeafState() {
-    if (this.store.lazy === true && this.loaded !== true && typeof this.isLeafByUser !== 'undefined') {
+    const store = this.store;
+    const lazy = store.lazy;
+    const loaded = this.loaded;
+    if (lazy === true && loaded !== true && typeof this.isLeafByUser !== 'undefined') {
       this.isLeaf = this.isLeafByUser;
       return;
     }
     const childNodes = this.childNodes;
-    if (!this.store.lazy || (this.store.lazy === true && this.loaded === true)) {
-      this.isLeaf = !childNodes || childNodes.length === 0;
+    if (!lazy || (lazy === true && loaded === true)) {
+      this.isLeaf = childNodes.length === 0;
       return;
     }
     this.isLeaf = false;
@@ -366,11 +369,13 @@ export default class Node {
 
     if (!(shouldLoadData && !this.store.checkDescendants)) {
       const childNodes = this.childNodes;
-      let { all, allWithoutDisable } = getChildState(childNodes);
+      if (!shouldLoadData) {
+        let { all, allWithoutDisable } = getChildState(childNodes);
 
-      if (!this.isLeaf && (!all && allWithoutDisable)) {
-        this.checked = false;
-        value = false;
+        if (!this.isLeaf && (!all && allWithoutDisable)) {
+          this.checked = false;
+          value = false;
+        }
       }
 
       const handleDescendants = () => {
@@ -384,10 +389,13 @@ export default class Node {
           const isCheck = child.disabled ? childChecked : childPassValue;
           child.setChecked(isCheck, deep, true, childPassValue);
         }
-        const { half, all } = getChildState(childNodes);
-        if (!all) {
-          this.checked = all;
-          this.indeterminate = half;
+
+        if (!shouldLoadData) {
+          const { half, all } = getChildState(childNodes);
+          if (!all) {
+            this.checked = all;
+            this.indeterminate = half;
+          }
         }
       };
 

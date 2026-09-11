@@ -30,11 +30,41 @@ describe('SelectV2', () => {
     expect(selectV2Props.estimatedOptionHeight).to.exist;
     expect(selectV2Props.maxCollapseTags.default).to.equal(1);
     expect(selectV2Props.persistent.default).to.true;
+    expect(selectV2Props.closeOnClickOutside.default).to.true;
     expect(selectV2Props.fitInputWidth.default).to.true;
     expect(selectV2Props.emptyValues.default()).to.deep.equal(['', undefined, null]);
     expect(optionProps.item.required).to.true;
     expect(selectV2Emits['end-reached']('bottom')).to.true;
     expect(optionEmits.resize(0, 34)).to.true;
+  });
+
+  it('controls whether clicking outside closes the dropdown', async() => {
+    vm = createTest(SelectV2, {
+      value: '',
+      options: getOptions(3),
+      popperAppendToBody: false
+    }, true);
+
+    vm.visible = true;
+    await vm.$nextTick();
+    triggerEvent(document, 'mousedown');
+    triggerEvent(document, 'mouseup');
+    expect(vm.visible).to.false;
+
+    destroyVM(vm);
+    vm = null;
+    vm = createTest(SelectV2, {
+      value: '',
+      options: getOptions(3),
+      closeOnClickOutside: false,
+      popperAppendToBody: false
+    }, true);
+
+    vm.visible = true;
+    await vm.$nextTick();
+    triggerEvent(document, 'mousedown');
+    triggerEvent(document, 'mouseup');
+    expect(vm.visible).to.true;
   });
 
   it('renders only the virtualized option range', async() => {
@@ -149,6 +179,57 @@ describe('SelectV2', () => {
     expect(vm.$refs.popper.$refs.list.itemsToRender.length).to.be.above(0);
     expect(document.body.contains(vm.$refs.popper.$el)).to.true;
     expect(vm.$refs.popper.$el.querySelectorAll('.el-select-dropdown__item').length).to.be.above(0);
+  });
+
+  it('reopens the large persistent dropdown after selecting a later option', async() => {
+    vm = createVue({
+      components: { SelectV2 },
+      template: `
+        <select-v2
+          ref="select"
+          v-model="value"
+          :options="options"
+          :height="274"
+          :item-height="34"
+          :overscan="3"
+          filterable>
+        </select-v2>
+      `,
+      data() {
+        return {
+          value: '',
+          options: getOptions(10000)
+        };
+      }
+    }, true);
+    const select = vm.$refs.select;
+
+    triggerEvent(select.$el, 'click');
+    await wait(50);
+    const list = select.$refs.popper.$refs.list;
+    list.$refs.window.scrollTop = 8000 * 34;
+    triggerEvent(list.$refs.window, 'scroll');
+    await select.$nextTick();
+    const laterOption = select.$refs.popper.$el.querySelector(
+      '[data-option-index="8000"]'
+    );
+    expect(laterOption).to.exist;
+    triggerEvent(laterOption, 'click');
+    await wait(300);
+    expect(vm.value).to.equal(8000);
+    expect(select.visible).to.false;
+
+    triggerEvent(select.$el, 'click');
+    await wait(50);
+    const selected = select.$refs.popper.$el.querySelector('.el-select-dropdown__item.selected');
+    expect(selected).to.exist;
+    expect(selected.getAttribute('data-option-index')).to.equal('8000');
+    expect(list.scrollOffset).to.be.above(0);
+    expect(list.$refs.window.scrollTop).to.equal(list.scrollOffset);
+    const listRect = list.$refs.window.getBoundingClientRect();
+    const selectedRect = selected.getBoundingClientRect();
+    expect(selectedRect.bottom).to.be.above(listRect.top);
+    expect(selectedRect.top).to.be.below(listRect.bottom);
   });
 
   it('resets the offset to the first option when reopening without a value', async() => {
@@ -275,12 +356,126 @@ describe('SelectV2', () => {
     });
 
     vm.fitInputWidth = false;
-    expect(vm.dropdownStyle).to.deep.equal({ minWidth: '180px' });
+    vm.dropdownContentWidth = 260;
+    expect(vm.dropdownStyle).to.deep.equal({ width: '260px' });
+
+    vm.dropdownContentWidth = 120;
+    expect(vm.dropdownStyle).to.deep.equal({ width: '180px' });
 
     vm.fitInputWidth = 320;
     expect(vm.dropdownStyle).to.deep.equal({
       width: '320px'
     });
+  });
+
+  it('measures labels efficiently without ellipsis when fit input width is false', async() => {
+    const pureChineseLabel = '这是一条内容很长、在固定宽度下会自动显示省略号的选项';
+    const baselineLength = pureChineseLabel.length;
+    const mixedChineseLabel = ('SelectV2' + pureChineseLabel).slice(0, baselineLength);
+    const pureEnglishLabel = new Array(baselineLength + 1).join('W');
+    const baselineLabels = [pureChineseLabel, mixedChineseLabel, pureEnglishLabel];
+    const options = getOptions(10000);
+    baselineLabels.forEach((label, index) => {
+      options[index] = { value: `baseline-${index}`, label };
+    });
+    for (let index = baselineLabels.length; index < options.length; index++) {
+      const randomLength = (index * 17 + 11) % (baselineLength - 1) + 1;
+      options[index].label = baselineLabels[index % baselineLabels.length].slice(0, randomLength);
+    }
+
+    expect(baselineLabels.map(label => label.length)).to.deep.equal([
+      baselineLength,
+      baselineLength,
+      baselineLength
+    ]);
+    expect(options.slice(baselineLabels.length)
+      .every(option => option.label.length < baselineLength)).to.true;
+    vm = createVue({
+      components: { SelectV2 },
+      template: `
+        <select-v2
+          ref="select"
+          v-model="value"
+          :options="options"
+          :fit-input-width="false"
+          :popper-append-to-body="false"
+          style="width: 180px;">
+        </select-v2>
+      `,
+      data() {
+        return {
+          value: '',
+          options
+        };
+      }
+    }, true);
+    const select = vm.$refs.select;
+    select.visible = true;
+    await wait(50);
+
+    expect(select.fitInputWidth).to.false;
+    expect(parseFloat(select.$refs.popper.$el.style.width)).to.be.above(180);
+    expect(select.$refs.popper.$el.style.width).to.equal(select.dropdownStyle.width);
+    expect(select.findWidestEstimatedLabels(1)[0]).to.equal(pureChineseLabel);
+    expect(Object.keys(select._labelWidthCache)).to.have.length(3);
+    select.findWidestEstimatedLabels(3).forEach(label => {
+      expect(select._labelWidthCache).to.have.property(label);
+    });
+
+    const measureText = sinon.spy(select._labelMeasureContext, 'measureText');
+    select.calculateLabelMaxWidth();
+    expect(measureText.called).to.false;
+
+    const findWidestLabels = sinon.spy(select, 'findWidestEstimatedLabels');
+    select.requestLayoutSync();
+    select.requestLayoutSync();
+    await wait(50);
+    expect(findWidestLabels.called).to.false;
+
+    select.invalidateLabelWidth();
+    select.requestLayoutSync();
+    select.requestLayoutSync();
+    await wait(50);
+    expect(findWidestLabels.calledOnce).to.true;
+    expect(select._labelWidthDirty).to.false;
+
+    const broadcast = sinon.spy(select, 'broadcast');
+    select.requestPopperUpdate();
+    select.requestPopperUpdate();
+    await wait(50);
+    expect(broadcast.withArgs('ElSelectDropdown', 'updatePopper').calledOnce).to.true;
+    const item = select.$refs.popper.$el.querySelector('.el-select-dropdown__item');
+    const content = item.querySelector('span');
+
+    expect(item.textContent.trim()).to.equal(pureChineseLabel);
+    expect(content.scrollWidth).to.be.at.most(content.clientWidth);
+    expect(item.hasAttribute('title')).to.false;
+  });
+
+  it('measures alternate candidates when Chinese brackets skew the estimate', async() => {
+    const bracketLabel = '摩托罗拉系统（中国）电子有限公司';
+    const wideLatinLabel = 'WWWWWWWWWWWWWWWWW';
+    vm = createTest(SelectV2, {
+      value: '',
+      options: [
+        { value: 'brackets', label: bracketLabel },
+        { value: 'latin', label: wideLatinLabel }
+      ],
+      fitInputWidth: false,
+      popperAppendToBody: false
+    }, true);
+    vm.visible = true;
+    await wait(50);
+
+    expect(vm.estimateLabelWidth(bracketLabel)).to.be.above(vm.estimateLabelWidth(wideLatinLabel));
+    expect(vm.findWidestEstimatedLabels(1)[0]).to.equal(bracketLabel);
+    expect(vm._labelWidthCache).to.have.property(bracketLabel);
+    expect(vm._labelWidthCache).to.have.property(wideLatinLabel);
+    expect(vm._labelWidthCache[wideLatinLabel]).to.be.above(vm._labelWidthCache[bracketLabel]);
+
+    const items = vm.$refs.popper.$el.querySelectorAll('.el-select-dropdown__item span');
+    expect(items[0].scrollWidth).to.be.at.most(items[0].clientWidth);
+    expect(items[1].scrollWidth).to.be.at.most(items[1].clientWidth);
   });
 
   it('supports multiple selection and its limit', () => {
@@ -362,12 +557,12 @@ describe('SelectV2', () => {
     heightStub.returns({ height: 70 });
 
     vm.syncInputHeightImmediately();
-    await vm.$nextTick();
+    await wait(30);
     expect(input.style.height).to.equal('76px');
 
     heightStub.returns({ height: 34 });
     vm.syncInputHeightImmediately();
-    await vm.$nextTick();
+    await wait(30);
     expect(input.style.height).to.equal('40px');
   });
 
@@ -411,8 +606,7 @@ describe('SelectV2', () => {
     sinon.stub(vm.$refs.tags, 'getBoundingClientRect').returns({ height: 34 });
 
     vm.handleOptionSelect(0);
-    await vm.$nextTick();
-    await vm.$nextTick();
+    await wait(30);
 
     expect(vm.query).to.equal('');
     expect(input.style.height).to.equal('40px');
@@ -446,7 +640,7 @@ describe('SelectV2', () => {
     vm.deleteTag({ stopPropagation() {} }, vm.selectedOptions[2]);
     await vm.$nextTick();
     expect(vm.$refs.tags.querySelectorAll('.el-tag').length).to.equal(2);
-    await vm.$nextTick();
+    await wait(30);
 
     expect(vm.value).to.deep.equal(['HTML', 'CSS']);
     expect(input.style.height).to.equal('40px');
@@ -474,7 +668,7 @@ describe('SelectV2', () => {
     sinon.stub(vm.$refs.tags, 'getBoundingClientRect').returns({ height: 34 });
 
     vm.deleteTag({ stopPropagation() {} }, vm.selectedOptions[2]);
-    await vm.$nextTick();
+    await wait(30);
 
     expect(vm.value).to.deep.equal(['HTML', 'CSS', 'JavaScript']);
     expect(vm.selectedOptions.map(option => vm.getOptionValue(option))).to.deep.equal(['HTML', 'CSS']);
@@ -689,19 +883,22 @@ describe('SelectV2', () => {
     expect(visibleItem.classList.contains('hover')).to.true;
   });
 
-  it('updates layout after the Vue render cycle', async() => {
+  it('coalesces layout updates in the DOM scheduler', async() => {
     vm = createTest(SelectV2, {
       value: '',
       options: []
     }, true);
+    await wait(30);
+    vm.cancelLayoutSync();
     const readSpy = sinon.spy(vm, 'readLayoutMetrics');
     const writeSpy = sinon.spy(vm, 'writeLayoutMetrics');
 
     vm.requestLayoutSync();
-    await vm.$nextTick();
+    vm.requestLayoutSync();
+    await wait(30);
 
-    expect(readSpy.called).to.true;
-    expect(writeSpy.called).to.true;
+    expect(readSpy.calledOnce).to.true;
+    expect(writeSpy.calledOnce).to.true;
   });
 });
 
@@ -813,7 +1010,7 @@ describe('SelectV2 VirtualList', () => {
     expect(vm.$el.hasAttribute('title')).to.false;
   });
 
-  it('scrolls to an index immediately using fixed item height', () => {
+  it('syncs programmatic scrolling without overriding native scrolling', async() => {
     vm = createTest(FixedSizeList, {
       items: getOptions(100),
       height: 102,
@@ -824,8 +1021,17 @@ describe('SelectV2 VirtualList', () => {
     vm.scrollToIndex(20);
 
     expect(vm.scrollOffset).to.equal(612);
-    expect(vm.$refs.window.scrollTop).to.equal(612);
     expect(vm.startIndex).to.be.above(0);
+    expect(vm.updateRequested).to.true;
+    await vm.$nextTick();
+    expect(vm.$refs.window.scrollTop).to.equal(612);
+
+    vm.$refs.window.scrollTop = 340;
+    triggerEvent(vm.$refs.window, 'scroll');
+    await vm.$nextTick();
+    expect(vm.scrollOffset).to.equal(340);
+    expect(vm.updateRequested).to.false;
+    expect(vm.$refs.window.scrollTop).to.equal(340);
   });
 
   it('supports dynamic item sizes and resets metadata after an index', () => {
@@ -880,6 +1086,7 @@ describe('SelectV2 VirtualList', () => {
 
     list.scrollToItem(19, 'center');
     expect(list.scrollOffset).to.equal(300);
+    await list.$nextTick();
     expect(list.$refs.window.scrollLeft).to.equal(300);
   });
 
@@ -891,7 +1098,9 @@ describe('SelectV2 VirtualList', () => {
       itemSize: 20
     }, true);
     const reached = [];
+    const scrollEvents = [];
     vm.$on('end-reached', direction => reached.push(direction));
+    vm.$on('scroll', (...args) => scrollEvents.push(args));
     const wheelEvent = {
       deltaX: 0,
       deltaY: 40,
@@ -900,6 +1109,7 @@ describe('SelectV2 VirtualList', () => {
 
     vm.handleWheel(wheelEvent);
     expect(vm.scrollOffset).to.equal(40);
+    expect(scrollEvents[0]).to.deep.equal(['forward', 40, true]);
     expect(wheelEvent.preventDefault.called).to.true;
 
     vm.scrollTo(vm.maxOffset);

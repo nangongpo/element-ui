@@ -16,6 +16,10 @@ export const selectV2Props = {
   },
   automaticDropdown: Boolean,
   clearable: Boolean,
+  closeOnClickOutside: {
+    type: Boolean,
+    default: true
+  },
   clearIcon: {
     type: String,
     default: 'el-icon-circle-close'

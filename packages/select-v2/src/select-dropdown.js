@@ -229,7 +229,7 @@ export default {
         { 'is-multiple': this.$parent.multiple },
         this.$parent.popperClass
       ],
-      style: this.$parent.appliedDropdownStyle
+      style: this.$parent.dropdownStyle
     }, children);
   }
 };

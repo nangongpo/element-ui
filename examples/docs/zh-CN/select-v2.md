@@ -48,6 +48,39 @@ Select V2 使用固定高度虚拟滚动。每个选项的实际高度应与 `it
 ```
 :::
 
+### 点击外部不关闭
+
+设置 `close-on-click-outside` 为 `false` 后，点击选择器和下拉框以外的区域不会关闭下拉框。
+
+:::demo 展开下拉框后点击右侧按钮，下拉框会保持打开。仍可通过再次点击选择器、按 Esc、按 Tab 或选择一个选项关闭。
+```html
+<template>
+  <div>
+    <el-select-v2
+      v-model="value"
+      :options="options"
+      :close-on-click-outside="false"
+      placeholder="请选择">
+    </el-select-v2>
+    <el-button style="margin-left: 20px;">点击外部区域</el-button>
+  </div>
+</template>
+
+<script>
+  export default {
+    data() {
+      return {
+        options: [{ value: 'HTML', label: 'H5' },
+          { value: 'CSS', label: 'CSS' },
+          { value: 'JavaScript', label: 'JS' }],
+        value: ''
+      };
+    }
+  };
+</script>
+```
+:::
+
 ### 大数据虚拟滚动
 
 Select V2 只渲染可视区域及缓冲区域内的选项，适合展示万级数据。
@@ -395,21 +428,29 @@ Select V2 只渲染可视区域及缓冲区域内的选项，适合展示万级�
 
 ### 下拉框宽度与内容溢出
 
-通过 `fit-input-width` 控制下拉框宽度。选项内容超过可用宽度时显示省略号，组件只检测当前可视区域内的选项，并为实际溢出的选项添加原生 `title`。
+通过 `fit-input-width` 控制下拉框宽度。未配置时默认值为 `true`，下拉框与输入框同宽。选项内容超过可用宽度时显示省略号，组件只检测当前可视区域内的选项，并为实际溢出的选项添加原生 `title`。
 
-:::demo `true` 表示下拉框与输入框同宽，`false` 表示以输入框宽度为最小宽度，数字表示固定像素宽度。
+:::demo 未配置 `fit-input-width` 时下拉框默认与输入框同宽；`false` 表示以输入框宽度为最小宽度，并根据选项内容扩展；数字表示固定像素宽度。
 ```html
 <template>
   <div>
     <el-select-v2
       v-model="value1"
       :options="options"
-      :fit-input-width="220"
-      placeholder="固定 220px">
+      style="width: 180px;"
+      placeholder="默认与输入框同宽">
     </el-select-v2>
 
     <el-select-v2
       v-model="value2"
+      :options="options"
+      :fit-input-width="220"
+      style="margin-left: 20px;"
+      placeholder="固定 220px">
+    </el-select-v2>
+
+    <el-select-v2
+      v-model="value3"
       :options="options"
       :fit-input-width="false"
       style="margin-left: 20px; width: 180px;"
@@ -430,7 +471,8 @@ Select V2 只渲染可视区域及缓冲区域内的选项，适合展示万级�
           label: '短选项'
         }],
         value1: '',
-        value2: ''
+        value2: '',
+        value3: ''
       };
     }
   };
@@ -515,6 +557,7 @@ Select V2 只渲染可视区域及缓冲区域内的选项，适合展示万级�
 | show-arrow | 是否显示下拉箭头 | boolean | — | true |
 | remote-show-suffix | 远程搜索时是否显示后缀图标 | boolean | — | false |
 | persistent | 下拉框关闭时是否保留 DOM | boolean | — | true |
+| close-on-click-outside | 点击下拉框外部时是否关闭下拉框 | boolean | — | true |
 | reserve-keyword | 多选且可搜索时，选中后是否保留搜索关键词 | boolean | — | true |
 | default-first-option | 按 Enter 时选择第一个匹配项，需配合 `filterable` 或 `remote` 使用 | boolean | — | false |
 | popper-append-to-body | 是否将弹出框插入 body | boolean | — | true |
