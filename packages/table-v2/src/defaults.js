@@ -1,0 +1,42 @@
+import { FixedDir } from './constants';
+
+export const tableV2Props = {
+  cache: { type: Number, default: 2 },
+  columns: { type: Array, default: () => [] },
+  data: { type: Array, default: () => [] },
+  dataGetter: Function,
+  fixedData: { type: Array, default: () => [] },
+  fixed: Boolean,
+  width: { type: Number, required: true },
+  height: { type: Number, required: true },
+  maxHeight: Number,
+  headerHeight: { type: [Number, Array], default: 50 },
+  footerHeight: { type: Number, default: 0 },
+  rowHeight: { type: Number, default: 50 },
+  estimatedRowHeight: Number,
+  rowKey: { type: [String, Number], default: 'id' },
+  rowClass: [String, Function],
+  rowProps: [Object, Function],
+  rowEventHandlers: Object,
+  cellProps: [Object, Function],
+  headerClass: [String, Function],
+  headerProps: [Object, Function],
+  headerCellProps: [Object, Function],
+  expandColumnKey: [String, Number],
+  expandedRowKeys: { type: Array, default: () => [] },
+  defaultExpandedRowKeys: { type: Array, default: () => [] },
+  indentSize: { type: Number, default: 12 },
+  iconSize: { type: Number, default: 12 },
+  sortBy: Object,
+  sortState: Object,
+  hScrollbarSize: { type: Number, default: 6 },
+  vScrollbarSize: { type: Number, default: 6 },
+  scrollbarAlwaysOn: Boolean,
+  className: [String, Array, Object],
+  rowRenderer: [Object, Function],
+  headerRenderer: [Object, Function],
+  emptyRenderer: [Object, Function],
+  overlayRenderer: [Object, Function]
+};
+
+export { FixedDir };

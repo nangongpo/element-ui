@@ -1,809 +1,93 @@
-## TableV2
+## Tableau virtualisé
 
-Table virtuelle pour les grands ensembles de données. `TableV2` réutilise la déclaration des colonnes avec `el-table-column`, mais ne rend pas d'éléments liés à `table` et ne dépend pas de `position: sticky`. Les colonnes fixes sont rendues par des couches synchronisées séparées. Lorsque les données sont nombreuses, définissez `height` pour activer un rendu virtuel stable.
+Table V2 utilise `virtual-list` pour afficher de grands volumes de données. Ces exemples suivent l'organisation fonctionnelle de Element Plus Table V2 et utilisent l'API Options de Vue 2. L'ancienne syntaxe avec des enfants `el-table-column` n'est plus supportée : utilisez `columns` et `data`.
 
 ### Utilisation de base
 
-La table virtuelle de base sert à afficher des données structurées. Utilisez `prop` et `label` sur `el-table-column` pour définir les colonnes.
-
 :::demo
 ```html
-<template>
-  <el-table-v2
-    :data="tableData"
-    style="width: 100%">
-    <el-table-column prop="date" label="Date" width="180"></el-table-column>
-    <el-table-column prop="name" label="Nom" width="180"></el-table-column>
-    <el-table-column prop="address" label="Adresse"></el-table-column>
-  </el-table-v2>
-</template>
-
+<template><el-table-v2 :columns="columns" :data="data" :width="700" :height="400" fixed /></template>
 <script>
-  export default {
-    data() {
-      return {
-        tableData: [{
-          date: '2016-05-03',
-          name: 'Tom',
-          province: 'California',
-          city: 'Los Angeles',
-          address: 'No. 189, Grove St, Los Angeles',
-          zip: 200333
-        }, {
-          date: '2016-05-02',
-          name: 'Tom',
-          province: 'California',
-          city: 'Los Angeles',
-          address: 'No. 189, Grove St, Los Angeles',
-          zip: 200333
-        }, {
-          date: '2016-05-04',
-          name: 'Tom',
-          province: 'California',
-          city: 'Los Angeles',
-          address: 'No. 189, Grove St, Los Angeles',
-          zip: 200333
-        }, {
-          date: '2016-05-01',
-          name: 'Tom',
-          province: 'California',
-          city: 'Los Angeles',
-          address: 'No. 189, Grove St, Los Angeles',
-          zip: 200333
-        }]
-      };
-    }
-  };
+export default {
+  data() { return { columns: [{ key: 'id', dataKey: 'id', title: 'ID', width: 120 }, { key: 'name', dataKey: 'name', title: 'Nom', width: 180 }, { key: 'address', dataKey: 'address', title: 'Adresse', width: 360 }], data: Array.from({ length: 1000 }, (_, id) => ({ id, name: 'Tom', address: 'Shanghai, Jinshajiang Road 1518' })) }; }
+};
 </script>
 ```
 :::
 
-### Table rayée
+### Colonnes et lignes fixes
 
-`stripe` affiche des lignes rayées.
-
-:::demo
-```html
-<template>
-  <el-table-v2 :data="tableData" stripe style="width: 100%">
-    <el-table-column prop="date" label="Date" width="180"></el-table-column>
-    <el-table-column prop="name" label="Nom" width="180"></el-table-column>
-    <el-table-column prop="address" label="Adresse"></el-table-column>
-  </el-table-v2>
-</template>
-
-<script>
-  export default { data() { return { tableData: [{
-          date: '2016-05-03',
-          name: 'Tom',
-          province: 'California',
-          city: 'Los Angeles',
-          address: 'No. 189, Grove St, Los Angeles',
-          zip: 200333
-        }, {
-          date: '2016-05-02',
-          name: 'Tom',
-          province: 'California',
-          city: 'Los Angeles',
-          address: 'No. 189, Grove St, Los Angeles',
-          zip: 200333
-        }, {
-          date: '2016-05-04',
-          name: 'Tom',
-          province: 'California',
-          city: 'Los Angeles',
-          address: 'No. 189, Grove St, Los Angeles',
-          zip: 200333
-        }, {
-          date: '2016-05-01',
-          name: 'Tom',
-          province: 'California',
-          city: 'Los Angeles',
-          address: 'No. 189, Grove St, Los Angeles',
-          zip: 200333
-        }] }; } };
-</script>
-```
-:::
-
-### Table avec bordure
-
-`border` affiche les bordures verticales.
+La propriété `fixed` d'une colonne accepte `true`, `left` ou `right`. `fixed-data` affiche des lignes sous l'en-tête et les listes virtuelles synchronisent le défilement vertical.
 
 :::demo
 ```html
-<template>
-  <el-table-v2 :data="tableData" border style="width: 100%">
-    <el-table-column prop="date" label="Date" width="180"></el-table-column>
-    <el-table-column prop="name" label="Nom" width="180"></el-table-column>
-    <el-table-column prop="address" label="Adresse"></el-table-column>
-  </el-table-v2>
-</template>
-
+<template><el-table-v2 :columns="columns" :data="data" :fixed-data="fixedData" :width="700" :height="400" fixed /></template>
 <script>
-  export default { data() { return { tableData: [{
-          date: '2016-05-03',
-          name: 'Tom',
-          province: 'California',
-          city: 'Los Angeles',
-          address: 'No. 189, Grove St, Los Angeles',
-          zip: 200333
-        }, {
-          date: '2016-05-02',
-          name: 'Tom',
-          province: 'California',
-          city: 'Los Angeles',
-          address: 'No. 189, Grove St, Los Angeles',
-          zip: 200333
-        }, {
-          date: '2016-05-04',
-          name: 'Tom',
-          province: 'California',
-          city: 'Los Angeles',
-          address: 'No. 189, Grove St, Los Angeles',
-          zip: 200333
-        }, {
-          date: '2016-05-01',
-          name: 'Tom',
-          province: 'California',
-          city: 'Los Angeles',
-          address: 'No. 189, Grove St, Los Angeles',
-          zip: 200333
-        }] }; } };
+export default {
+  data() { return { columns: [{ key: 'id', dataKey: 'id', title: 'ID', width: 100, fixed: 'left' }, { key: 'name', dataKey: 'name', title: 'Nom', width: 180 }, { key: 'address', dataKey: 'address', title: 'Adresse', width: 360 }, { key: 'action', title: 'Action', width: 120, fixed: 'right' }], fixedData: [{ id: 'fixed', name: 'Ligne fixe', address: 'Reste sous l\'en-tête' }], data: Array.from({ length: 200 }, (_, id) => ({ id, name: 'Tom', address: 'Ligne ' + id })) }; }
+};
 </script>
 ```
 :::
-
-### Table avec statut
-
-Utilisez `row-class-name` pour ajouter des classes de statut aux lignes.
-
-:::demo
-```html
-<template>
-  <el-table-v2 :data="tableData" :row-class-name="tableRowClassName" style="width: 100%">
-    <el-table-column prop="date" label="Date" width="180"></el-table-column>
-    <el-table-column prop="name" label="Nom" width="180"></el-table-column>
-    <el-table-column prop="address" label="Adresse"></el-table-column>
-  </el-table-v2>
-</template>
-
-<script>
-  export default {
-    methods: {
-      tableRowClassName({ rowIndex }) {
-        if (rowIndex === 1) return 'warning-row';
-        if (rowIndex === 3) return 'success-row';
-        return '';
-      }
-    },
-    data() { return { tableData: [{
-          date: '2016-05-03',
-          name: 'Tom',
-          province: 'California',
-          city: 'Los Angeles',
-          address: 'No. 189, Grove St, Los Angeles',
-          zip: 200333
-        }, {
-          date: '2016-05-02',
-          name: 'Tom',
-          province: 'California',
-          city: 'Los Angeles',
-          address: 'No. 189, Grove St, Los Angeles',
-          zip: 200333
-        }, {
-          date: '2016-05-04',
-          name: 'Tom',
-          province: 'California',
-          city: 'Los Angeles',
-          address: 'No. 189, Grove St, Los Angeles',
-          zip: 200333
-        }, {
-          date: '2016-05-01',
-          name: 'Tom',
-          province: 'California',
-          city: 'Los Angeles',
-          address: 'No. 189, Grove St, Los Angeles',
-          zip: 200333
-        }] }; }
-  };
-</script>
-```
-:::
-
-### En-tête fixe
-
-Définissez `height` pour fixer l'en-tête et activer le scroll virtuel.
-
-:::demo
-```html
-<template>
-  <el-table-v2 :data="tableData" height="250" row-key="id" style="width: 100%">
-    <el-table-column prop="date" label="Date" width="180"></el-table-column>
-    <el-table-column prop="name" label="Nom" width="180"></el-table-column>
-    <el-table-column prop="address" label="Adresse"></el-table-column>
-  </el-table-v2>
-</template>
-
-<script>
-  export default {
-    data() {
-      const tableData = [];
-      for (let i = 0; i < 1000; i++) {
-        tableData.push({ id: i, date: '2016-05-' + ((i % 28) + 1), name: 'Tom', address: 'Grove St ' + i });
-      }
-      return { tableData };
-    }
-  };
-</script>
-```
-:::
-
-### Colonne fixe
-
-Utilisez `fixed` ou `fixed="right"` pour fixer des colonnes.
-
-:::demo
-```html
-<template>
-  <el-table-v2 :data="tableData" height="250" row-key="id" border style="width: 100%">
-    <el-table-column fixed prop="date" label="Date" width="150"></el-table-column>
-    <el-table-column prop="name" label="Nom" width="120"></el-table-column>
-    <el-table-column prop="province" label="Province" width="120"></el-table-column>
-    <el-table-column prop="city" label="Ville" width="120"></el-table-column>
-    <el-table-column prop="address" label="Adresse" width="300"></el-table-column>
-    <el-table-column fixed="right" prop="zip" label="Code postal" width="120"></el-table-column>
-  </el-table-v2>
-</template>
-
-<script>
-  export default { data() { return { tableData: [{
-          date: '2016-05-03',
-          name: 'Tom',
-          province: 'California',
-          city: 'Los Angeles',
-          address: 'No. 189, Grove St, Los Angeles',
-          zip: 200333
-        }, {
-          date: '2016-05-02',
-          name: 'Tom',
-          province: 'California',
-          city: 'Los Angeles',
-          address: 'No. 189, Grove St, Los Angeles',
-          zip: 200333
-        }, {
-          date: '2016-05-04',
-          name: 'Tom',
-          province: 'California',
-          city: 'Los Angeles',
-          address: 'No. 189, Grove St, Los Angeles',
-          zip: 200333
-        }, {
-          date: '2016-05-01',
-          name: 'Tom',
-          province: 'California',
-          city: 'Los Angeles',
-          address: 'No. 189, Grove St, Los Angeles',
-          zip: 200333
-        }] }; } };
-</script>
-```
-:::
-
-### Colonne et en-tête fixes
-
-Les colonnes fixes et l'en-tête fixe peuvent être utilisés ensemble.
-
-:::demo
-```html
-<template>
-  <el-table-v2 :data="tableData" height="250" row-key="id" border style="width: 100%">
-    <el-table-column fixed prop="date" label="Date" width="150"></el-table-column>
-    <el-table-column prop="name" label="Nom" width="120"></el-table-column>
-    <el-table-column prop="province" label="Province" width="120"></el-table-column>
-    <el-table-column prop="city" label="Ville" width="120"></el-table-column>
-    <el-table-column prop="address" label="Adresse" width="300"></el-table-column>
-    <el-table-column prop="zip" label="Code postal" width="120"></el-table-column>
-  </el-table-v2>
-</template>
-
-<script>
-  export default { data() { return { tableData: [{
-          date: '2016-05-03',
-          name: 'Tom',
-          province: 'California',
-          city: 'Los Angeles',
-          address: 'No. 189, Grove St, Los Angeles',
-          zip: 200333
-        }, {
-          date: '2016-05-02',
-          name: 'Tom',
-          province: 'California',
-          city: 'Los Angeles',
-          address: 'No. 189, Grove St, Los Angeles',
-          zip: 200333
-        }, {
-          date: '2016-05-04',
-          name: 'Tom',
-          province: 'California',
-          city: 'Los Angeles',
-          address: 'No. 189, Grove St, Los Angeles',
-          zip: 200333
-        }, {
-          date: '2016-05-01',
-          name: 'Tom',
-          province: 'California',
-          city: 'Los Angeles',
-          address: 'No. 189, Grove St, Los Angeles',
-          zip: 200333
-        }] }; } };
-</script>
-```
-:::
-
-### Ligne courante
-
-Utilisez `highlight-current-row` pour mettre en valeur la ligne courante. Utilisez `setCurrentRow` pour la définir manuellement.
-
-:::demo
-```html
-<template>
-  <div>
-    <el-table-v2 ref="singleTable" :data="tableData" height="250" row-key="id" highlight-current-row style="width: 100%" @current-change="handleCurrentChange">
-      <el-table-column type="index" width="50"></el-table-column>
-      <el-table-column property="date" label="Date" width="120"></el-table-column>
-      <el-table-column property="name" label="Nom" width="120"></el-table-column>
-      <el-table-column property="address" label="Adresse"></el-table-column>
-    </el-table-v2>
-    <div style="margin-top: 20px">
-      <el-button @click="setCurrent(tableData[1])">Définir la deuxième ligne</el-button>
-      <el-button @click="setCurrent()">Effacer la ligne courante</el-button>
-    </div>
-  </div>
-</template>
-
-<script>
-  export default { data() { return { tableData: [{
-          date: '2016-05-03',
-          name: 'Tom',
-          province: 'California',
-          city: 'Los Angeles',
-          address: 'No. 189, Grove St, Los Angeles',
-          zip: 200333
-        }, {
-          date: '2016-05-02',
-          name: 'Tom',
-          province: 'California',
-          city: 'Los Angeles',
-          address: 'No. 189, Grove St, Los Angeles',
-          zip: 200333
-        }, {
-          date: '2016-05-04',
-          name: 'Tom',
-          province: 'California',
-          city: 'Los Angeles',
-          address: 'No. 189, Grove St, Los Angeles',
-          zip: 200333
-        }, {
-          date: '2016-05-01',
-          name: 'Tom',
-          province: 'California',
-          city: 'Los Angeles',
-          address: 'No. 189, Grove St, Los Angeles',
-          zip: 200333
-        }], currentRow: null }; }, methods: { setCurrent(row) { this.$refs.singleTable.setCurrentRow(row); }, handleCurrentChange(val) { this.currentRow = val; } } };
-</script>
-```
-:::
-
-### Sélection multiple
-
-Ajoutez une colonne avec `type="selection"` pour activer la sélection multiple. Vous pouvez utiliser `toggleRowSelection` et `clearSelection` pour contrôler les lignes sélectionnées.
-
-:::demo
-```html
-<template>
-  <div>
-    <el-table-v2 ref="multipleTable" :data="tableData" height="250" row-key="id" tooltip-effect="dark" style="width: 100%" @selection-change="handleSelectionChange">
-      <el-table-column type="selection" width="55"></el-table-column>
-      <el-table-column label="Date" width="120"><template slot-scope="scope">{{ scope.row.date }}</template></el-table-column>
-      <el-table-column prop="name" label="Nom" width="120"></el-table-column>
-      <el-table-column prop="address" label="Adresse" show-overflow-tooltip></el-table-column>
-    </el-table-v2>
-    <div style="margin-top: 20px">
-      <el-button @click="toggleSelection([tableData[1], tableData[2]])">Basculer la sélection des deuxième et troisième lignes</el-button>
-      <el-button @click="toggleSelection()">Effacer la sélection</el-button>
-    </div>
-  </div>
-</template>
-
-<script>
-  export default {
-    data() {
-      const tableData = [];
-      for (let i = 0; i < 1000; i++) tableData.push({ id: i, date: '2016-05-' + ((i % 28) + 1), name: 'Tom', address: 'Grove St ' + i });
-      return { tableData, multipleSelection: [] };
-    },
-    methods: {
-      toggleSelection(rows) { if (rows) rows.forEach(row => { this.$refs.multipleTable.toggleRowSelection(row); }); else this.$refs.multipleTable.clearSelection(); },
-      handleSelectionChange(val) { this.multipleSelection = val; }
-    }
-  };
-</script>
-```
-:::
-
-### Tri
-
-Définissez `sortable` sur une colonne pour trier selon celle-ci. Utilisez `default-sort` pour définir le tri initial.
-
-:::demo
-```html
-<template>
-  <el-table-v2 :data="tableData" height="250" row-key="id" :default-sort="{ prop: 'date', order: 'descending' }" style="width: 100%">
-    <el-table-column prop="date" label="Date" sortable width="180"></el-table-column>
-    <el-table-column prop="name" label="Nom" width="180"></el-table-column>
-    <el-table-column prop="score" label="Score" sortable width="120"></el-table-column>
-    <el-table-column prop="address" label="Adresse"></el-table-column>
-  </el-table-v2>
-</template>
-
-<script>
-  export default { data() { const tableData = []; for (let i = 0; i < 1000; i++) tableData.push({ id: i, date: '2016-05-' + ((i % 28) + 1), name: 'Tom', score: 1000 - i, address: 'Grove St ' + i }); return { tableData }; } };
-</script>
-```
-:::
-
-### Filtre
-
-Définissez `filters` et `filter-method` sur une colonne pour activer le filtrage. `filter-method` reçoit `value`, `row` et `column`.
-
-:::demo
-```html
-<template>
-  <div>
-    <el-button @click="resetDateFilter">Effacer le filtre de date</el-button>
-    <el-button @click="clearFilter">Effacer tous les filtres</el-button>
-    <el-table-v2 ref="filterTable" :data="tableData" height="250" row-key="id" style="width: 100%">
-      <el-table-column prop="date" label="Date" sortable width="180" column-key="date" :filters="dateFilters" :filter-method="filterHandler"></el-table-column>
-      <el-table-column prop="name" label="Nom" width="180"></el-table-column>
-      <el-table-column prop="address" label="Adresse" :formatter="formatter"></el-table-column>
-      <el-table-column prop="tag" label="Tag" width="100" :filters="[{ text: 'Maison', value: 'Maison' }, { text: 'Bureau', value: 'Bureau' }]" :filter-method="filterTag" filter-placement="bottom-end">
-        <template slot-scope="scope"><el-tag :type="scope.row.tag === 'Maison' ? 'primary' : 'success'" disable-transitions>{{ scope.row.tag }}</el-tag></template>
-      </el-table-column>
-    </el-table-v2>
-  </div>
-</template>
-
-<script>
-  export default {
-    data() {
-      const tableData = [];
-      for (let i = 0; i < 1000; i++) { const day = '2016-05-0' + ((i % 4) + 1); tableData.push({ id: i, date: day, name: 'Tom', address: 'Grove St ' + i, tag: i % 2 === 0 ? 'Maison' : 'Bureau' }); }
-      return { tableData, dateFilters: [{ text: '2016-05-01', value: '2016-05-01' }, { text: '2016-05-02', value: '2016-05-02' }, { text: '2016-05-03', value: '2016-05-03' }, { text: '2016-05-04', value: '2016-05-04' }] };
-    },
-    methods: { resetDateFilter() { this.$refs.filterTable.clearFilter('date'); }, clearFilter() { this.$refs.filterTable.clearFilter(); }, formatter(row) { return row.address; }, filterTag(value, row) { return row.tag === value; }, filterHandler(value, row, column) { const property = column['property']; return row[property] === value; } }
-  };
-</script>
-```
-:::
-
-### Template de colonne personnalisé
-
-Utilisez les scoped slots pour accéder à `row`, `column`, `$index` et `store`.
-
-:::demo
-```html
-<template>
-  <el-table-v2 :data="tableData" height="250" row-key="id" style="width: 100%">
-    <el-table-column label="Date" width="180"><template slot-scope="scope"><i class="el-icon-time"></i><span style="margin-left: 10px">{{ scope.row.date }}</span></template></el-table-column>
-    <el-table-column label="Nom" width="180"><template slot-scope="scope"><el-popover trigger="hover" placement="top"><p>Nom: {{ scope.row.name }}</p><p>Adresse: {{ scope.row.address }}</p><div slot="reference" class="name-wrapper" style="display: inline-block"><el-tag size="medium">{{ scope.row.name }}</el-tag></div></el-popover></template></el-table-column>
-    <el-table-column label="Opérations"><template slot-scope="scope"><el-button size="mini" @click="handleEdit(scope.$index, scope.row)">Modifier</el-button><el-button size="mini" type="danger" @click="handleDelete(scope.$index, scope.row)">Supprimer</el-button></template></el-table-column>
-  </el-table-v2>
-</template>
-
-<script>
-  export default { data() { return { tableData: [{ id: 1, date: '2016-05-02', name: 'Tom', address: 'No. 189, Grove St, Los Angeles' }, { id: 2, date: '2016-05-04', name: 'Tom', address: 'No. 189, Grove St, Los Angeles' }, { id: 3, date: '2016-05-01', name: 'Tom', address: 'No. 189, Grove St, Los Angeles' }, { id: 4, date: '2016-05-03', name: 'Tom', address: 'No. 189, Grove St, Los Angeles' }] }; }, methods: { handleEdit(index, row) { console.log(index, row); }, handleDelete(index, row) { console.log(index, row); } } };
-</script>
-```
-:::
-
-### En-tête personnalisé
-
-Utilisez le scoped slot `header` pour personnaliser l'en-tête.
-
-:::demo
-```html
-<template>
-  <el-table-v2 :data="filteredTableData" height="250" row-key="id" style="width: 100%">
-    <el-table-column label="Date" prop="date"></el-table-column>
-    <el-table-column label="Nom" prop="name"></el-table-column>
-    <el-table-column align="right"><template slot="header" slot-scope="scope"><el-input v-model="search" size="mini" placeholder="Saisissez un mot-clé du nom pour rechercher"/></template><template slot-scope="scope"><el-button size="mini" @click="handleEdit(scope.$index, scope.row)">Modifier</el-button><el-button size="mini" type="danger" @click="handleDelete(scope.$index, scope.row)">Supprimer</el-button></template></el-table-column>
-  </el-table-v2>
-</template>
-
-<script>
-  export default { data() { const tableData = []; for (let i = 0; i < 1000; i++) tableData.push({ id: i, date: '2016-05-' + ((i % 28) + 1), name: 'Tom ' + i, address: 'Grove St ' + i }); return { tableData, search: '' }; }, computed: { filteredTableData() { const search = this.search && this.search.toLowerCase(); if (!search) return this.tableData; return this.tableData.filter(data => data.name.toLowerCase().indexOf(search) > -1); } }, methods: { handleEdit(index, row) { console.log(index, row); }, handleDelete(index, row) { console.log(index, row); } } };
-</script>
-```
-:::
-
-### Index personnalisé
-
-Passez la prop `index` à une colonne `type="index"` pour personnaliser l'index. Elle peut être un nombre ou une fonction recevant l'index à partir de zéro.
-
-:::demo
-```html
-<template>
-  <el-table-v2 :data="tableData" height="250" row-key="id" style="width: 100%">
-    <el-table-column type="index" :index="indexMethod"></el-table-column>
-    <el-table-column prop="date" label="Date" width="180"></el-table-column>
-    <el-table-column prop="name" label="Nom" width="180"></el-table-column>
-    <el-table-column prop="address" label="Adresse"></el-table-column>
-  </el-table-v2>
-</template>
-
-<script>
-  export default { data() { const tableData = []; for (let i = 0; i < 1000; i++) tableData.push({ id: i, date: '2016-05-' + ((i % 28) + 1), name: 'Tom', address: 'Grove St ' + i }); return { tableData }; }, methods: { indexMethod(index) { return index * 2; } } };
-</script>
-```
-:::
-
-### Hauteur fluide
-
-L'exemple sera ajouté lorsque TableV2 supportera cette fonctionnalité.
 
 ### En-tête groupé
 
-L'exemple sera ajouté lorsque TableV2 supportera cette fonctionnalité.
+Utilisez `children` dans `columns` pour créer des en-têtes à plusieurs niveaux.
 
-### Ligne extensible
+### Données arborescentes et chargement différé
 
-L'exemple sera ajouté lorsque TableV2 supportera cette fonctionnalité.
-
-### Données arborescentes et chargement paresseux
-
-L'exemple sera ajouté lorsque TableV2 supportera cette fonctionnalité.
-
-### Ligne de résumé
-
-L'exemple sera ajouté lorsque TableV2 supportera cette fonctionnalité.
-
-### Fusion de lignes ou colonnes
-
-L'exemple sera ajouté lorsque TableV2 supportera cette fonctionnalité.
-
-### Rendu de grands volumes de données
-
-Lorsque le volume de données est très important, utilisez `reloadData` pour charger les données dans la source interne non réactive du composant et éviter que Vue observe tout le jeu de données. Les méthodes de tri, filtre et sélection restent disponibles. L'exemple suivant utilise `reloadData` pour charger de grands volumes de données et utilise `sort`, `filter`, `toggleRowSelection` et `clearSelection` pour contrôler l'état de la table.
+Utilisez `children` pour les nœuds imbriqués, `expand-column-key` pour la colonne extensible et `row-expand` pour charger les enfants de manière différée.
 
 :::demo
 ```html
-<template>
-  <div>
-    <div style="margin-bottom: 10px">
-      <span style="display: inline-block; margin: 0 10px 10px 0">
-        <el-button @click="reloadLargeData(10000)">Charger 10000 lignes</el-button>
-      </span>
-      <span style="display: inline-block; margin: 0 10px 10px 0">
-        <el-button @click="reloadLargeData(200000)">Charger 200000 lignes</el-button>
-      </span>
-      <span style="display: inline-block; margin: 0 10px 10px 0">
-        <el-button @click="reloadLargeData(1000000)">Charger 1000000 lignes</el-button>
-      </span>
-      <span style="display: inline-block; margin: 0 10px 10px 0">
-        <el-button @click="sortByScore">Trier le score croissant</el-button>
-      </span>
-      <span style="display: inline-block; margin: 0 10px 10px 0">
-        <el-button @click="filterActive">Filtrer le statut actif</el-button>
-      </span>
-      <span style="display: inline-block; margin: 0 10px 10px 0">
-        <el-button @click="clearFilter">Effacer les filtres</el-button>
-      </span>
-      <span style="display: inline-block; margin: 0 10px 10px 0">
-        <el-button @click="toggleSelection">Sélectionner deux lignes actives</el-button>
-      </span>
-      <span style="display: inline-block; margin: 0 10px 10px 0">
-        <el-button @click="clearSelection">Effacer la sélection</el-button>
-      </span>
-    </div>
-    <div style="margin-bottom: 12px">{{ selectedCount }} lignes sélectionnées</div>
-    <el-table-v2
-      ref="largeTable"
-      height="250"
-      row-key="id"
-      border
-      style="width: 100%"
-      @selection-change="handleSelectionChange">
-      <el-table-column type="selection" width="55"></el-table-column>
-      <el-table-column prop="id" label="ID" width="80"></el-table-column>
-      <el-table-column prop="name" label="Nom" width="120"></el-table-column>
-      <el-table-column prop="score" label="Score" sortable width="120"></el-table-column>
-      <el-table-column
-        prop="status"
-        label="Statut"
-        column-key="status"
-        width="120"
-        :filters="[{ text: 'Actif', value: 'active' }, { text: 'Désactivé', value: 'disabled' }]"
-        :filter-method="filterStatus">
-        <template slot-scope="scope">
-          <el-tag :type="scope.row.status === 'active' ? 'success' : 'info'" disable-transitions>
-            {{ scope.row.status === 'active' ? 'Actif' : 'Désactivé' }}
-          </el-tag>
-        </template>
-      </el-table-column>
-      <el-table-column prop="address" label="Adresse" min-width="300" show-overflow-tooltip></el-table-column>
-    </el-table-v2>
-  </div>
-</template>
-
+<template><el-table-v2 :columns="columns" :data="data" expand-column-key="name" :width="700" :height="400" @row-expand="loadChildren" /></template>
 <script>
-  export default {
-    data() {
-      return {
-        selectedCount: 0
-      };
-    },
-    mounted() {
-      this.reloadLargeData(10000);
-    },
-    methods: {
-      createData(count) {
-        const data = [];
-        for (let i = 0; i < count; i++) {
-          data.push({
-            id: i,
-            name: 'Utilisateur ' + i,
-            score: count - i,
-            status: i % 3 === 0 ? 'disabled' : 'active',
-            address: 'No. ' + (1516 + i) + ', Grove St, Los Angeles'
-          });
-        }
-        return data;
-      },
-      reloadLargeData(count) {
-        this._largeData = this.createData(count);
-        this.selectedCount = 0;
-        this.$refs.largeTable.reloadData(this._largeData);
-      },
-      sortByScore() {
-        this.$refs.largeTable.sort('score', 'ascending');
-      },
-      filterActive() {
-        this.$refs.largeTable.filter('status', ['active']);
-      },
-      toggleSelection() {
-        this.$refs.largeTable.toggleRowSelection(this._largeData[1], true);
-        this.$refs.largeTable.toggleRowSelection(this._largeData[2], true);
-      },
-      clearSelection() {
-        this.$refs.largeTable.clearSelection();
-      },
-      clearFilter() {
-        this.$refs.largeTable.clearFilter();
-      },
-      filterStatus(value, row) {
-        return row.status === value;
-      },
-      handleSelectionChange(val) {
-        this._multipleSelection = val;
-        this.selectedCount = val.length;
-      }
-    }
-  };
+export default {
+  data() { return { columns: [{ key: 'name', dataKey: 'name', title: 'Nom', width: 260 }, { key: 'value', dataKey: 'value', title: 'Valeur', width: 200 }], data: [{ id: 1, name: 'Nœud 1', value: 'racine', children: [{ id: 2, name: 'Nœud 1-1', value: 'enfant' }] }, { id: 3, name: 'Nœud 2', value: 'différé', hasChildren: true }] }; },
+  methods: { loadChildren({ expanded, rowData }) { if (expanded && rowData.hasChildren && !rowData.children) this.$set(rowData, 'children', [{ id: '3-1', name: 'Enfant chargé', value: 'loaded' }]); } }
+};
 </script>
 ```
 :::
 
-### Attributs de TableV2
+### Hauteur dynamique
 
-| Attribut | Description | Type | Valeurs acceptées | Défaut |
-|---|---|---|---|---|
-| data | Données de la table | array | — | — |
-| height | Hauteur de la table, recommandée pour de grands volumes de données | string/number | — | — |
-| max-height | Hauteur maximale de la table | string/number | — | — |
-| row-height | Hauteur de ligne pour le scroll virtuel | number | — | 48 |
-| overscan | Lignes supplémentaires rendues hors de la zone visible | number | — | 6 |
-| stripe | Si la table est rayée | boolean | — | false |
-| border | Si la table affiche des bordures verticales | boolean | — | false |
-| size | Taille de la table | string | medium / small / mini | — |
-| fit | Si les colonnes s'adaptent au conteneur | boolean | — | true |
-| show-header | Si l'en-tête de table est visible | boolean | — | true |
-| highlight-current-row | Si la ligne courante est mise en évidence | boolean | — | false |
-| current-row-key | Clé de la ligne courante, propriété en écriture seule | string/number | — | — |
-| row-key | Clé des données de ligne | string/function | — | — |
-| empty-text | Texte affiché lorsqu'il n'y a pas de données | string | — | Aucune donnée |
-| tooltip-effect | Thème du tooltip | string | dark / light | dark |
-| default-sort | Tri par défaut | object | — | — |
-| row-class-name | Callback ou chaîne pour la classe de ligne | function/string | — | — |
-| row-style | Callback ou objet pour le style de ligne | function/object | — | — |
-| cell-class-name | Callback ou chaîne pour la classe de cellule | function/string | — | — |
-| cell-style | Callback ou objet pour le style de cellule | function/object | — | — |
-| header-row-class-name | Callback ou chaîne pour la classe de ligne d'en-tête | function/string | — | — |
-| header-row-style | Callback ou objet pour le style de ligne d'en-tête | function/object | — | — |
-| header-cell-class-name | Callback ou chaîne pour la classe de cellule d'en-tête | function/string | — | — |
-| header-cell-style | Callback ou objet pour le style de cellule d'en-tête | function/object | — | — |
+La hauteur fixe est utilisée par défaut. Passez `estimated-row-height` pour mesurer la hauteur réelle de chaque ligne.
 
-### Attributs de Column
+:::demo
+```html
+<template><el-table-v2 :columns="columns" :data="data" :estimated-row-height="50" :width="700" :height="400" fixed /></template>
+<script>
+export default { data() { return { columns: [{ key: 'name', dataKey: 'name', title: 'Nom', width: 150 }, { key: 'description', dataKey: 'description', title: 'Description', width: 500 }], data: Array.from({ length: 100 }, (_, id) => ({ id, name: 'Tom', description: id % 2 ? 'Texte court.' : 'Texte long pour démontrer la hauteur dynamique des lignes. '.repeat(3) })) }; } };
+</script>
+```
+:::
 
-| Attribut | Description | Type | Valeurs acceptées | Défaut |
-|---|---|---|---|---|
-| type | Type de colonne | string | selection / index | — |
-| index | Index personnalisé pour `type="index"` | number/function(index) | — | — |
-| column-key | Clé de colonne, requise pour identifier `filter-change` | string | — | — |
-| prop | Nom du champ, alias de `property` | string | — | — |
-| label | Libellé de l'en-tête | string | — | — |
-| width | Largeur de colonne | string/number | — | — |
-| min-width | Largeur minimale de colonne | string/number | — | 80 |
-| fixed | Colonne fixe | boolean/string | true / left / right | — |
-| align | Alignement | string | left / center / right | left |
-| header-align | Alignement de l'en-tête | string | left / center / right | — |
-| class-name | Classe de colonne | string | — | — |
-| label-class-name | Classe d'en-tête | string | — | — |
-| formatter | Formateur de cellule | function(row, column, cellValue, index) | — | — |
-| render-header | Fonction de rendu de l'en-tête | function(h, scope) | — | — |
-| show-overflow-tooltip | Affiche un tooltip lorsque le contenu déborde | boolean | — | false |
-| selectable | Si la ligne peut être sélectionnée | function(row, index) | — | — |
-| reserve-selection | Conserve la sélection après actualisation des données, requiert `row-key` | boolean | — | false |
-| sortable | Si la colonne peut être triée | boolean/string | true / false / custom | false |
-| sort-method | Méthode de tri | function(a, b) | — | — |
-| sort-by | Champ de tri | string/function/array | — | — |
-| sort-orders | Ordres de tri | array | ascending / descending / null | ['ascending', 'descending', null] |
-| filters | Options de filtre | array | — | — |
-| filter-method | Méthode de filtre | function(value, row, column) | — | — |
-| filter-multiple | Si le filtre supporte la sélection multiple | boolean | — | true |
-| filtered-value | Valeurs de filtre sélectionnées | array | — | — |
-| filter-placement | Placement du panneau de filtre | string | identique à Tooltip placement | — |
+### Rendu personnalisé, état et sélection
 
-### Évènements de TableV2
+Utilisez les slots `cell` et `header-cell` pour les boutons, contrôles de sélection et filtres. Utilisez `row-class` pour appliquer une classe selon l'état de la ligne.
 
-| Nom | Description | Paramètres |
-|---|---|---|
-| row-click | Se déclenche lors d'un clic sur une ligne | row, column, event |
-| row-dblclick | Se déclenche lors d'un double clic sur une ligne | row, column, event |
-| row-contextmenu | Se déclenche lors d'un clic droit sur une ligne | row, column, event |
-| cell-click | Se déclenche lors d'un clic sur une cellule | row, column, cell, event |
-| cell-dblclick | Se déclenche lors d'un double clic sur une cellule | row, column, cell, event |
-| cell-contextmenu | Se déclenche lors d'un clic droit sur une cellule | row, column, cell, event |
-| cell-mouse-enter | Se déclenche lorsque la souris entre dans une cellule | row, column, cell, event |
-| cell-mouse-leave | Se déclenche lorsque la souris quitte une cellule | row, column, cell, event |
-| header-click | Se déclenche lors d'un clic sur une cellule d'en-tête | column, event |
-| header-contextmenu | Se déclenche lors d'un clic droit sur une cellule d'en-tête | column, event |
-| current-change | Se déclenche lorsque la ligne courante change | currentRow, oldCurrentRow |
-| sort-change | Se déclenche lorsque le tri change | { column, prop, order } |
-| select | Se déclenche lorsque l'utilisateur change la sélection d'une ligne | selection, row |
-| select-all | Se déclenche lorsque l'utilisateur clique sur la case de sélection globale | selection |
-| selection-change | Se déclenche lorsque la sélection change | selection |
-| filter-change | Se déclenche lorsque les filtres changent | filters |
-| scroll | Se déclenche lors du scroll du corps de la table | { scrollTop, scrollLeft } |
+### Pied, état vide et overlay
 
-### Méthodes de TableV2
+Utilisez les slots `footer`, `empty` et `overlay`; `footer-height` participe au calcul de la hauteur du tableau.
 
-| Méthode | Description | Paramètres |
-|---|---|---|
-| doLayout | Recalcule le layout | — |
-| scrollTo | Fait défiler vers une position verticale | scrollTop |
-| reloadData | Recharge les données via une source interne non réactive, utile pour les très grands volumes de données | data |
-| setCurrentRow | Définit la ligne courante | row |
-| clearSelection | Efface la sélection | — |
-| toggleRowSelection | Bascule ou définit l'état de sélection d'une ligne | row, selected |
-| toggleAllSelection | Bascule toutes les lignes sélectionnables | — |
-| sort | Trie manuellement la table | prop, order |
-| clearSort | Efface le tri | — |
-| filter | Définit les valeurs de filtre pour une colonne | columnKey, values |
-| clearFilter | Efface les filtres | columnKeys |
+:::demo
+```html
+<el-table-v2 :columns="columns" :data="data" :width="700" :height="400" :footer-height="50">
+  <div slot="footer">Lignes : {{ data.length }}</div>
+  <el-empty slot="empty" description="Aucune donnée" />
+  <div slot="overlay">Chargement...</div>
+</el-table-v2>
+<script>
+export default { data() { return { columns: [{ key: 'id', dataKey: 'id', title: 'ID', width: 180 }], data: [] }; } };
+</script>
+```
+:::
 
-### Slots de TableV2
+### Défilement manuel
 
-| Nom | Description |
-|---|---|
-| — | Slot par défaut pour déclarer `el-table-column` |
-| empty | Contenu affiché lorsqu'il n'y a pas de données |
-| append | Contenu inséré après le contenu de la table |
+Avec un `ref`, utilisez `scrollTo`, `scrollToLeft`, `scrollToTop` et `scrollToRow`.
 
-### Scoped Slot de Column
+### API
 
-| Nom | Description |
-|---|---|
-| — | Contenu personnalisé de colonne. Le scope est `{ row, column, $index, store }` |
-| header | Contenu personnalisé d'en-tête. Le scope est `{ column, $index }` |
+Les attributs, colonnes, slots, événements et méthodes suivent [Element Plus TableV2](https://element-plus.org/fr-FR/component/table-v2.html). `width` et `height` sont obligatoires. Ce dépôt ne fournit pas `el-auto-resizer`; l'exemple de taille automatique utilise un listener `resize` de Vue 2.

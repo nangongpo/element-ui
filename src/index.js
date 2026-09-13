@@ -27,6 +27,7 @@ import Button from '../packages/button/index.js';
 import ButtonGroup from '../packages/button-group/index.js';
 import Table from '../packages/table/index.js';
 import TableV2 from '../packages/table-v2/index.js';
+import AutoResizer from '../packages/table-v2/src/auto-resizer.js';
 import TableColumn from '../packages/table-column/index.js';
 import DatePicker from '../packages/date-picker/index.js';
 import TimeSelect from '../packages/time-select/index.js';
@@ -122,6 +123,7 @@ const components = [
   ButtonGroup,
   Table,
   TableV2,
+  AutoResizer,
   TableColumn,
   DatePicker,
   TimeSelect,
@@ -253,6 +255,7 @@ export default {
   ButtonGroup,
   Table,
   TableV2,
+  AutoResizer,
   TableColumn,
   DatePicker,
   TimeSelect,
@@ -352,6 +355,7 @@ export {
   ButtonGroup,
   Table,
   TableV2,
+  AutoResizer,
   TableColumn,
   DatePicker,
   TimeSelect,

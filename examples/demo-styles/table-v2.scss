@@ -1,0 +1,16 @@
+// Table V2 demos use a fixed width just like the Element Plus examples.
+// Keep the virtual table horizontally scrollable when the docs viewport is narrow.
+.demo-table-v2 .source {
+  overflow-x: auto;
+}
+
+// The official Table V2 status demo uses these utility classes. Keep them
+// global because virtualized cells are rendered by a child component and do
+// not inherit the demo component's scoped style attribute in Vue 2.
+.el-table-v2 .bg-blue-200 {
+  background-color: #bfdbfe;
+}
+
+.el-table-v2 .bg-red-100 {
+  background-color: #fee2e2;
+}

@@ -2,12 +2,12 @@ const { compileTemplate } = require('@vue/component-compiler-utils');
 const compiler = require('vue-template-compiler');
 
 function stripScript(content) {
-  const result = content.match(/<(script)>([\s\S]+)<\/\1>/);
+  const result = content.match(/<(script)(?:\s[^>]*)?>([\s\S]+)<\/\1>/);
   return result && result[2] ? result[2].trim() : '';
 }
 
 function stripStyle(content) {
-  const result = content.match(/<(style)\s*>([\s\S]+)<\/\1>/);
+  const result = content.match(/<(style)(?:\s[^>]*)?>([\s\S]+)<\/\1>/);
   return result && result[2] ? result[2].trim() : '';
 }
 
@@ -17,7 +17,7 @@ function stripTemplate(content) {
   if (!content) {
     return content;
   }
-  return content.replace(/<(script|style)[\s\S]+<\/\1>/g, '').trim();
+  return content.replace(/<(script|style)(?:\s[^>]*)?>[\s\S]*?<\/\1>/g, '').trim();
 }
 
 function pad(source) {
@@ -25,6 +25,28 @@ function pad(source) {
     .split(/\r?\n/)
     .map(line => `  ${line}`)
     .join('\n');
+}
+
+// Demo scripts are wrapped in an inline component factory, so ES module
+// imports cannot remain inside the generated function. Convert the common
+// import forms to CommonJS before embedding the script.
+function normalizeInlineScriptImports(script) {
+  return script.replace(/^\s*import\s+(.+?)\s+from\s+(['"])([^'\"]+)\2\s*;?\s*$/gm, (match, specifier, quote, source) => {
+    const value = specifier.trim();
+    if (value[0] === '{') {
+      return `const ${value} = require('${source}');`;
+    }
+    if (value.startsWith('* as ')) {
+      return `const ${value.slice(5).trim()} = require('${source}');`;
+    }
+    const comma = value.indexOf(',');
+    const defaultName = comma === -1 ? value : value.slice(0, comma).trim();
+    const named = comma === -1 ? '' : value.slice(comma + 1).trim();
+    const moduleName = `__demoModule_${defaultName}`;
+    const lines = [`const ${moduleName} = require('${source}');`, `const ${defaultName} = ${moduleName}.default || ${moduleName};`];
+    if (named) lines.push(`const ${named} = ${moduleName};`);
+    return lines.join('\n');
+  }).replace(/^\s*import\s+(['"])([^'\"]+)\1\s*;?\s*$/gm, (match, quote, source) => `require('${source}');`);
 }
 
 function genInlineComponentText(template, script) {
@@ -53,7 +75,7 @@ function genInlineComponentText(template, script) {
     ${compiled.code}
   `;
   // todo: 这里采用了硬编码有待改进
-  script = script.trim();
+  script = normalizeInlineScriptImports(script.trim());
   if (script) {
     script = script.replace(/export\s+default/, 'const democomponentExport =');
   } else {
@@ -75,5 +97,6 @@ module.exports = {
   stripScript,
   stripStyle,
   stripTemplate,
+  normalizeInlineScriptImports,
   genInlineComponentText
 };

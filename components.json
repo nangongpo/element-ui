@@ -26,6 +26,7 @@
   "button-group": "./packages/button-group/index.js",
   "table": "./packages/table/index.js",
   "table-v2": "./packages/table-v2/index.js",
+  "auto-resizer": "./packages/table-v2/src/auto-resizer.js",
   "table-column": "./packages/table-column/index.js",
   "date-picker": "./packages/date-picker/index.js",
   "time-select": "./packages/time-select/index.js",

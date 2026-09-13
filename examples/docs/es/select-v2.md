@@ -208,7 +208,7 @@ Select V2 renders only visible and overscan options, making it suitable for tens
 ```
 :::
 
-### Clearable single select
+### One-click clear
 
 :::demo Set `clearable` to show a clear button when the selector is hovered. The second select demonstrates clearing multiple selected values.
 ```html

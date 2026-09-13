@@ -35,6 +35,15 @@
   }
 }
 
+@include b(vl__window) {
+  overflow-x: auto;
+
+  &::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+}
+
 @include b(vg) {
   @include e(wrapper) {
     position: relative;

@@ -77,7 +77,7 @@ export default {
       if (this.$refs.list) this.$refs.list.scrollTo(offset);
     },
     scrollToIndex(index) {
-      if (this.$refs.list) this.$refs.list.scrollToIndex(index);
+      if (this.$refs.list) this.$refs.list.scrollToItem(index);
     },
     scrollToItem(index) {
       if (this.$refs.list) this.$refs.list.scrollToItem(index);
@@ -91,8 +91,8 @@ export default {
     handleItemResize(index, height) {
       if (!this.estimatedOptionHeight || !height || this.cachedHeights[index] === height) return;
       this.$set(this.cachedHeights, index, height);
-      if (this.$refs.list && this.$refs.list.clearCacheAfterIndex) {
-        this.$refs.list.clearCacheAfterIndex(index, true);
+      if (this.$refs.list && this.$refs.list.resetAfterIndex) {
+        this.$refs.list.resetAfterIndex(index, true);
       }
     },
     getRowStyle(style) {

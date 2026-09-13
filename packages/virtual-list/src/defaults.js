@@ -19,11 +19,11 @@ export const RTL_OFFSET_POS_ASC = 'positive-ascending';
 export const RTL_OFFSET_POS_DESC = 'positive-descending';
 
 export const ScrollbarSizeKey = {
-  horizontal: 'height',
-  vertical: 'width'
+  [HORIZONTAL]: 'height',
+  [VERTICAL]: 'width'
 };
 
 export const ScrollbarDirKey = {
-  horizontal: 'left',
-  vertical: 'top'
+  [HORIZONTAL]: 'left',
+  [VERTICAL]: 'top'
 };
