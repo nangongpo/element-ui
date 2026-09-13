@@ -14,10 +14,8 @@
   font-size: 14px;
   line-height: 1.5;
 
-  *,
-  *::before,
-  *::after {
-    box-sizing: inherit;
+  * {
+    box-sizing: border-box;
   }
 
   // Element Plus exposes a root wrapper around the three table regions. The
@@ -193,7 +191,7 @@
       z-index: -1;
     }
 
-    .el-table-v2__cell {
+    .el-table-v2__row-cell {
       pointer-events: auto;
     }
   }
@@ -206,7 +204,7 @@
     z-index: 2;
     pointer-events: none;
 
-    .el-table-v2__cell {
+    .el-table-v2__row-cell {
       pointer-events: auto;
     }
   }
@@ -217,7 +215,6 @@
     min-width: 100%;
     background-color: $--color-white;
     color: $--table-font-color;
-    white-space: nowrap;
     border-bottom: $--table-border;
 
     &.hover-row,
@@ -237,33 +234,23 @@
       z-index: 1;
     }
 
-    &.hover-row .el-table-v2__cell,
-    &:hover .el-table-v2__cell {
+    &.hover-row .el-table-v2__row-cell,
+    &:hover .el-table-v2__row-cell {
       background-color: $--table-row-hover-background-color;
     }
 
-    &.current-row .el-table-v2__cell {
+    &.current-row .el-table-v2__row-cell {
       background-color: $--table-current-row-background-color;
     }
 
   }
 
-  @include e(cell) {
-    position: relative;
+  @include e(row-cell) {
     display: flex;
     align-items: center;
-    box-sizing: border-box;
-    min-width: 0;
     height: 100%;
-    padding: 0 10px;
+    padding: 0 8px;
     overflow: hidden;
-    // The row owns the bottom border so it also covers the unused part of a
-    // fixed-width table when the declared column widths do not fill width.
-    border-bottom: 0;
-    text-align: left;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    word-break: normal;
 
     &.is-fixed-layout {
       width: max-content;
@@ -279,17 +266,25 @@
       text-align: right;
     }
 
-    &.current-row {
-      background-color: $--table-current-row-background-color;
+  }
+
+  &:not(.is-dynamic) {
+    .el-table-v2__cell-text {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
   }
 
-  @include e(cell-text) {
-    display: block;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+  &.is-dynamic {
+    .el-table-v2__row {
+      align-items: stretch;
+      overflow: hidden;
+    }
+
+    .el-table-v2__row .el-table-v2__row-cell {
+      overflow-wrap: break-word;
+    }
   }
 
   @include e(header-cell) {
@@ -377,10 +372,7 @@
     right: 0;
     bottom: 0;
     left: 0;
-    z-index: 4;
     overflow: hidden;
-    background-color: $--table-header-background-color;
-    border-top: $--table-border;
   }
 
   @include e(overlay) {
@@ -389,7 +381,7 @@
     right: 0;
     bottom: 0;
     left: 0;
-    z-index: 6;
+    z-index: 9999;
   }
 
 }

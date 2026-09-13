@@ -19,6 +19,18 @@ module.exports = md => {
     }
   });
 
-  md.use(mdContainer, 'tip');
-  md.use(mdContainer, 'warning');
+  const renderCustomBlock = (type, title) => ({
+    validate(params) {
+      return params.trim() === type;
+    },
+    render(tokens, idx) {
+      if (tokens[idx].nesting === 1) {
+        return `<div class="${type} custom-block"><p class="custom-block-title">${title}</p>`;
+      }
+      return '</div>';
+    }
+  });
+
+  md.use(mdContainer, 'tip', renderCustomBlock('tip', 'TIP'));
+  md.use(mdContainer, 'warning', renderCustomBlock('warning', 'WARNING'));
 };

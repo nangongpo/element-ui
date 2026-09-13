@@ -75,11 +75,12 @@ export default {
           table: this.table,
           fixed: this.fixed,
           fixedLayout: this.table.fixed,
-          isScrolling: scope.isScrolling
+          isScrolling: scope.isScrolling,
+          rowSlot: this.$scopedSlots.row
         },
-        scopedSlots: {
-          default: rowScope => this.$scopedSlots.row ? this.$scopedSlots.row(rowScope) : undefined
-        }
+        scopedSlots: this.$scopedSlots.row ? {
+          default: rowScope => this.$scopedSlots.row(rowScope)
+        } : undefined
       });
     },
     renderFixedRows(h) {
@@ -94,12 +95,13 @@ export default {
           fixed: this.fixed,
           fixedLayout: this.table.fixed,
           isScrolling: false,
-          rowClass: ['el-table-v2__fixed-header-row', 'is-fixed']
+          rowClass: ['el-table-v2__fixed-header-row', 'is-fixed'],
+          rowSlot: this.$scopedSlots.row
         },
         style: this.fixedRowStyle,
-        scopedSlots: {
-          default: rowScope => this.$scopedSlots.row ? this.$scopedSlots.row(rowScope) : undefined
-        }
+        scopedSlots: this.$scopedSlots.row ? {
+          default: rowScope => this.$scopedSlots.row(rowScope)
+        } : undefined
       })));
     }
   },

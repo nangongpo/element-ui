@@ -20,7 +20,7 @@ export default {
     else if (p.cellRenderer) custom = h(p.cellRenderer, { props: p.scope });
     const content = custom || scoped || [h('span', { class: 'el-table-v2__cell-text' }, [renderValue(h, p.value)])];
     return h('div', {
-      class: ['el-table-v2__cell', columnAlignClass(p.column && p.column.align), p.className],
+      class: ['el-table-v2__row-cell', columnAlignClass(p.column && p.column.align), p.className],
       style: p.style,
       attrs: Object.assign({ role: 'cell' }, context.data.attrs || {}),
       domProps: context.data.domProps,

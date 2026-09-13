@@ -9,7 +9,6 @@
 </template>
 
 <script lang="jsx">
-// JSX component references are resolved by the Vue JSX transform.
 import ElButton from 'element-ui/packages/button';
 import ElCheckbox from 'element-ui/packages/checkbox';
 import ElPopover from 'element-ui/packages/popover';

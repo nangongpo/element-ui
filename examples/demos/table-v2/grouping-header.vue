@@ -6,8 +6,7 @@
     :header-height="[50, 40, 50]"
     :header-class="headerClass"
     :width="700"
-    :height="400"
-  >
+    :height="400">
     <template slot="header" slot-scope="props">
       <customized-header v-bind="props" />
     </template>

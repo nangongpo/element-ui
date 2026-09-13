@@ -14,11 +14,11 @@ export default {
       visit(this.data, 0);
       return result;
     },
-    resolvedExpandedKeys() { return this.expandedRowKeys.length ? this.expandedRowKeys : this.tableExpandedKeys; }
+    resolvedExpandedKeys() { return this.expandedRowKeys === undefined ? this.tableExpandedKeys : this.expandedRowKeys; }
   },
   watch: {
     defaultExpandedRowKeys(value) { this.tableExpandedKeys = (value || []).slice(); },
-    expandedRowKeys(value) { if (value && value.length) this.tableExpandedKeys = value.slice(); }
+    expandedRowKeys(value) { if (value !== undefined) this.tableExpandedKeys = value.slice(); }
   },
   methods: {
     rowKeyOf(row, index) { return rowIdentity(row, this.rowKey, index); },
@@ -29,6 +29,7 @@ export default {
       if (expanded && position === -1) keys.push(key);
       if (!expanded && position !== -1) keys.splice(position, 1);
       this.tableExpandedKeys = keys;
+      this.$emit('update:expandedRowKeys', keys);
       this.$emit('expanded-rows-change', keys);
       this.$emit('row-expand', { expanded, rowData: row, rowIndex: index, rowKey: key });
     }

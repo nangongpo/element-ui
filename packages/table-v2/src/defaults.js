@@ -23,7 +23,7 @@ export const tableV2Props = {
   headerProps: [Object, Function],
   headerCellProps: [Object, Function],
   expandColumnKey: [String, Number],
-  expandedRowKeys: { type: Array, default: () => [] },
+  expandedRowKeys: Array,
   defaultExpandedRowKeys: { type: Array, default: () => [] },
   indentSize: { type: Number, default: 12 },
   iconSize: { type: Number, default: 12 },

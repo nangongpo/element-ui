@@ -31,6 +31,7 @@ const dataGenerator = () => ({
 });
 
 export default {
+  components: { ElButton, ElTag, ElTooltip },
   data() {
     return {
       columns: [

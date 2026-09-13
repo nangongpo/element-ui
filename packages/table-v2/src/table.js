@@ -25,7 +25,7 @@ export default {
     fixedRows() { return (this.fixedData || []).map((row, index) => ({ row, key: this.rowKeyOf(row, -index - 1), depth: 0 })); },
     tableClass() {
       const vnodeData = this.$vnode && this.$vnode.data || {};
-      return ['el-table-v2', 'el-table-v2__root', this.className, vnodeData.class, this.leftColumns.length ? 'has-fixed-left' : '', this.rightColumns.length ? 'has-fixed-right' : ''];
+      return ['el-table-v2', 'el-table-v2__root', this.className, vnodeData.class, this.dynamicRows ? 'is-dynamic' : '', this.leftColumns.length ? 'has-fixed-left' : '', this.rightColumns.length ? 'has-fixed-right' : ''];
     }
   },
   methods: {
@@ -144,13 +144,16 @@ export default {
         style.right = 'auto';
       }
       const regionClass = fixed ? `el-table-v2__${fixed}` : 'el-table-v2__main';
-      return h(TableGrid, { ref, class: ['el-table-v2__area', regionClass, fixed ? `el-table-v2__fixed-${fixed}` : ''], style, props: { table: this, columns, width, height: this.tableBodyHeight, fixed, data: this.mainRows, fixedData: this.fixedRows }, on: { scroll: value => this.handleGridScroll(value, fixed), 'rows-rendered': value => this.$emit('rows-rendered', value), 'end-reached': value => this.$emit('end-reached', value) } });
+      return h(TableGrid, { ref, class: ['el-table-v2__area', regionClass, fixed ? `el-table-v2__fixed-${fixed}` : ''], style, props: { table: this, columns, width, height: this.tableBodyHeight, fixed, data: this.mainRows, fixedData: this.fixedRows }, on: { scroll: value => this.handleGridScroll(value, fixed), 'rows-rendered': value => this.$emit('rows-rendered', value), 'end-reached': value => this.$emit('end-reached', value) }, scopedSlots: { row: this.$scopedSlots.row } });
     }
   },
   render(h) {
     const body = [];
+    const empty = this.$scopedSlots.empty ? this.$scopedSlots.empty() : this.$slots.empty;
+    const footer = this.$scopedSlots.footer ? this.$scopedSlots.footer() : this.$slots.footer;
+    const overlay = this.$scopedSlots.overlay ? this.$scopedSlots.overlay() : this.$slots.overlay;
     if (this.mainRows.length) body.push(this.renderArea(h, 'mainGrid', this.mainColumns, this.mainAreaWidth, null));
-    else body.push(h('div', { class: 'el-table-v2__empty' }, this.$scopedSlots.empty ? this.$scopedSlots.empty() : [h(Empty)]));
+    else body.push(h('div', { class: 'el-table-v2__empty' }, empty && empty.length ? empty : [h(Empty)]));
     if (this.leftColumns.length) body.push(this.renderArea(h, 'leftGrid', this.leftColumns, this.leftWidth, 'left'));
     if (this.rightColumns.length) body.push(this.renderArea(h, 'rightGrid', this.rightColumns, this.rightWidth, 'right'));
     const vnodeData = this.$vnode && this.$vnode.data || {};
@@ -161,8 +164,8 @@ export default {
         this.rightColumns.length ? this.renderHeaderArea(h, this.rightColumns, 'right') : null
       ]),
       h('div', { class: 'el-table-v2__body-wrapper', style: { top: `${this.resolvedHeaderHeight}px`, bottom: `${this.footerHeight}px` } }, body),
-      this.footerHeight ? h('div', { class: 'el-table-v2__footer', style: { height: `${this.footerHeight}px` } }, this.$scopedSlots.footer ? this.$scopedSlots.footer() : []) : null,
-      this.$scopedSlots.overlay ? h('div', { class: 'el-table-v2__overlay' }, this.$scopedSlots.overlay()) : null
+      this.footerHeight ? h('div', { class: 'el-table-v2__footer', style: { height: `${this.footerHeight}px` } }, footer || []) : null,
+      overlay ? h('div', { class: 'el-table-v2__overlay' }, overlay) : null
     ]);
   }
 };

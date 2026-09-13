@@ -2,7 +2,7 @@ import buildGrid from '../builders/build-grid';
 
 const strategy = {
   name: 'ElDynamicSizeGrid',
-  initCache(vm) { return { columns: {}, rows: {}, lastVisitedColumnIndex: -1, lastVisitedRowIndex: -1, estimatedColumnWidth: vm.estimatedColumnWidth || 100, estimatedRowHeight: vm.estimatedRowHeight || 50 }; },
+  initCache(vm) { return { columns: {}, rows: {}, rowSizes: {}, lastVisitedColumnIndex: -1, lastVisitedRowIndex: -1, estimatedColumnWidth: vm.estimatedColumnWidth || 100, estimatedRowHeight: vm.estimatedRowHeight || 50 }; },
   validateProps(vm) {
     if (process.env.NODE_ENV !== 'production' && typeof vm.columnWidth !== 'function') throw new Error('[ElDynamicSizeGrid] columnWidth must be a function');
     if (process.env.NODE_ENV !== 'production' && typeof vm.rowHeight !== 'function') throw new Error('[ElDynamicSizeGrid] rowHeight must be a function');
@@ -14,7 +14,7 @@ const strategy = {
     if (index > cache[lastKey]) {
       let offset = 0;
       if (cache[lastKey] >= 0) { const last = map[cache[lastKey]]; offset = last.offset + last.size; }
-      for (let current = cache[lastKey] + 1; current <= index; current++) { const size = sizeFn(current); map[current] = { offset, size }; offset += size; }
+      for (let current = cache[lastKey] + 1; current <= index; current++) { const size = axis === 'row' && cache.rowSizes[current] ? cache.rowSizes[current] : sizeFn(current); map[current] = { offset, size }; offset += size; }
       cache[lastKey] = index;
     }
     return map[index];
@@ -53,7 +53,13 @@ const strategy = {
   getRowStartIndex(vm, offset, cache) { return this.findStart(vm, offset, cache, 'row'); },
   getColumnStopIndex(vm, start, offset, cache) { return this.findStop(vm, start, offset, cache, 'column'); },
   getRowStopIndex(vm, start, offset, cache) { return this.findStop(vm, start, offset, cache, 'row'); },
-  resetAfter(vm, columnIndex = 0, rowIndex = 0) { Object.keys(vm.cache.columns).forEach(key => { if (Number(key) >= columnIndex) delete vm.cache.columns[key]; }); Object.keys(vm.cache.rows).forEach(key => { if (Number(key) >= rowIndex) delete vm.cache.rows[key]; }); vm.cache.lastVisitedColumnIndex = Math.min(vm.cache.lastVisitedColumnIndex, columnIndex - 1); vm.cache.lastVisitedRowIndex = Math.min(vm.cache.lastVisitedRowIndex, rowIndex - 1); }
+  setRowSize(vm, index, size) {
+    if (vm.cache.rowSizes[index] === size) return;
+    vm.resetAfter(0, index, false);
+    vm.cache.rowSizes[index] = size;
+    vm.$forceUpdate();
+  },
+  resetAfter(vm, columnIndex = 0, rowIndex = 0) { Object.keys(vm.cache.columns).forEach(key => { if (Number(key) >= columnIndex) delete vm.cache.columns[key]; }); Object.keys(vm.cache.rows).forEach(key => { if (Number(key) >= rowIndex) delete vm.cache.rows[key]; }); Object.keys(vm.cache.rowSizes).forEach(key => { if (Number(key) >= rowIndex) delete vm.cache.rowSizes[key]; }); vm.cache.lastVisitedColumnIndex = Math.min(vm.cache.lastVisitedColumnIndex, columnIndex - 1); vm.cache.lastVisitedRowIndex = Math.min(vm.cache.lastVisitedRowIndex, rowIndex - 1); }
 };
 
 export default buildGrid(strategy);

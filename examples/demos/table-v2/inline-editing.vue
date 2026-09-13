@@ -12,6 +12,7 @@ import ElInput from 'element-ui/packages/input';
 
 const InputCell = {
   name: 'TableV2InputCell',
+  components: { ElInput },
   props: {
     value: {
       type: String,
@@ -80,8 +81,7 @@ export default {
         return (
           <div
             class="table-v2-inline-editing-trigger"
-            onClick={() => this.enterEdit(rowData)}
-          >
+            onClick={() => this.enterEdit(rowData)}>
             {value}
           </div>
         );

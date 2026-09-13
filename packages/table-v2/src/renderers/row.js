@@ -3,7 +3,7 @@ import Row from '../components/row';
 export default {
   name: 'TableV2RowRenderer',
   functional: true,
-  props: { columns: Array, entry: Object, rowIndex: Number, table: Object, fixed: String, fixedLayout: Boolean, isScrolling: Boolean, rowClass: [String, Array, Object] },
+  props: { columns: Array, entry: Object, rowIndex: Number, table: Object, fixed: String, fixedLayout: Boolean, isScrolling: Boolean, rowClass: [String, Array, Object], rowSlot: Function },
   render(h, context) {
     const p = context.props;
     const table = p.table;
@@ -29,7 +29,8 @@ export default {
         rowStyle: table.getRowStyle(row, p.rowIndex, context.data.style),
         rowProps,
         cellRenderer: scope => table.cellRenderer(scope),
-        dataGetter: table.dataGetter
+        dataGetter: table.dataGetter,
+        rowSlot: p.rowSlot
       },
       style: undefined,
       domProps: rowProps.domProps,
@@ -38,8 +39,7 @@ export default {
         expand: expanded => table.toggleRow(row, p.rowIndex, expanded),
         mouseenter: event => table.handleRowHover(true, row, p.rowIndex, event),
         mouseleave: event => table.handleRowHover(false, row, p.rowIndex, event)
-      }),
-      scopedSlots: context.scopedSlots
+      })
     });
   }
 };

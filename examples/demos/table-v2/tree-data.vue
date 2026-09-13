@@ -1,38 +1,106 @@
-<template
-  ><el-table-v2
+<template>
+  <el-table-v2
     :columns="columns"
-    :data="data"
-    expand-column-key="name"
-    :default-expanded-row-keys="[1]"
+    :data="treeData"
     :width="700"
     :height="400"
-    @row-expand="onExpand"
-/></template>
+    :expand-column-key="expandColumnKey"
+    :expanded-row-keys.sync="expandedRowKeys"
+    fixed
+    @row-expand="onRowExpanded"
+    @expanded-rows-change="onExpandedRowsChange"
+  />
+</template>
+
 <script>
+import { FixedDir as TableV2FixedDir } from 'element-ui/packages/table-v2';
+
+const generateColumns = (length = 10, prefix = 'column-', props) =>
+  Array.from({ length }).map((_, columnIndex) => ({
+    ...(props || {}),
+    key: prefix + columnIndex,
+    dataKey: prefix + columnIndex,
+    title: 'Column ' + columnIndex,
+    width: 150
+  }));
+
+const generateData = (columns, length = 200, prefix = 'row-') =>
+  Array.from({ length }).map((_, rowIndex) => columns.reduce((rowData, column, columnIndex) => {
+    rowData[column.dataKey] = 'Row ' + rowIndex + ' - Col ' + columnIndex;
+    return rowData;
+  }, { id: prefix + rowIndex, parentId: null }));
+
+const columns = generateColumns(10).map((column, columnIndex) => {
+  let fixed;
+  if (columnIndex < 2) fixed = TableV2FixedDir.LEFT;
+  if (columnIndex > 8) fixed = TableV2FixedDir.RIGHT;
+  return Object.assign({}, column, { fixed });
+});
+
+const data = generateData(columns, 200);
+const expandColumnKey = 'column-0';
+
+// Add some sub items.
+for (let i = 0; i < 50; i += 1) {
+  data.push(
+    Object.assign({}, data[0], {
+      id: data[0].id + '-sub-' + i,
+      parentId: data[0].id,
+      [expandColumnKey]: 'Sub ' + i
+    }),
+    Object.assign({}, data[2], {
+      id: data[2].id + '-sub-' + i,
+      parentId: data[2].id,
+      [expandColumnKey]: 'Sub ' + i
+    }),
+    Object.assign({}, data[2], {
+      id: data[2].id + '-sub-sub-' + i,
+      parentId: data[2].id + '-sub-' + i,
+      [expandColumnKey]: 'Sub-Sub ' + i
+    })
+  );
+}
+
+function unflatten(data, rootId = null, dataKey = 'id', parentKey = 'parentId') {
+  const tree = [];
+  const childrenMap = {};
+
+  data.forEach(datum => {
+    const item = Object.assign({}, datum);
+    const id = item[dataKey];
+    const parentId = item[parentKey];
+
+    if (Array.isArray(item.children)) {
+      childrenMap[id] = item.children.concat(childrenMap[id] || []);
+    } else if (!childrenMap[id]) {
+      childrenMap[id] = [];
+    }
+    item.children = childrenMap[id];
+
+    if (parentId !== undefined && parentId !== rootId) {
+      if (!childrenMap[parentId]) childrenMap[parentId] = [];
+      childrenMap[parentId].push(item);
+    } else {
+      tree.push(item);
+    }
+  });
+
+  return tree;
+}
+
+const treeData = unflatten(data);
+const expandedRowKeys = [];
+
 export default {
   data() {
-    return {
-      columns: [
-        { key: "name", dataKey: "name", title: "名称", width: 260 },
-        { key: "value", dataKey: "value", title: "值", width: 200 }
-      ],
-      data: [
-        {
-          id: 1,
-          name: "节点 1",
-          value: "root",
-          children: [{ id: 2, name: "节点 1-1", value: "child" }]
-        },
-        { id: 3, name: "节点 2", value: "lazy", hasChildren: true }
-      ]
-    };
+    return { columns, treeData, expandColumnKey, expandedRowKeys };
   },
   methods: {
-    onExpand({ expanded, rowData }) {
-      if (expanded && rowData.hasChildren && !rowData.children)
-        this.$set(rowData, "children", [
-          { id: rowData.id + "-1", name: "异步子节点", value: "loaded" }
-        ]);
+    onRowExpanded({ expanded }) {
+      console.log('Expanded:', expanded);
+    },
+    onExpandedRowsChange(expandedKeys) {
+      console.log(expandedKeys);
     }
   }
 };

@@ -15,9 +15,9 @@ export default {
   data() {
     return {
       columns: Array.from({ length: 10 }, (_, columnIndex) => ({
-        key: "column-" + columnIndex,
-        dataKey: "column-" + columnIndex,
-        title: "Column " + columnIndex,
+        key: 'column-' + columnIndex,
+        dataKey: 'column-' + columnIndex,
+        title: 'Column ' + columnIndex,
         width: 150
       })),
       data: [],
@@ -38,11 +38,11 @@ export default {
         this.columns.reduce(
           (rowData, column, columnIndex) => {
             rowData[column.dataKey] =
-              "Row " + rowIndex + " - Col " + columnIndex;
+              'Row ' + rowIndex + ' - Col ' + columnIndex;
             return rowData;
           },
           {
-            id: "row-" + rowIndex,
+            id: 'row-' + rowIndex,
             parentId: null
           }
         )
@@ -50,9 +50,9 @@ export default {
     },
     rowClass({ rowIndex }) {
       if (rowIndex < 0 || (rowIndex + 1) % 5 === 0) {
-        return "sticky-row";
+        return 'sticky-row';
       }
-      return "";
+      return '';
     },
     onScroll({ scrollTop }) {
       this.stickyIndex = Math.floor(scrollTop / 250) * 5;

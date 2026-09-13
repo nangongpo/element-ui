@@ -94,6 +94,7 @@ import DescriptionsItem from '../packages/descriptions-item/index.js';
 import Result from '../packages/result/index.js';
 import locale from 'element-ui/src/locale/index.js';
 import CollapseTransition from 'element-ui/src/transitions/collapse-transition.js';
+import { cloneVNode } from 'element-ui/src/utils/vue2-util.js';
 
 const components = [
   Pagination,
@@ -228,6 +229,7 @@ export default {
   install,
   CollapseTransition,
   Loading,
+  cloneVNode,
   Pagination,
   Dialog,
   Autocomplete,
@@ -328,6 +330,7 @@ export {
   install,
   CollapseTransition,
   Loading,
+  cloneVNode,
   Pagination,
   Dialog,
   Autocomplete,

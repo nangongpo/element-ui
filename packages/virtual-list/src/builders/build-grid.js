@@ -31,6 +31,7 @@ export default function buildGrid(strategy) {
     computed: {
       parsedWidth() { return Number.parseInt(`${this.width}`, 10) || 0; },
       parsedHeight() { return Number.parseInt(`${this.height}`, 10) || 0; },
+      dynamic() { return typeof this.rowHeight === 'function'; },
       states() { return this.state; },
       estimatedTotalWidth() {
         if (this.innerWidth != null) return Number(this.innerWidth) || 0;
@@ -173,7 +174,11 @@ export default function buildGrid(strategy) {
         if (alignment === 'smart' && current >= min && current <= max) return current;
         return current < min ? min : max;
       },
-      resetAfter(columnIndex = 0, rowIndex = 0, forceUpdate = true) { if (strategy.resetAfter) strategy.resetAfter(this, columnIndex, rowIndex); if (forceUpdate) this.$forceUpdate(); },
+      resetAfter(columnIndex = 0, rowIndex = 0, forceUpdate = true) { if (strategy.resetAfter) strategy.resetAfter(this, columnIndex, rowIndex); this.itemStyleCache = {}; this.itemStyleCacheKey = null; if (forceUpdate) this.$forceUpdate(); },
+      updateRowSize(index, size) {
+        if (!this.dynamic || !size || !strategy.setRowSize) return;
+        strategy.setRowSize(this, index, size);
+      },
       resetAfterColumnIndex(index = 0, forceUpdate = true) { this.resetAfter(index, 0, forceUpdate); },
       resetAfterRowIndex(index = 0, forceUpdate = true) { this.resetAfter(0, index, forceUpdate); },
       clampScroll() {
@@ -212,7 +217,21 @@ export default function buildGrid(strategy) {
             const vnode = children[0];
             vnode.key = vnode.key || key;
             vnode.data = vnode.data || {};
-            vnode.data.style = Object.assign({}, cellStyle, vnode.data.style || {});
+            const measuredStyle = Object.assign({}, cellStyle, vnode.data.style || {});
+            if (this.dynamic && !this.cache.rowSizes[rowIndex]) delete measuredStyle.height;
+            vnode.data.style = measuredStyle;
+            if (this.dynamic) {
+              const measure = rendered => {
+                this.$nextTick(() => {
+                  const element = rendered.elm || (rendered.componentInstance && rendered.componentInstance.$el);
+                  if (element && element.getBoundingClientRect) this.updateRowSize(rowIndex, element.getBoundingClientRect().height);
+                });
+              };
+              vnode.data.hook = Object.assign({}, vnode.data.hook || {}, {
+                insert: measure,
+                update: (oldVnode, newVnode) => measure(newVnode)
+              });
+            }
             cells.push(vnode);
           } else {
             cells.push(h('div', { key, style: cellStyle }, children));
