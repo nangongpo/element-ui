@@ -13,7 +13,7 @@
 </template>
 
 <script lang="jsx">
-import { cloneVNode } from 'element-ui/src/utils/vue2-util';
+import { cloneVNode } from 'element-ui/src/utils/vdom';
 const generateColumns = (length = 10, prefix = 'column-', props) =>
   Array.from({ length }).map((_, columnIndex) => ({
     ...(props || {}), key: prefix + columnIndex, dataKey: prefix + columnIndex,

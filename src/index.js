@@ -20,6 +20,7 @@ import CheckboxButton from '../packages/checkbox-button/index.js';
 import CheckboxGroup from '../packages/checkbox-group/index.js';
 import Switch from '../packages/switch/index.js';
 import Select from '../packages/select/index.js';
+import RemoteSelect from '../packages/remote-select/index.js';
 import SelectV2 from '../packages/select-v2/index.js';
 import Option from '../packages/option/index.js';
 import OptionGroup from '../packages/option-group/index.js';
@@ -94,7 +95,7 @@ import DescriptionsItem from '../packages/descriptions-item/index.js';
 import Result from '../packages/result/index.js';
 import locale from 'element-ui/src/locale/index.js';
 import CollapseTransition from 'element-ui/src/transitions/collapse-transition.js';
-import { cloneVNode } from 'element-ui/src/utils/vue2-util.js';
+import { cloneVNode } from 'element-ui/src/utils/vdom.js';
 
 const components = [
   Pagination,
@@ -117,6 +118,7 @@ const components = [
   CheckboxGroup,
   Switch,
   Select,
+  RemoteSelect,
   SelectV2,
   Option,
   OptionGroup,
@@ -250,6 +252,7 @@ export default {
   CheckboxGroup,
   Switch,
   Select,
+  RemoteSelect,
   SelectV2,
   Option,
   OptionGroup,
@@ -351,6 +354,7 @@ export {
   CheckboxGroup,
   Switch,
   Select,
+  RemoteSelect,
   SelectV2,
   Option,
   OptionGroup,

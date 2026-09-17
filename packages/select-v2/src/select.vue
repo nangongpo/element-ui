@@ -390,8 +390,12 @@
       },
       options() {
         this.resetLabelWidthCache();
-        this.syncSelectedOptions();
-        this.syncDisplayLabel();
+        const input = this.$refs.input ||
+          (this.$refs.reference && this.$refs.reference.$el.querySelector('input'));
+        if (!input || document.activeElement !== input) {
+          this.syncSelectedOptions();
+          this.syncDisplayLabel();
+        }
         this.ensureHoverIndex();
         this.requestLayoutSync();
       },

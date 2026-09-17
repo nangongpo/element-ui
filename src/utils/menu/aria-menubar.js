@@ -1,4 +1,4 @@
-import MenuItem from './aria-menuitem';
+import MenuItem from './aria-menuitem.js';
 
 const Menu = function(domNode) {
   this.domNode = domNode;

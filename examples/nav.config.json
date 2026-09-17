@@ -105,6 +105,10 @@
               "title": "Select V2 虚拟化选择器"
             },
             {
+              "path": "/remote-select",
+              "title": "Remote Select 远程搜索选择器"
+            },
+            {
               "path": "/cascader",
               "title": "Cascader 级联选择器"
             },

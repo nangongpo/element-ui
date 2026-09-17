@@ -45,7 +45,7 @@ describe('VirtualList', () => {
       expect(list.$refs.window.classList.contains('el-vl__window')).to.true;
       expect(list.$refs.window.style.overflowY).to.equal('scroll');
       expect(list.$el.querySelectorAll('.item').length).to.equal(6);
-      expect(list.$refs.window.querySelector('ul > li')).to.exist;
+      expect(list.$refs.window.querySelector('ul > .item')).to.exist;
       expect(list.$refs.window.querySelector('ul > div')).to.not.exist;
       expect(list.itemsToRender).to.deep.equal([0, 1, 2, 3, 4, 5]);
     });
@@ -82,25 +82,29 @@ describe('VirtualList', () => {
       vm = null;
     });
 
-    it('calculates offsets from itemSize and resets metadata', () => {
+    it('renders dynamic item positions and applies resetAfterIndex', async() => {
       const sizes = [20, 30, 40, 50, 60];
-      vm = createTest(DynamicSizeList, {
-        data: makeData(sizes.length),
-        total: sizes.length,
-        height: 100,
-        width: 200,
-        itemSize: index => sizes[index],
-        estimatedItemSize: 40
+      vm = createVue({
+        components: { DynamicSizeList },
+        template: `
+          <dynamic-size-list ref="list" :data="rows" :total="rows.length" :height="100" :width="200"
+            :item-size="itemSize" :estimated-item-size="40">
+            <template slot-scope="scope">
+              <span class="item" :data-index="scope.index">{{ scope.item.label }}</span>
+            </template>
+          </dynamic-size-list>
+        `,
+        data() { return { rows: makeData(sizes.length), itemSize: index => sizes[index] }; }
       }, true);
+      await vm.$nextTick();
 
-      expect(vm.itemCache.items[3].offset).to.equal(90);
-      expect(vm.itemCache.items[3].size).to.equal(50);
-      expect(vm.estimatedTotalSize).to.equal(200);
+      expect(vm.$el.querySelector('[data-index="3"]').style.top).to.equal('90px');
+      expect(vm.$el.querySelector('[data-index="3"]').style.height).to.equal('50px');
 
       sizes[2] = 80;
-      vm.resetAfterIndex(2, false);
-      expect(vm.itemCache.items[3].offset).to.equal(130);
-      expect(vm.itemCache.lastVisitedIndex).to.equal(4);
+      vm.$refs.list.resetAfterIndex(2, false);
+      await vm.$nextTick();
+      expect(vm.$el.querySelector('[data-index="3"]').style.top).to.equal('130px');
     });
   });
 
@@ -155,27 +159,43 @@ describe('VirtualList', () => {
       vm = null;
     });
 
-    it('calculates independent row and column metadata', () => {
-      vm = createTest(DynamicSizeGrid, {
-        data: makeData(4),
-        totalRow: 4,
-        totalColumn: 3,
-        width: 100,
-        height: 100,
-        columnWidth: index => 40 + index * 10,
-        rowHeight: index => 20 + index * 5,
-        estimatedColumnWidth: 50,
-        estimatedRowHeight: 30
+    it('renders independent row and column positions after reset', async() => {
+      const columnSizes = [40, 50, 60];
+      const rowSizes = [20, 25, 30, 35];
+      vm = createVue({
+        components: { DynamicSizeGrid },
+        template: `
+          <dynamic-size-grid ref="grid" :data="rows" :total-row="rows.length" :total-column="3"
+            :width="100" :height="100" :column-width="columnWidth" :row-height="rowHeight"
+            :estimated-column-width="50" :estimated-row-height="30">
+            <template slot-scope="scope">
+              <span class="cell" :data-cell="scope.rowIndex + ':' + scope.columnIndex"
+                :style="{ height: rowHeight(scope.rowIndex) + 'px' }">
+                {{ scope.rowIndex }}-{{ scope.columnIndex }}
+              </span>
+            </template>
+          </dynamic-size-grid>
+        `,
+        data() {
+          return {
+            rows: makeData(rowSizes.length),
+            columnWidth: index => columnSizes[index],
+            rowHeight: index => rowSizes[index]
+          };
+        }
       }, true);
+      await vm.$nextTick();
 
-      expect(vm.itemCache.columns[2].offset).to.equal(90);
-      expect(vm.itemCache.rows[3].offset).to.equal(75);
-      expect(vm.estimatedTotalWidth).to.equal(150);
-      expect(vm.estimatedTotalHeight).to.equal(110);
+      expect(vm.$el.querySelector('[data-cell="3:2"]').style.left).to.equal('90px');
+      const initialTop = vm.$el.querySelector('[data-cell="3:2"]').style.top;
+      expect(initialTop).to.match(/^\d+px$/);
 
-      vm.resetAfter(1, 2);
-      expect(vm.itemCache.lastVisitedColumnIndex).to.equal(0);
-      expect(vm.itemCache.lastVisitedRowIndex).to.equal(1);
+      columnSizes[1] = 80;
+      rowSizes[2] = 50;
+      vm.$refs.grid.resetAfter(1, 2);
+      await vm.$nextTick();
+      expect(vm.$el.querySelector('[data-cell="3:2"]').style.left).to.equal('120px');
+      expect(vm.$el.querySelector('[data-cell="3:2"]').style.top).to.not.equal(initialTop);
     });
   });
 

@@ -200,6 +200,7 @@
   <el-select
     v-model="value2"
     multiple
+    filterable
     collapse-tags
     style="margin-left: 20px;"
     placeholder="请选择">

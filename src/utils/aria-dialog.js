@@ -1,4 +1,4 @@
-import Utils from './aria-utils';
+import Utils from './aria-utils.js';
 
 /**
  * @constructor

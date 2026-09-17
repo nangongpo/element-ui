@@ -72,6 +72,7 @@ export default {
   // 🎯 真正的外部依赖只有第三方库，源码内部的相互引用绝不 external！
   external: [
     'vue',
+    'axios',
     /^@babel\/runtime/
   ],
   

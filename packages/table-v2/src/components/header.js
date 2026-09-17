@@ -18,6 +18,7 @@ export default {
         tableFixed: this.tableFixed,
         fixedColumn: !!this.fixed,
         headerSlot: this.headerSlot,
+        customized: !!this.headerSlot,
         headerClass: this.headerClass,
         rowHeight: height
       },

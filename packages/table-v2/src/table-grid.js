@@ -32,8 +32,7 @@ export default {
     fixedColumnWidth() { return this.columns.length ? columnWidth(this.columns[0]) : 0; },
     contentWidth() { return this.columns.reduce((total, column) => total + columnWidth(column), 0); },
     innerWidth() {
-      if (this.table.fixed) return Math.max(this.width, this.contentWidth);
-      return this.width;
+      return Math.max(this.width, this.contentWidth);
     },
     innerProps() {
       if (this.fixed) return {};
@@ -57,7 +56,13 @@ export default {
       this.scrollTo({ scrollTop: Number(scrollTop) || 0 });
     },
     scrollToRow(row, strategy) {
-      if (this.$refs.grid) this.$refs.grid.scrollToItem(row, 0, strategy || 'auto');
+      if (this.$refs.grid) {
+        const scrollLeft = this.table.scrollLeft || 0;
+        this.$refs.grid.scrollToItem(row, 0, strategy || 'auto');
+        // Row navigation is vertical. Preserve the caller's horizontal
+        // position instead of letting scrollToItem align column zero.
+        this.$refs.grid.scrollTo({ scrollLeft });
+      }
     },
     renderRow(h, scope) {
       // Grid passes the backing data in the slot scope.  Use it as the source
@@ -120,7 +125,9 @@ export default {
         totalRow: rows.length,
         totalColumn: 1,
         rowHeight: this.rowHeight,
-        columnWidth: this.gridComponent === 'fixed-size-grid' ? this.width : (() => this.width),
+        columnWidth: this.gridComponent === 'fixed-size-grid'
+          ? Math.max(this.width, this.contentWidth)
+          : (() => this.contentWidth),
         estimatedRowHeight: this.table.estimatedRowHeight,
         estimatedColumnWidth: this.columns.length ? columnWidth(this.columns[0]) : 100,
         scrollbarAlwaysOn: this.table.scrollbarAlwaysOn,
@@ -130,7 +137,7 @@ export default {
       },
       on: {
         scroll: value => this.$emit('scroll', value),
-        'item-rendered': value => this.$emit('rows-rendered', value),
+        itemRendered: value => this.$emit('rows-rendered', value),
         'end-reached': value => this.$emit('end-reached', value)
       },
       scopedSlots: { default: scope => this.renderRow(h, scope) }

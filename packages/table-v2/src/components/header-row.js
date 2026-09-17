@@ -4,7 +4,7 @@ import { columnWidth } from '../common';
 export default {
   name: 'TableV2HeaderRow',
   components: { HeaderCell },
-  props: { columns: Array, styles: Array, headerIndex: Number, sortBy: Object, sortState: Object, headerCellProps: [Object, Function], headerSlot: Function, headerClass: [String, Function], rowHeight: Number, level: Number, tableFixed: Boolean, fixedColumn: Boolean },
+  props: { columns: Array, styles: Array, headerIndex: Number, sortBy: Object, sortState: Object, headerCellProps: [Object, Function], headerSlot: Function, headerClass: [String, Function], rowHeight: Number, level: Number, tableFixed: Boolean, fixedColumn: Boolean, customized: Boolean },
   methods: {
     leafCount(column) {
       return column.children && column.children.length ? column.children.reduce((count, child) => count + this.leafCount(child), 0) : 1;
@@ -59,7 +59,7 @@ export default {
       const content = this.headerSlot ? this.headerSlot({ cells, columns: this.columns, headerIndex: this.headerIndex }) : cells;
       const headerClass = typeof this.headerClass === 'function' ? this.headerClass({ columns: this.columns, headerIndex: this.headerIndex }) : this.headerClass;
       return h('div', {
-        class: ['el-table-v2__header-row', headerClass, this.tableFixed ? 'is-fixed-layout' : ''],
+        class: ['el-table-v2__header-row', headerClass, this.tableFixed ? 'is-fixed-layout' : '', this.customized ? 'is-customized' : ''],
         style: { height: `${this.rowHeight || (this.styles && this.styles[0] ? this.styles[0].height : 50)}px` }
       }, Array.isArray(content) ? content : [content]);
     }

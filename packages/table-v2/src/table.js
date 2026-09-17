@@ -144,7 +144,7 @@ export default {
         style.right = 'auto';
       }
       const regionClass = fixed ? `el-table-v2__${fixed}` : 'el-table-v2__main';
-      return h(TableGrid, { ref, class: ['el-table-v2__area', regionClass, fixed ? `el-table-v2__fixed-${fixed}` : ''], style, props: { table: this, columns, width, height: this.tableBodyHeight, fixed, data: this.mainRows, fixedData: this.fixedRows }, on: { scroll: value => this.handleGridScroll(value, fixed), 'rows-rendered': value => this.$emit('rows-rendered', value), 'end-reached': value => this.$emit('end-reached', value) }, scopedSlots: { row: this.$scopedSlots.row } });
+      return h(TableGrid, { ref, class: ['el-table-v2__area', regionClass, fixed ? `el-table-v2__fixed-${fixed}` : ''], style, props: { table: this, columns, width, height: this.tableBodyHeight, fixed, data: this.mainRows, fixedData: this.fixedRows }, on: { scroll: value => this.handleGridScroll(value, fixed), 'rows-rendered': value => this.$emit('rows-rendered', { rowCacheStart: value.rowCacheStart, rowCacheEnd: value.rowCacheEnd, rowVisibleStart: value.rowVisibleStart, rowVisibleEnd: value.rowVisibleEnd }), 'end-reached': value => this.$emit('end-reached', value) }, scopedSlots: { row: this.$scopedSlots.row } });
     }
   },
   render(h) {

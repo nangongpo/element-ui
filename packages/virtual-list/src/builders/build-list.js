@@ -130,14 +130,16 @@ export default function buildList(strategy) {
       },
       scrollTo(offset) {
         const next = clamp(Number(offset) || 0, 0, this.maxOffset);
+        if (next === this.state.scrollOffset) return;
         this.state = Object.assign({}, this.state, { scrollOffset: next, scrollDir: getScrollDir(this.state.scrollOffset, next), updateRequested: true });
         this.$emit(SCROLL_EVT, this.state.scrollDir, next, true);
         this.$forceUpdate();
       },
       scrollToItem(index, alignment = AUTO_ALIGNMENT) {
         if (!this.total) return;
+        index = Math.max(0, Math.min(Number(index) || 0, this.total - 1));
         const size = this.clientSize;
-        const item = strategy.getItemOffset(this, Math.max(0, Math.min(index, this.total - 1)), this.itemCache);
+        const item = strategy.getItemOffset(this, index, this.itemCache);
         const itemSize = strategy.getItemSize(this, index, this.itemCache);
         const max = Math.max(0, Math.min(this.estimatedTotalSize - size, item));
         const min = Math.max(0, item + itemSize - size);
@@ -147,7 +149,12 @@ export default function buildList(strategy) {
         else if (alignment === SMART_ALIGNMENT && this.state.scrollOffset >= min && this.state.scrollOffset <= max) this.scrollTo(this.state.scrollOffset);
         else this.scrollTo(this.state.scrollOffset < min ? min : max);
       },
-      resetAfterIndex(index, forceUpdate = true) { strategy.resetAfterIndex(this, index); if (forceUpdate) this.$forceUpdate(); },
+      resetAfterIndex(index = 0, forceUpdate = true) {
+        strategy.resetAfterIndex(this, index);
+        this.itemStyleCache = {};
+        this.itemStyleCacheKey = null;
+        if (forceUpdate) this.$forceUpdate();
+      },
       resetScrollTop() { this.scrollTo(0); },
       clampScrollOffset() { if (this.state.scrollOffset > this.maxOffset) this.scrollTo(this.maxOffset); },
       emitEndReached() {

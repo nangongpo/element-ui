@@ -1,6 +1,5 @@
 import { createTest, createVue, triggerEvent, destroyVM, waitImmediate } from '../util';
 import Select from 'packages/select';
-import domScheduler from 'element-ui/src/utils/dom-scheduler';
 
 describe('Select', () => {
   const getSelectVm = (configs = {}, options) => {
@@ -88,7 +87,7 @@ describe('Select', () => {
   });
 
   it('create', () => {
-    vm = createTest(Select, { value: null }, true);
+    vm = createTest(Select, true);
     expect(vm.$el.className).to.equal('el-select');
     expect(vm.$el.querySelector('.el-input__inner').placeholder).to.equal('请选择');
     vm.toggleMenu();
@@ -103,19 +102,6 @@ describe('Select', () => {
       return text === vm.options[index].label;
     });
     expect(result).to.true;
-  });
-
-  it('resets menu scroll when opened without a selected option', done => {
-    vm = getSelectVm();
-    const select = vm.$refs.select;
-    const menu = select.$refs.popper.$el.querySelector('.el-select-dropdown__wrap');
-    menu.scrollTop = 100;
-
-    select.handleMenuEnter();
-    select.$nextTick(() => {
-      expect(menu.scrollTop).to.equal(0);
-      done();
-    });
   });
 
   it('custom dropdown class', () => {
@@ -235,7 +221,7 @@ describe('Select', () => {
   });
 
   it('disabled select', () => {
-    vm = createTest(Select, { value: null, disabled: true }, true);
+    vm = createTest(Select, { disabled: true }, true);
     expect(vm.$el.querySelector('.el-input').classList.contains('is-disabled')).to.true;
   });
 
@@ -691,7 +677,7 @@ describe('Select', () => {
   it('event:focus & blur', done => {
     vm = createVue({
       template: `
-        <el-select ref="select" :value="null"></el-select>
+        <el-select ref="select"></el-select>
       `
     }, true);
 
@@ -768,7 +754,7 @@ describe('Select', () => {
   it('focus', done => {
     vm = createVue({
       template: `
-        <el-select ref="select" :value="null"></el-select>
+        <el-select ref="select"></el-select>
       `
     }, true);
     const spy = sinon.spy();
@@ -900,117 +886,25 @@ describe('Select', () => {
       return vm.$refs.select;
     };
 
-    it('should reset height if collapse-tags option is disabled', async() => {
+    it('should reset height if collapse-tags option is disabled', () => {
       const select = getSelectComponentVm();
-      sinon.stub(select, 'syncInputHeight');
+      sinon.stub(select, '$nextTick');
       select.resetInputHeight();
-      await waitImmediate();
-      expect(select.syncInputHeight.callCount).to.equal(1);
+      expect(select.$nextTick.callCount).to.equal(1);
     });
 
-    it('should not reset height if collapse-tags option is enabled', async() => {
+    it('should not reset height if collapse-tags option is enabled', () => {
       const select = getSelectComponentVm({ collapseTags: true });
-      sinon.stub(select, 'syncInputHeight');
+      sinon.stub(select, '$nextTick');
       select.resetInputHeight();
-      await waitImmediate();
-      expect(select.syncInputHeight.callCount).to.equal(0);
+      expect(select.$nextTick.callCount).to.equal(0);
     });
 
-    it('should reset height if both collapse-tags and filterable are enabled', async() => {
+    it('should reset height if both collapse-tags and filterable are enabled', () => {
       const select = getSelectComponentVm({ collapseTags: true, filterable: true });
-      sinon.stub(select, 'syncInputHeight');
+      sinon.stub(select, '$nextTick');
       select.resetInputHeight();
-      await waitImmediate();
-      expect(select.syncInputHeight.callCount).to.equal(1);
-    });
-
-    it('should coalesce DOM sync requests in one scheduler task', () => {
-      const select = getSelectComponentVm({ multiple: true, filterable: true });
-      select._domSyncScheduled = false;
-      const registerSpy = sinon.spy(domScheduler, 'register');
-      try {
-        select.requestDomSync();
-        select.requestDomSync();
-
-        expect(registerSpy).to.have.been.calledOnce;
-        expect(registerSpy.firstCall.args[0].vm).to.equal(select);
-      } finally {
-        registerSpy.restore();
-      }
-    });
-
-    it('should measure before updating width and initial input height', () => {
-      const select = getSelectComponentVm({ multiple: true, filterable: true });
-      const referenceEl = select.$refs.reference.$el;
-      const input = referenceEl.querySelector('input');
-      input.style.height = '80px';
-      sinon.stub(referenceEl, 'getBoundingClientRect').returns({ width: 240 });
-      sinon.stub(input, 'getBoundingClientRect').returns({ height: 40 });
-      select.selected = [{ value: '选项1', currentLabel: '黄金糕' }];
-      select._domSyncScheduled = false;
-      const registerStub = sinon.stub(domScheduler, 'register');
-      try {
-        select.requestDomSync();
-        const task = registerStub.firstCall.args[0];
-        const metrics = task.read();
-        task.write(metrics);
-
-        expect(select.inputWidth).to.equal(240);
-        expect(select.initialInputHeight).to.equal(40);
-        expect(input.style.height).to.equal('80px');
-      } finally {
-        registerStub.restore();
-        referenceEl.getBoundingClientRect.restore();
-        input.getBoundingClientRect.restore();
-      }
-    });
-
-    it('should update multiple input height after Vue updates DOM without waiting for a frame', async() => {
-      const select = getSelectComponentVm({ multiple: true, filterable: true });
-      await waitImmediate();
-      const referenceEl = select.$refs.reference.$el;
-      const input = referenceEl.querySelector('input');
-      input.style.height = '80px';
-      select.initialInputHeight = 40;
-      select.selected = [{ value: '选项1', currentLabel: '黄金糕' }];
-      sinon.stub(input, 'getBoundingClientRect').returns({ height: 80 });
-      sinon.stub(select.$refs.tags, 'getBoundingClientRect').returns({ height: 52 });
-      const registerSpy = sinon.spy(domScheduler, 'register');
-      try {
-        select.resetInputHeight();
-        await waitImmediate();
-
-        expect(registerSpy).to.not.have.been.called;
-        expect(input.style.height).to.equal('58px');
-      } finally {
-        registerSpy.restore();
-        input.getBoundingClientRect.restore();
-        select.$refs.tags.getBoundingClientRect.restore();
-      }
-    });
-
-    it('should settle multiple input height in the same tick after value changes', async() => {
-      vm = getSelectVm({ multiple: true, filterable: true });
-      const select = vm.$refs.select;
-      await waitImmediate();
-      const referenceEl = select.$refs.reference.$el;
-      const input = referenceEl.querySelector('input');
-      input.style.height = '80px';
-      select.initialInputHeight = 40;
-      sinon.stub(input, 'getBoundingClientRect').returns({ height: 80 });
-      sinon.stub(select.$refs.tags, 'getBoundingClientRect').returns({ height: 32 });
-      const registerSpy = sinon.spy(domScheduler, 'register');
-      try {
-        vm.value = ['选项1', '选项2'];
-        await waitImmediate();
-
-        expect(registerSpy).to.not.have.been.called;
-        expect(input.style.height).to.equal('40px');
-      } finally {
-        registerSpy.restore();
-        input.getBoundingClientRect.restore();
-        select.$refs.tags.getBoundingClientRect.restore();
-      }
+      expect(select.$nextTick.callCount).to.equal(1);
     });
   });
 });

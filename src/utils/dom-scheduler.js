@@ -6,7 +6,7 @@
  * the next frame.
  */
 /* global Map */
-
+import { requestFrame, cancelFrame } from 'element-ui/src/utils/util.js';
 const isAlive = vm => vm && !vm._isDestroyed && !vm._isBeingDestroyed && !vm.__is_unmounted__;
 
 export class DomScheduler {
@@ -78,11 +78,11 @@ export class DomScheduler {
   }
 
   _requestFrame(callback) {
-    return window.requestAnimationFrame(callback);
+    return requestFrame(callback);
   }
 
   _cancelFrame(id) {
-    window.cancelAnimationFrame(id);
+    cancelFrame(id);
   }
 
   _handleError(error, vm, info) {

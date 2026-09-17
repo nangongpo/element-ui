@@ -139,7 +139,6 @@
   import Emitter from 'element-ui/src/mixins/emitter';
   import Focus from 'element-ui/src/mixins/focus';
   import Locale from 'element-ui/src/mixins/locale';
-  import SelectMixin from './select-mixin';
   import ElInput from 'element-ui/packages/input';
   import ElSelectMenu from './select-dropdown.vue';
   import ElOption from './option.vue';
@@ -152,10 +151,9 @@
   import { getValueByPath, valueEquals, isIE, isEdge } from 'element-ui/src/utils/util';
   import NavigationMixin from './navigation-mixin';
   import { isKorean } from 'element-ui/src/utils/shared';
-  import domScheduler from 'element-ui/src/utils/dom-scheduler';
 
   export default {
-    mixins: [Emitter, Locale, Focus('reference'), NavigationMixin, SelectMixin],
+    mixins: [Emitter, Locale, Focus('reference'), NavigationMixin],
 
     name: 'ElSelect',
 
@@ -508,18 +506,7 @@
       },
 
       handleMenuEnter() {
-        this.$nextTick(() => {
-          const selected = Array.isArray(this.selected) ? this.selected[0] : this.selected;
-          if (selected && selected.$el) {
-            this.scrollToOption(this.selected);
-            return;
-          }
-
-          const popper = this.$refs.popper;
-          const menu = popper && popper.$el.querySelector('.el-select-dropdown__wrap');
-          if (menu) menu.scrollTop = 0;
-          this.$refs.scrollbar && this.$refs.scrollbar.handleScroll();
-        });
+        this.$nextTick(() => this.scrollToOption(this.selected));
       },
 
       emitChange(val) {
@@ -660,6 +647,27 @@
         this.resetInputHeight();
       },
 
+      resetInputHeight() {
+        if (this.collapseTags && !this.filterable) return;
+        this.$nextTick(() => {
+          if (!this.$refs.reference) return;
+          let inputChildNodes = this.$refs.reference.$el.childNodes;
+          let input = [].filter.call(inputChildNodes, item => item.tagName === 'INPUT')[0];
+          const tags = this.$refs.tags;
+          const tagsHeight = tags ? Math.round(tags.getBoundingClientRect().height) : 0;
+          const sizeInMap = this.initialInputHeight || 40;
+          input.style.height = this.selected.length === 0
+            ? sizeInMap + 'px'
+            : Math.max(
+              tags ? (tagsHeight + (tagsHeight > sizeInMap ? 6 : 0)) : 0,
+              sizeInMap
+            ) + 'px';
+          if (this.visible && this.emptyText !== false) {
+            this.broadcast('ElSelectDropdown', 'updatePopper');
+          }
+        });
+      },
+
       resetHoverIndex() {
         setTimeout(() => {
           if (!this.multiple) {
@@ -790,7 +798,12 @@
       },
 
       resetInputWidth() {
-        this.requestDomSync();
+        this.inputWidth = this.$refs.reference.$el.getBoundingClientRect().width;
+      },
+
+      handleResize() {
+        this.resetInputWidth();
+        if (this.multiple) this.resetInputHeight();
       },
 
       checkDefaultFirstOption() {
@@ -859,20 +872,28 @@
       }
       addResizeListener(this.$el, this.handleResize);
 
+      const reference = this.$refs.reference;
+      if (reference && reference.$el) {
+        const sizeMap = {
+          medium: 36,
+          small: 32,
+          mini: 28
+        };
+        const input = reference.$el.querySelector('input');
+        this.initialInputHeight = input.getBoundingClientRect().height || sizeMap[this.selectSize];
+      }
       if (this.remote && this.multiple) {
         this.resetInputHeight();
       }
-
-      this.setSelected();
-
       this.$nextTick(() => {
-        this.requestDomSync();
+        if (reference && reference.$el) {
+          this.inputWidth = reference.$el.getBoundingClientRect().width;
+        }
       });
+      this.setSelected();
     },
 
     beforeDestroy() {
-      domScheduler.deregister(this);
-      this._domSyncScheduled = false;
       if (this.$el && this.handleResize) removeResizeListener(this.$el, this.handleResize);
     }
   };

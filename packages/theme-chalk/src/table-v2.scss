@@ -96,6 +96,10 @@
     &.is-fixed-layout {
       width: max-content;
     }
+
+    &.is-customized {
+      border-bottom: 0;
+    }
   }
 
   @include e(body-wrapper) {

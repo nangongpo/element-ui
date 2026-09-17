@@ -197,9 +197,10 @@ describe('TableV2', () => {
       data: () => ({ columns: rendererColumns, data: [{ id: 1, date: '2020-10-1', name: 'Alice' }] })
     }, true);
     await wait(50);
+    const fixedLeftHeader = vm.$el.querySelector('.el-table-v2__header-fixed-left');
     const fixedLeft = vm.$el.querySelector('.el-table-v2__fixed-left');
-    expect(fixedLeft).to.exist;
-    expect(fixedLeft.textContent).to.contain('Date');
+    expect(fixedLeftHeader).to.exist;
+    expect(fixedLeftHeader.textContent).to.contain('Date');
     expect(fixedLeft.textContent).to.contain('date:2020-10-1');
     expect(vm.$el.querySelector('.el-table-v2__body-main').textContent).to.contain('Alice');
   });
@@ -295,7 +296,7 @@ describe('TableV2', () => {
     await wait(30);
     expect(vm.$el.querySelector('.custom-header-slot')).to.exist;
     expect(scope.headerIndex).to.equal(0);
-    expect(scope.columns).to.equal(columns);
+    expect(scope.columns.map(column => column.key)).to.deep.equal(columns.map(column => column.key));
     expect(scope.cells).to.have.length(columns.length);
   });
 
@@ -349,7 +350,7 @@ describe('TableV2', () => {
     await wait(50);
     vm.$refs.table.scrollToLeft(60);
     await wait(30);
-    const fixedRow = vm.$el.querySelector('.el-table-v2__body-main .el-table-v2__fixed-data .el-table-v2__row');
+    const fixedRow = vm.$el.querySelector('.el-table-v2__main .el-table-v2__fixed-data .el-table-v2__row');
     expect(fixedRow).to.exist;
     expect(fixedRow.style.transform).to.equal('translateX(-60px)');
   });

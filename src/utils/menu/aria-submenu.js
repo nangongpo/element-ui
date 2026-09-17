@@ -1,4 +1,4 @@
-import Utils from '../aria-utils';
+import Utils from '../aria-utils.js';
 
 const SubMenu = function(parent, domNode) {
   this.domNode = domNode;

@@ -1,8 +1,8 @@
 import Vue from 'vue';
-import merge from 'element-ui/src/utils/merge';
-import PopupManager from 'element-ui/src/utils/popup/popup-manager';
-import getScrollBarWidth from '../scrollbar-width';
-import { getStyle, addClass, removeClass, hasClass } from '../dom';
+import merge from 'element-ui/src/utils/merge.js';
+import PopupManager from 'element-ui/src/utils/popup/popup-manager.js';
+import getScrollBarWidth from '../scrollbar-width.js';
+import { getStyle, addClass, removeClass, hasClass } from '../dom.js';
 
 let idSeed = 1;
 

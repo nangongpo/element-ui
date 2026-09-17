@@ -5,7 +5,7 @@ import { virtualizedScrollbarProps } from '../props';
 export default {
   name: 'ElVirtualScrollBar',
   props: virtualizedScrollbarProps,
-  data() { return { isDragging: false, traveled: 0, dragOffset: 0 }; },
+  data() { return { isDragging: false, traveled: 0, dragOffset: 0, selectStart: null }; },
   computed: {
     bar() { return BAR_MAP[this.layout]; },
     trackSize() { return Math.max(0, this.clientSize - this.startGap - this.endGap); },
@@ -48,10 +48,14 @@ export default {
     attachEvents() {
       window.addEventListener('mousemove', this.handleMouseMove);
       window.addEventListener('mouseup', this.handleMouseUp);
+      this.selectStart = document.onselectstart;
+      document.onselectstart = () => false;
     },
     detachEvents() {
       window.removeEventListener('mousemove', this.handleMouseMove);
       window.removeEventListener('mouseup', this.handleMouseUp);
+      document.onselectstart = this.selectStart;
+      this.selectStart = null;
     },
     handleThumbMouseDown(event) {
       if (event.ctrlKey || event.button === 1 || event.button === 2) return;
@@ -101,3 +105,4 @@ export default {
     })]);
   }
 };
+

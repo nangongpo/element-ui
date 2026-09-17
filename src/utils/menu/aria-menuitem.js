@@ -1,5 +1,5 @@
-import Utils from '../aria-utils';
-import SubMenu from './aria-submenu';
+import Utils from '../aria-utils.js';
+import SubMenu from './aria-submenu.js';
 
 const MenuItem = function(domNode) {
   this.domNode = domNode;

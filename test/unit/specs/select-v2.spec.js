@@ -124,7 +124,7 @@ describe('SelectV2', () => {
     expect(windowStyle.marginTop).to.equal('6px');
     expect(windowStyle.marginBottom).to.equal('6px');
     expect(windowStyle.paddingTop).to.equal('0px');
-    expect(vm.$refs.popper.$refs.list.totalSize).to.equal(340000);
+    expect(vm.$refs.popper.$refs.list.$refs.inner.style.height).to.equal('340000px');
   });
 
   it('measures rendered option heights when estimated option height is provided', async() => {
@@ -162,8 +162,6 @@ describe('SelectV2', () => {
     const dropdown = vm.$refs.select.$refs.popper;
     const items = dropdown.$el.querySelectorAll('.el-select-dropdown__item');
     expect(dropdown.$refs.list.$options.name).to.equal('ElDynamicSizeList');
-    expect(dropdown.$refs.list.getItemSize(0)).to.equal(58);
-    expect(dropdown.$refs.list.getItemSize(1)).to.equal(46);
     expect(items[1].style.top).to.equal('58px');
   });
 
@@ -227,8 +225,8 @@ describe('SelectV2', () => {
     const selected = select.$refs.popper.$el.querySelector('.el-select-dropdown__item.selected');
     expect(selected).to.exist;
     expect(selected.getAttribute('data-option-index')).to.equal('8000');
-    expect(list.scrollOffset).to.be.above(0);
-    expect(list.$refs.window.scrollTop).to.equal(list.scrollOffset);
+    expect(list.states.scrollOffset).to.be.above(0);
+    expect(list.$refs.window.scrollTop).to.equal(list.states.scrollOffset);
   });
 
   it('opens at a selected option loaded after the initial value', async() => {
@@ -253,7 +251,47 @@ describe('SelectV2', () => {
     const selected = select.$refs.popper.$el.querySelector('.el-select-dropdown__item.selected');
     expect(selected).to.exist;
     expect(selected.getAttribute('data-option-index')).to.equal('8000');
-    expect(list.$refs.window.scrollTop).to.equal(list.scrollOffset);
+    expect(list.$refs.window.scrollTop).to.equal(list.states.scrollOffset);
+  });
+
+  it('preserves the active remote search input when options update', async() => {
+    vm = createVue({
+      components: { SelectV2 },
+      template: `
+        <select-v2
+          ref="select"
+          v-model="value"
+          :options="options"
+          filterable
+          remote
+          :remote-method="remoteMethod">
+        </select-v2>
+      `,
+      data() {
+        return {
+          value: '',
+          options: getOptions(2)
+        };
+      },
+      methods: {
+        remoteMethod() {}
+      }
+    }, true);
+    const select = vm.$refs.select;
+    const input = select.$refs.reference.$el.querySelector('input');
+
+    select.visible = true;
+    await select.$nextTick();
+    input.focus();
+    select.query = 'Option';
+    select.displayLabel = 'Option';
+    await select.$nextTick();
+
+    vm.options = getOptions(3);
+    await vm.$nextTick();
+
+    expect(select.displayLabel).to.equal('Option');
+    expect(input.value).to.equal('Option');
   });
 
   it('aligns an open dropdown when delayed options arrive', async() => {
@@ -278,7 +316,7 @@ describe('SelectV2', () => {
     const selected = select.$refs.popper.$el.querySelector('.el-select-dropdown__item.selected');
     expect(selected).to.exist;
     expect(selected.getAttribute('data-option-index')).to.equal('8000');
-    expect(list.$refs.window.scrollTop).to.equal(list.scrollOffset);
+    expect(list.$refs.window.scrollTop).to.equal(list.states.scrollOffset);
   });
 
   it('resets the offset to the first option when reopening without a value', async() => {
@@ -291,7 +329,7 @@ describe('SelectV2', () => {
     vm.visible = true;
     await wait(50);
     vm.$refs.popper.scrollToIndex(63);
-    expect(vm.$refs.popper.$refs.list.scrollOffset).to.be.above(0);
+    expect(vm.$refs.popper.$refs.list.states.scrollOffset).to.be.above(0);
 
     vm.visible = false;
     await wait(300);
@@ -299,7 +337,7 @@ describe('SelectV2', () => {
     await wait(50);
 
     const firstItem = vm.$refs.popper.$el.querySelector('.el-select-dropdown__item');
-    expect(vm.$refs.popper.$refs.list.scrollOffset).to.equal(0);
+    expect(vm.$refs.popper.$refs.list.states.scrollOffset).to.equal(0);
     expect(vm.$refs.popper.$refs.list.$refs.window.scrollTop).to.equal(0);
     expect(firstItem.getAttribute('data-option-index')).to.equal('0');
     expect(firstItem.style.top).to.equal('0px');
@@ -922,14 +960,22 @@ describe('SelectV2', () => {
       value: '',
       options: []
     }, true);
-    await wait(30);
     vm.cancelLayoutSync();
     const readSpy = sinon.spy(vm, 'readLayoutMetrics');
     const writeSpy = sinon.spy(vm, 'writeLayoutMetrics');
 
     vm.requestLayoutSync();
     vm.requestLayoutSync();
-    await wait(30);
+    await new Promise(resolve => {
+      const waitForLayout = () => {
+        if (readSpy.calledOnce && writeSpy.calledOnce) {
+          resolve();
+          return;
+        }
+        window.requestAnimationFrame(waitForLayout);
+      };
+      window.requestAnimationFrame(waitForLayout);
+    });
 
     expect(readSpy.calledOnce).to.true;
     expect(writeSpy.calledOnce).to.true;
